@@ -23,6 +23,7 @@ import { fmt } from '../lib/utils';
 interface CommandBarProps {
   open: boolean;
   onClose: () => void;
+  onExpenseAdded?: () => void;
 }
 
 type Mode = 'input' | 'processing' | 'review';
@@ -45,7 +46,7 @@ function looksLikeExpense(text: string): boolean {
   return /\d/.test(text) && !/^(go to|open|show|navigate|find)\s/i.test(text);
 }
 
-export function CommandBar({ open, onClose }: CommandBarProps) {
+export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
   const [text, setText] = useState('');
   const [mode, setMode] = useState<Mode>('input');
   const [parsed, setParsed] = useState<ParsedExpense | null>(null);
@@ -142,6 +143,7 @@ export function CommandBar({ open, onClose }: CommandBarProps) {
         tag_ids: [],
       });
       toast('Expense saved!', 'success');
+      onExpenseAdded?.();
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save');

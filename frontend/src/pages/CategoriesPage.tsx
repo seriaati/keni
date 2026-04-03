@@ -4,6 +4,7 @@ import { categories as categoriesApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import { Modal } from '../components/ui/Modal';
 import type { CategoryResponse } from '../lib/types';
+import { isEmoji } from '../lib/utils';
 
 const PRESET_COLORS = [
   '#4CAF50', '#2196F3', '#FF9800', '#E91E63', '#9C27B0',
@@ -292,7 +293,9 @@ function CategoryCard({
         fontSize: 16,
         flexShrink: 0,
       }}>
-        {cat.icon ?? <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{cat.name[0]}</span>}
+        {cat.icon && isEmoji(cat.icon)
+          ? cat.icon
+          : <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{cat.name[0]}</span>}
       </div>
       <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {cat.name}

@@ -4,7 +4,7 @@ import { Download, Filter, Search, SortAsc, SortDesc, X } from 'lucide-react';
 import { expenses as expensesApi, categories as categoriesApi, wallets as walletsApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import type { CategoryResponse, ExpenseListResponse, ExpenseResponse, WalletSummary } from '../lib/types';
-import { fmt, fmtRelative } from '../lib/utils';
+import { fmt, fmtRelative, isEmoji } from '../lib/utils';
 
 export function WalletViewPage() {
   const { walletId } = useParams<{ walletId: string }>();
@@ -288,7 +288,7 @@ function ExpenseRow({
           fontSize: 16,
         }}
       >
-        {expense.category.icon ? (
+        {expense.category.icon && isEmoji(expense.category.icon) ? (
           <span>{expense.category.icon}</span>
         ) : (
           <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>

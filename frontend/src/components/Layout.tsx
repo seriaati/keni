@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   Bot,
@@ -30,13 +30,23 @@ const NAV = [
   { to: '/chat', icon: Bot, label: 'Chat with AI' },
 ];
 
+export interface LayoutOutletContext {
+  expenseAddedKey: number;
+  onExpenseAdded: () => void;
+}
+
 export function Layout() {
   const { user, logout } = useAuth();
   const { wallets, activeWallet, setActiveWallet } = useWallet();
   const [cmdOpen, setCmdOpen] = useState(false);
   const [walletMenuOpen, setWalletMenuOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [expenseAddedKey, setExpenseAddedKey] = useState(0);
   const navigate = useNavigate();
+
+  const handleExpenseAdded = useCallback(() => {
+    setExpenseAddedKey((k) => k + 1);
+  }, []);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -185,7 +195,7 @@ export function Layout() {
         </header>
 
         <div className="page-content">
-          <Outlet />
+          <Outlet context={{ expenseAddedKey, onExpenseAdded: handleExpenseAdded } satisfies LayoutOutletContext} />
         </div>
       </main>
 
@@ -194,7 +204,7 @@ export function Layout() {
         <Command size={22} />
       </button>
 
-      <CommandBar open={cmdOpen} onClose={() => setCmdOpen(false)} />
+      <CommandBar open={cmdOpen} onClose={() => setCmdOpen(false)} onExpenseAdded={handleExpenseAdded} />
     </div>
   );
 }

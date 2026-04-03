@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import { ArrowRight, Wallet } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { expenses as expensesApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
 import { useAuth } from '../contexts/AuthContext';
 import type { ExpenseResponse, ExpenseSummary } from '../lib/types';
-import { fmt, fmtRelative, startOfMonth, endOfMonth, startOfWeek } from '../lib/utils';
+import { fmt, fmtRelative, startOfMonth, endOfMonth, startOfWeek, isEmoji } from '../lib/utils';
+import type { LayoutOutletContext } from '../components/Layout';
 
 const CHART_COLORS = [
   'var(--forest)',
@@ -21,6 +22,7 @@ const CHART_COLORS = [
 export function DashboardPage() {
   const { user } = useAuth();
   const { activeWallet } = useWallet();
+  const { expenseAddedKey } = useOutletContext<LayoutOutletContext>();
   const [summary, setSummary] = useState<ExpenseSummary | null>(null);
   const [weekSummary, setWeekSummary] = useState<ExpenseSummary | null>(null);
   const [recent, setRecent] = useState<ExpenseResponse[]>([]);
@@ -45,7 +47,7 @@ export function DashboardPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [activeWallet]);
+  }, [activeWallet, expenseAddedKey]);
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -164,7 +166,7 @@ export function DashboardPage() {
                       flexShrink: 0,
                     }}
                   >
-                    {expense.category.icon ? (
+                    {expense.category.icon && isEmoji(expense.category.icon) ? (
                       <span>{expense.category.icon}</span>
                     ) : (
                       <span style={{ fontSize: 12, fontWeight: 600, color: 'white' }}>

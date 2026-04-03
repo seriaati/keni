@@ -123,7 +123,9 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showKey, setShowKey] = useState(false);
-  const [form, setForm] = useState({ provider: 'openai', model: 'gpt-4o', api_key: '' });
+  const [form, setForm] = useState({ provider: 'anthropic', model: '', api_key: '' });
+  const [models, setModels] = useState<string[]>([]);
+  const [fetchingModels, setFetchingModels] = useState(false);
 
   useEffect(() => {
     aiProviderApi.get()
@@ -132,10 +134,26 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
       .finally(() => setLoading(false));
   }, []);
 
-  const selectedProvider = AI_PROVIDERS.find((p) => p.value === form.provider);
+  useEffect(() => {
+    if (!form.api_key) return;
+    const timer = setTimeout(async () => {
+      setFetchingModels(true);
+      try {
+        const { models: fetched } = await aiProviderApi.listModels(form.api_key);
+        setModels(fetched);
+        setForm((f) => ({ ...f, model: fetched.includes(f.model) ? f.model : (fetched[0] ?? '') }));
+      } catch {
+        setModels([]);
+      } finally {
+        setFetchingModels(false);
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [form.api_key]);
 
   const handleSave = async () => {
     if (!form.api_key && !provider) { toast('API key is required', 'error'); return; }
+    if (!form.model) { toast('Select a model', 'error'); return; }
     setSaving(true);
     try {
       const updated = await aiProviderApi.upsert({
@@ -145,6 +163,7 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
       });
       setProvider(updated);
       setForm((f) => ({ ...f, api_key: '' }));
+      setModels([]);
       toast('AI provider saved', 'success');
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed', 'error');
@@ -158,6 +177,8 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
     try {
       await aiProviderApi.delete();
       setProvider(null);
+      setModels([]);
+      setForm({ provider: 'anthropic', model: '', api_key: '' });
       toast('AI provider removed', 'success');
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed', 'error');
@@ -167,6 +188,8 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
   };
 
   if (loading) return <div className="skeleton" style={{ height: 200, borderRadius: 14 }} />;
+
+  const modelOptions = models.length > 0 ? models : (provider && !form.api_key ? [provider.model] : []);
 
   return (
     <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -189,18 +212,8 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
 
       <div className="input-group">
         <label className="input-label">Provider</label>
-        <select className="input" value={form.provider} onChange={(e) => {
-          const p = AI_PROVIDERS.find((p) => p.value === e.target.value);
-          setForm({ ...form, provider: e.target.value, model: p?.models[0] ?? '' });
-        }}>
+        <select className="input" value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value, model: '' })}>
           {AI_PROVIDERS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-        </select>
-      </div>
-
-      <div className="input-group">
-        <label className="input-label">Model</label>
-        <select className="input" value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })}>
-          {selectedProvider?.models.map((m) => <option key={m} value={m}>{m}</option>)}
         </select>
       </div>
 
@@ -210,7 +223,7 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
           <input
             className="input"
             type={showKey ? 'text' : 'password'}
-            placeholder={provider ? '••••••••••••' : 'sk-...'}
+            placeholder={provider ? '••••••••••••' : 'sk-ant-...'}
             value={form.api_key}
             onChange={(e) => setForm({ ...form, api_key: e.target.value })}
             style={{ paddingRight: 40 }}
@@ -223,6 +236,27 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
             {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
           </button>
         </div>
+        {form.api_key && fetchingModels && (
+          <span className="input-hint">Fetching available models…</span>
+        )}
+        {form.api_key && !fetchingModels && models.length === 0 && (
+          <span className="input-hint" style={{ color: 'var(--rose)' }}>Could not fetch models — check your API key</span>
+        )}
+      </div>
+
+      <div className="input-group">
+        <label className="input-label">Model</label>
+        <select
+          className="input"
+          value={form.model}
+          onChange={(e) => setForm({ ...form, model: e.target.value })}
+          disabled={modelOptions.length === 0}
+        >
+          {modelOptions.length === 0
+            ? <option value="">— enter API key to load models —</option>
+            : modelOptions.map((m) => <option key={m} value={m}>{m}</option>)
+          }
+        </select>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>

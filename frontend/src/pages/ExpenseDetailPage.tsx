@@ -4,7 +4,7 @@ import { ArrowLeft, Bot, Pencil, Trash2, Check, X } from 'lucide-react';
 import { expenses as expensesApi, categories as categoriesApi, tags as tagsApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import type { CategoryResponse, ExpenseResponse, TagResponse } from '../lib/types';
-import { fmt, fmtDate } from '../lib/utils';
+import { fmt, fmtDate, isEmoji } from '../lib/utils';
 
 export function ExpenseDetailPage() {
   const { walletId, expenseId } = useParams<{ walletId: string; expenseId: string }>();
@@ -168,7 +168,9 @@ export function ExpenseDetailPage() {
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ width: 28, height: 28, borderRadius: 7, background: expense.category.color ?? 'var(--cream-darker)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>
-                  {expense.category.icon ?? expense.category.name[0]}
+                  {expense.category.icon && isEmoji(expense.category.icon)
+                    ? expense.category.icon
+                    : <span style={{ fontSize: 12, fontWeight: 700, color: 'white' }}>{expense.category.name[0]}</span>}
                 </div>
                 <span style={{ fontSize: 15, fontWeight: 500 }}>{expense.category.name}</span>
               </div>

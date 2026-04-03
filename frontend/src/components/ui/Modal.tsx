@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface ModalProps {
@@ -33,7 +34,7 @@ export function Modal({ open, onClose, title, children, footer, size = 'md' }: M
 
   const maxWidths = { sm: '380px', md: '480px', lg: '600px' };
 
-  return (
+  return createPortal(
     <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal" style={{ maxWidth: maxWidths[size] }}>
         {title && (
@@ -47,6 +48,7 @@ export function Modal({ open, onClose, title, children, footer, size = 'md' }: M
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-footer">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
