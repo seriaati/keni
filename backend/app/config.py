@@ -1,5 +1,6 @@
 from typing import Literal
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,6 +18,13 @@ class Settings(BaseSettings):
     stt_provider: Literal["local", "external"] = "local"
     whisper_model_size: Literal["tiny", "base", "small", "medium", "large"] = "base"
     whisper_device: Literal["cpu", "cuda", "auto"] = "auto"
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def __parse_cors_origins(cls, v: str | list[str]) -> list[str]:
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(",")]
+        return v
 
 
 settings = Settings()
