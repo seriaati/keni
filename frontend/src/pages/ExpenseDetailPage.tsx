@@ -6,6 +6,7 @@ import { expenses as expensesApi, categories as categoriesApi, tags as tagsApi }
 import { useToast } from '../components/ui/Toast';
 import { Select } from '../components/ui/Select';
 import { DatePicker } from '../components/ui/DatePicker';
+import { Modal } from '../components/ui/Modal';
 import type { CategoryResponse, ExpenseResponse, TagResponse } from '../lib/types';
 import { fmt, fmtDate } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
@@ -328,6 +329,7 @@ export function ExpenseDetailPage() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const [form, setForm] = useState({
     amount: '',
@@ -381,6 +383,7 @@ export function ExpenseDetailPage() {
 
   const handleDelete = async () => {
     if (!walletId || !expenseId) return;
+    setConfirmDelete(false);
     setDeleting(true);
     try {
       await expensesApi.delete(walletId, expenseId);
@@ -440,7 +443,7 @@ export function ExpenseDetailPage() {
               <button className="btn btn-secondary btn-sm" onClick={() => setEditing(true)}>
                 <Pencil size={13} /> Edit
               </button>
-              <button className="btn btn-danger btn-sm" onClick={handleDelete} disabled={deleting}>
+              <button className="btn btn-danger btn-sm" onClick={() => setConfirmDelete(true)} disabled={deleting}>
                 {deleting ? <span className="btn-spinner" /> : <Trash2 size={13} />}
                 Delete
               </button>
@@ -458,6 +461,27 @@ export function ExpenseDetailPage() {
           )}
         </div>
       </div>
+
+      <Modal
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        title="Delete expense"
+        size="sm"
+        footer={
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button className="btn btn-secondary btn-sm" onClick={() => setConfirmDelete(false)}>
+              Cancel
+            </button>
+            <button className="btn btn-danger btn-sm" onClick={handleDelete}>
+              <Trash2 size={13} /> Delete
+            </button>
+          </div>
+        }
+      >
+        <p style={{ fontSize: 14, color: 'var(--ink-mid)', margin: 0 }}>
+          Are you sure you want to delete this expense? This action cannot be undone.
+        </p>
+      </Modal>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {/* Amount */}

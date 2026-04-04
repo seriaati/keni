@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import logoSrc from '../assets/logo.svg';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   Bot,
@@ -82,8 +83,7 @@ export function Layout() {
       <aside className={`sidebar ${mobileNavOpen ? 'sidebar-open' : ''}`}>
         <div className="sidebar-header">
           <Link to="/" className="sidebar-logo">
-            <span className="sidebar-logo-mark">Z</span>
-            <span className="sidebar-logo-text">Zeni</span>
+            <img src={logoSrc} alt="Zeni" className="sidebar-logo-img" />
           </Link>
         </div>
 
@@ -198,8 +198,7 @@ export function Layout() {
             </svg>
           </button>
           <Link to="/" className="sidebar-logo">
-            <span className="sidebar-logo-mark">Z</span>
-            <span className="sidebar-logo-text">Zeni</span>
+            <img src={logoSrc} alt="Zeni" className="sidebar-logo-img" />
           </Link>
           <button className="icon-btn icon-btn-lg" onClick={() => setCmdOpen(true)}>
             <Command size={18} />
