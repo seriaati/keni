@@ -1,3 +1,4 @@
+import loadingSrc from './assets/loading.svg';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { WalletProvider } from './contexts/WalletContext';
@@ -38,21 +39,17 @@ function AppLoader() {
       background: 'var(--cream)',
     }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{
-          width: 40,
-          height: 40,
-          background: 'var(--forest)',
-          borderRadius: 12,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontFamily: 'var(--font-display)',
-          fontSize: 22,
-          fontStyle: 'italic',
-          color: 'var(--cream)',
-          margin: '0 auto 16px',
-          animation: 'spin 2s linear infinite',
-        }}>Z</div>
+        <img
+          src={loadingSrc}
+          alt=""
+          style={{
+            width: 40,
+            height: 40,
+            margin: '0 auto 16px',
+            display: 'block',
+            animation: 'spin 2s linear infinite',
+          }}
+        />
         <p style={{ fontSize: 13, color: 'var(--ink-faint)' }}>Loading…</p>
       </div>
     </div>

@@ -83,7 +83,8 @@ export function Layout() {
       <aside className={`sidebar ${mobileNavOpen ? 'sidebar-open' : ''}`}>
         <div className="sidebar-header">
           <Link to="/" className="sidebar-logo">
-            <img src={logoSrc} alt="Zeni" className="sidebar-logo-img" />
+            <img src={logoSrc} alt="" className="sidebar-logo-img" />
+            <span className="sidebar-logo-name">Zeni</span>
           </Link>
         </div>
 
@@ -198,7 +199,8 @@ export function Layout() {
             </svg>
           </button>
           <Link to="/" className="sidebar-logo">
-            <img src={logoSrc} alt="Zeni" className="sidebar-logo-img" />
+            <img src={logoSrc} alt="" className="sidebar-logo-img" />
+            <span className="sidebar-logo-name">Zeni</span>
           </Link>
           <button className="icon-btn icon-btn-lg" onClick={() => setCmdOpen(true)}>
             <Command size={18} />

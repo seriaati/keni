@@ -35,6 +35,12 @@
   display: block;
 }
 
+.sidebar-logo-name {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--ink);
+}
+
 /* Wallet selector */
 .wallet-selector {
   margin: 0 10px 8px;
