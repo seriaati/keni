@@ -1,0 +1,419 @@
+---
+---
+
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-text">
+      <p class="hero-eyebrow animate-fade-up">Personal finance tracker</p>
+      <h1 class="hero-headline animate-fade-up delay-1">
+        Money, tracked<br /><em>without the friction.</em>
+      </h1>
+      <p class="hero-sub animate-fade-up delay-2">
+        Just say "coffee 4.50" — Zeni understands. AI parses your expenses from
+        text, voice, or a photo of your receipt. No forms, no categories to memorise.
+      </p>
+      <div class="hero-actions animate-fade-up delay-3">
+        <a href="https://github.com" class="btn-primary">View on GitHub</a>
+        <a href="#features" class="btn-ghost">See features ↓</a>
+      </div>
+    </div>
+
+    <div class="hero-visual animate-fade-up delay-2">
+      <div class="mockup-shell">
+        <div class="mockup-bar">
+          <div class="mockup-dot"></div>
+          <div class="mockup-dot"></div>
+          <div class="mockup-dot"></div>
+        </div>
+        <div class="mockup-cmd">
+          <svg class="mockup-zap" width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          <span class="mockup-cmd-text">lunch with team 38<span class="mockup-cursor">|</span></span>
+          <span class="mockup-cmd-hint">⌘K</span>
+        </div>
+        <div class="mockup-result">
+          <div class="mockup-row">
+            <span class="mockup-label">Amount</span>
+            <span class="mockup-value mockup-value--display">$38.00</span>
+          </div>
+          <div class="mockup-row">
+            <span class="mockup-label">Category</span>
+            <span class="mockup-value">🍽 Dining</span>
+          </div>
+          <div class="mockup-row">
+            <span class="mockup-label">Tags</span>
+            <span class="mockup-chip">work</span>
+            <span class="mockup-chip mockup-chip--new">✦ team</span>
+          </div>
+          <p class="mockup-ai-note">AI understood: lunch expense with colleagues</p>
+          <div class="mockup-actions">
+            <button class="mockup-btn-ghost">Edit</button>
+            <button class="mockup-btn-primary">Save expense</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card stat-card--month">
+        <span class="stat-label">This month</span>
+        <span class="stat-value">$1,240</span>
+        <span class="stat-sub">42 expenses</span>
+      </div>
+
+      <div class="stat-card stat-card--budget">
+        <span class="stat-label">Dining budget</span>
+        <div class="stat-bar-wrap">
+          <div class="stat-bar" style="width: 68%"></div>
+        </div>
+        <span class="stat-sub">68% used · $64 left</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+.hero {
+  padding: clamp(64px, 10vw, 120px) 0 clamp(48px, 8vw, 96px);
+  overflow: hidden;
+}
+
+.hero-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 48px);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(40px, 6vw, 80px);
+  align-items: center;
+}
+
+.hero-eyebrow {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-light);
+  margin-bottom: 16px;
+}
+
+.hero-headline {
+  font-family: var(--font-display);
+  font-size: clamp(40px, 5.5vw, 68px);
+  font-weight: 400;
+  line-height: 1.08;
+  color: var(--ink);
+  margin-bottom: 24px;
+}
+.hero-headline em { font-style: italic; color: var(--forest-light); }
+
+.hero-sub {
+  font-size: clamp(15px, 1.6vw, 17px);
+  color: var(--ink-mid);
+  line-height: 1.65;
+  max-width: 440px;
+  margin-bottom: 36px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--forest);
+  color: var(--cream);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 11px 22px;
+  border-radius: var(--radius);
+  transition:
+    opacity 0.15s,
+    transform 0.18s cubic-bezier(0.25, 1, 0.5, 1),
+    box-shadow 0.18s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.btn-primary:hover {
+  opacity: 0.88;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px oklch(18% 0.01 80 / 0.18);
+}
+.btn-primary:active {
+  transform: translateY(0) scale(0.97);
+  opacity: 1;
+  box-shadow: none;
+  transition-duration: 0.08s;
+}
+
+.btn-ghost {
+  font-size: 14px;
+  color: var(--ink-light);
+  padding: 11px 4px;
+  transition: color 0.15s, transform 0.18s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.btn-ghost:hover {
+  color: var(--ink);
+  transform: translateX(3px);
+}
+
+/* ── Mockup ─────────────────────────────────────────────── */
+.hero-visual {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.mockup-shell {
+  background: white;
+  border-radius: 20px;
+  box-shadow: var(--shadow-xl);
+  width: 100%;
+  max-width: 400px;
+  overflow: hidden;
+  border: 1px solid var(--cream-darker);
+  position: relative;
+  z-index: 1;
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.hero-visual:hover .mockup-shell {
+  transform: translateY(-4px) rotate(-0.5deg);
+  box-shadow: 0 28px 72px oklch(18% 0.02 80 / 0.16), 0 4px 16px oklch(18% 0.02 80 / 0.1);
+}
+
+.mockup-bar {
+  display: flex;
+  gap: 6px;
+  padding: 12px 14px;
+  background: var(--cream);
+  border-bottom: 1px solid var(--cream-darker);
+}
+
+.mockup-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--sand);
+}
+
+.mockup-cmd {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--cream-darker);
+}
+
+.mockup-zap { color: var(--forest); flex-shrink: 0; }
+
+.mockup-cmd-text {
+  flex: 1;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.mockup-cursor {
+  color: var(--forest);
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.mockup-cmd-hint {
+  font-size: 11px;
+  color: var(--ink-faint);
+  background: var(--cream-dark);
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+
+.mockup-result {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mockup-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--cream);
+  border-radius: 8px;
+  padding: 9px 12px;
+}
+
+.mockup-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-light);
+  width: 68px;
+  flex-shrink: 0;
+}
+
+.mockup-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.mockup-value--display {
+  font-family: var(--font-display);
+  font-size: 20px;
+}
+
+.mockup-chip {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-mid);
+  background: white;
+  border: 1px solid var(--cream-darker);
+  padding: 2px 8px;
+  border-radius: 5px;
+}
+
+.mockup-chip--new {
+  color: oklch(38% 0.09 145);
+  background: oklch(92% 0.04 145);
+  border-color: oklch(82% 0.08 145);
+}
+
+.mockup-ai-note {
+  font-size: 12px;
+  color: var(--ink-faint);
+  font-style: italic;
+  padding: 0 2px;
+}
+
+.mockup-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.mockup-btn-ghost {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-mid);
+  background: white;
+  border: 1px solid var(--cream-darker);
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: background 0.15s, border-color 0.15s, transform 0.15s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.mockup-btn-ghost:hover {
+  background: var(--cream);
+  border-color: var(--sand);
+  transform: translateY(-1px);
+}
+.mockup-btn-ghost:active { transform: scale(0.97); transition-duration: 0.08s; }
+
+.mockup-btn-primary {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--cream);
+  background: var(--forest);
+  border: none;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: opacity 0.15s, transform 0.15s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.mockup-btn-primary:hover { opacity: 0.85; transform: translateY(-1px); }
+.mockup-btn-primary:active { transform: scale(0.97); opacity: 1; transition-duration: 0.08s; }
+
+/* ── Floating stat cards ────────────────────────────────── */
+.stat-card {
+  position: absolute;
+  background: white;
+  border: 1px solid var(--cream-darker);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 2;
+  animation: floatCard 5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  transition: box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.stat-card:hover {
+  box-shadow: var(--shadow-xl);
+  animation-play-state: paused;
+}
+
+@keyframes floatCard {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-7px); }
+}
+
+.stat-card--month {
+  bottom: -16px;
+  left: -24px;
+  animation-delay: 0s;
+}
+
+.stat-card--budget {
+  top: -16px;
+  right: -20px;
+  min-width: 160px;
+  animation-delay: 2s;
+}
+
+.stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink-faint);
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.stat-sub {
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+.stat-bar-wrap {
+  height: 5px;
+  background: var(--cream-dark);
+  border-radius: 99px;
+  overflow: hidden;
+  margin: 2px 0;
+}
+
+.stat-bar {
+  height: 100%;
+  background: var(--amber);
+  border-radius: 99px;
+}
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .hero-inner {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-visual {
+    display: none;
+  }
+}
+</style>

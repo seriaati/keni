@@ -1,0 +1,190 @@
+---
+---
+
+<section class="privacy" id="privacy">
+  <div class="privacy-inner">
+    <div class="privacy-grid">
+
+      <div class="privacy-text reveal">
+        <span class="tag">Open source · Self-hosted</span>
+        <h2 class="section-title">Your data stays<br /><em>yours.</em></h2>
+        <p class="section-sub">
+          Zeni runs entirely on your own infrastructure. No cloud sync, no
+          third-party analytics, no subscription fees.
+        </p>
+        <ul class="check-list reveal-stagger">
+          <li class="reveal">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            FastAPI + PostgreSQL backend
+          </li>
+          <li class="reveal">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Bring your own AI provider (Anthropic, OpenAI, etc.)
+          </li>
+          <li class="reveal">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Local Whisper STT — no audio leaves your server
+          </li>
+          <li class="reveal">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            MCP server for AI assistant integrations
+          </li>
+          <li class="reveal">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Export your data anytime
+          </li>
+        </ul>
+      </div>
+
+      <div class="code-block reveal-scale">
+        <div class="code-header">
+          <span class="code-dot"></span>
+          <span class="code-dot"></span>
+          <span class="code-dot"></span>
+          <span class="code-filename">docker-compose.yml</span>
+        </div>
+        <pre class="code-body"><code><span class="c-key">services</span><span class="c-punc">:</span>
+  <span class="c-key">zeni</span><span class="c-punc">:</span>
+    <span class="c-key">image</span><span class="c-punc">:</span> <span class="c-str">ghcr.io/you/zeni:latest</span>
+    <span class="c-key">environment</span><span class="c-punc">:</span>
+      <span class="c-key">DATABASE_URL</span><span class="c-punc">:</span> <span class="c-str">postgresql://...</span>
+      <span class="c-key">AI_PROVIDER</span><span class="c-punc">:</span>  <span class="c-str">anthropic</span>
+      <span class="c-key">STT_PROVIDER</span><span class="c-punc">:</span> <span class="c-str">local</span>
+    <span class="c-key">ports</span><span class="c-punc">:</span>
+      <span class="c-punc">-</span> <span class="c-str">"8000:8000"</span></code></pre>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<style>
+.privacy {
+  padding: clamp(64px, 8vw, 100px) 0;
+  background: var(--cream-dark);
+  border-top: 1px solid var(--cream-darker);
+  border-bottom: 1px solid var(--cream-darker);
+}
+
+.privacy-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 48px);
+}
+
+.privacy-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(40px, 6vw, 80px);
+  align-items: center;
+}
+
+.tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-light);
+  background: white;
+  border: 1px solid var(--cream-darker);
+  padding: 4px 10px;
+  border-radius: 100px;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 4vw, 52px);
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--ink);
+}
+.section-title em { font-style: italic; color: var(--forest-light); }
+
+.section-sub {
+  font-size: clamp(14px, 1.5vw, 16px);
+  color: var(--ink-mid);
+  line-height: 1.65;
+  margin-top: 14px;
+  max-width: 400px;
+}
+
+.check-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.check-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--ink-mid);
+}
+
+.check-list svg {
+  color: var(--forest-light);
+  flex-shrink: 0;
+}
+
+/* ── Code block ─────────────────────────────────────────── */
+.code-block {
+  background: var(--forest);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.code-block:hover {
+  transform: translateY(-4px) rotate(0.3deg);
+  box-shadow: var(--shadow-xl);
+}
+
+.code-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  background: oklch(22% 0.01 80);
+  border-bottom: 1px solid oklch(28% 0.01 80);
+}
+
+.code-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: oklch(35% 0.01 80);
+}
+
+.code-filename {
+  font-size: 12px;
+  color: oklch(55% 0.01 80);
+  margin-left: 6px;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+}
+
+.code-body {
+  padding: 24px;
+  font-family: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 13px;
+  line-height: 1.8;
+  overflow-x: auto;
+}
+
+.code-body code { display: block; }
+
+.c-key   { color: oklch(72% 0.08 230); }
+.c-punc  { color: oklch(55% 0.01 80); }
+.c-str   { color: oklch(72% 0.1 155); }
+
+@media (max-width: 768px) {
+  .privacy-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

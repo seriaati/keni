@@ -9,6 +9,10 @@
             "path": "./frontend"
         },
         {
+            "name": "website",
+            "path": "./website"
+        },
+        {
             "name": "root",
             "path": "."
         }

@@ -1,0 +1,188 @@
+---
+import '../styles/global.css';
+import logoSrc from '../assets/logo.svg?url';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'Zeni — Personal Finance Tracker',
+  description = 'Track expenses effortlessly with AI. Voice input, receipt scanning, smart budgets, and natural language insights — all in one elegant app.',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <header class="site-header site-header--enter">
+      <nav class="nav-inner">
+        <a href="/" class="nav-logo">
+          <img src={logoSrc} alt="" width="22" height="22" />
+          <span>Zeni</span>
+        </a>
+        <div class="nav-links">
+          <a href="#features">Features</a>
+          <a href="#ai">AI</a>
+          <a href="#privacy">Privacy</a>
+        </div>
+        <a href="#get-started" class="nav-cta">Get started</a>
+      </nav>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <img src={logoSrc} alt="" width="18" height="18" />
+          <span>Zeni</span>
+        </div>
+        <p class="footer-copy">Personal finance, made thoughtful.</p>
+      </div>
+    </footer>
+
+    <script>
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+      );
+
+      document.querySelectorAll('.reveal, .reveal-scale').forEach((el) => {
+        observer.observe(el);
+      });
+    </script>
+  </body>
+</html>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: oklch(97% 0.012 85 / 0.88);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--cream-darker);
+    transition: box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  .site-header--enter {
+    animation: navEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes navEnter {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .nav-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 clamp(20px, 5vw, 48px);
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-display);
+    font-size: 18px;
+    color: var(--ink);
+    font-style: italic;
+    flex-shrink: 0;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 28px;
+    flex: 1;
+  }
+
+  .nav-links a {
+    font-size: 14px;
+    color: var(--ink-light);
+    transition: color 0.15s;
+  }
+
+  .nav-links a:hover {
+    color: var(--ink);
+  }
+
+  .nav-cta {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--cream);
+    background: var(--forest);
+    padding: 7px 16px;
+    border-radius: var(--radius);
+    transition: opacity 0.15s, transform 0.15s cubic-bezier(0.25, 1, 0.5, 1);
+    flex-shrink: 0;
+  }
+
+  .nav-cta:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+  }
+
+  .nav-cta:active {
+    transform: translateY(0) scale(0.97);
+    transition-duration: 0.08s;
+  }
+
+  .site-footer {
+    border-top: 1px solid var(--cream-darker);
+    padding: 32px clamp(20px, 5vw, 48px);
+    margin-top: 80px;
+  }
+
+  .footer-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-style: italic;
+    color: var(--ink);
+  }
+
+  .footer-copy {
+    font-size: 13px;
+    color: var(--ink-faint);
+    margin-left: auto;
+  }
+
+  @media (max-width: 600px) {
+    .nav-links {
+      display: none;
+    }
+  }
+</style>
