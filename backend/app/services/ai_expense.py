@@ -9,12 +9,13 @@ import anthropic as anthropic_sdk
 from fastapi import HTTPException, status
 from sqlmodel import select
 
-logger = logging.getLogger(__name__)
-
 from app.models.ai_provider import AIProvider
 from app.models.category import Category
 from app.models.tag import Tag
 from app.providers.anthropic import AnthropicProvider
+
+logger = logging.getLogger(__name__)
+
 
 if TYPE_CHECKING:
     import uuid
@@ -114,54 +115,49 @@ async def parse_expense_with_ai(
         )
     except anthropic_sdk.AuthenticationError as exc:
         logger.warning(
-            "AI expense parse failed - AuthenticationError for user %s: %s",
-            user_id,
-            exc,
+            "AI expense parse failed - AuthenticationError for user %s: %s", user_id, exc
         )
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Invalid API key. Please update your AI provider configuration.",
         ) from exc
-    except anthropic_sdk.RateLimitError as exc:
+    except anthropic_sdk.PermissionDeniedError as exc:
         logger.warning(
-            "AI expense parse failed - RateLimitError for user %s: %s",
-            user_id,
-            exc,
+            "AI expense parse failed - PermissionDeniedError for user %s: %s", user_id, exc
         )
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="AI provider request was denied. Your API key may have insufficient credits or billing issues.",
+        ) from exc
+    except anthropic_sdk.RateLimitError as exc:
+        logger.warning("AI expense parse failed - RateLimitError for user %s: %s", user_id, exc)
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="AI provider rate limit exceeded. Please try again later.",
         ) from exc
     except anthropic_sdk.APIConnectionError as exc:
-        logger.error(
-            "AI expense parse failed - APIConnectionError (type=%s) for user %s model=%s: %s",
+        logger.exception(
+            "AI expense parse failed - APIConnectionError (type=%s) for user %s model=%s",
             type(exc).__name__,
             user_id,
             record.model,
-            exc,
         )
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"Could not connect to AI provider: {exc}",
         ) from exc
     except anthropic_sdk.APIError as exc:
-        logger.error(
-            "AI expense parse failed - APIError (type=%s, status=%s) for user %s model=%s: %s",
+        logger.exception(
+            "AI expense parse failed - APIError (type=%s) for user %s model=%s",
             type(exc).__name__,
-            getattr(exc, "status_code", "N/A"),
             user_id,
             record.model,
-            exc,
         )
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI provider error: {exc}"
         ) from exc
     except (ValueError, KeyError) as exc:
-        logger.error(
-            "AI expense parse failed - parse error for user %s: %s",
-            user_id,
-            exc,
-        )
+        logger.exception("AI expense parse failed - parse error for user %s", user_id)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Could not parse expense from input: {exc}",
