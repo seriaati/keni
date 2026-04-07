@@ -17,6 +17,11 @@ class AIProviderModelsResponse(BaseModel):
     models: list[str]
 
 
+class AIProviderValidateResponse(BaseModel):
+    valid: bool
+    detail: str
+
+
 class AIExpenseRequest(BaseModel):
     text: str | None = Field(default=None, max_length=2000)
     image_base64: str | None = None

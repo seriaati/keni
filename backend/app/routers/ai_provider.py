@@ -8,7 +8,12 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.dependencies import get_current_user, get_db
 from app.models.user import User
-from app.schemas.ai_provider import AIProviderModelsResponse, AIProviderResponse, AIProviderUpsert
+from app.schemas.ai_provider import (
+    AIProviderModelsResponse,
+    AIProviderResponse,
+    AIProviderUpsert,
+    AIProviderValidateResponse,
+)
 from app.services.ai_expense import (
     _decrypt_key,
     _mask_key,
@@ -64,6 +69,34 @@ async def delete_ai_provider(current_user: CurrentUser, session: DbDep) -> None:
         )
     await session.delete(record)
     await session.commit()
+
+
+@router.post("/validate", status_code=status.HTTP_200_OK)
+async def validate_ai_provider(
+    current_user: CurrentUser,
+    session: DbDep,
+    api_key: Annotated[str | None, Body(embed=True)] = None,
+) -> AIProviderValidateResponse:
+    resolved_key = api_key
+    if not resolved_key:
+        record = await get_ai_provider_record(current_user.id, session)
+        if record is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No AI provider configured and no API key provided.",
+            )
+        resolved_key = _decrypt_key(record.api_key_encrypted)
+
+    client = anthropic_sdk.AsyncAnthropic(api_key=resolved_key)
+    try:
+        await client.models.list(limit=1)
+        return AIProviderValidateResponse(valid=True, detail="API key is valid.")
+    except anthropic_sdk.AuthenticationError:
+        return AIProviderValidateResponse(valid=False, detail="Invalid API key.")
+    except anthropic_sdk.APIError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Failed to validate key: {exc}"
+        ) from exc
 
 
 @router.post("/models", status_code=status.HTTP_200_OK)
