@@ -168,10 +168,10 @@ export const expenses = {
     if (params.end_date) q.set('end_date', params.end_date);
     return request<ExpenseSummary>(`/wallets/${walletId}/expenses/summary?${q}`);
   },
-  aiParse: (walletId: string, text?: string, image?: File) => {
+  aiParse: (walletId: string, text?: string, file?: File) => {
     const form = new FormData();
     if (text) form.append('text', text);
-    if (image) form.append('image', image);
+    if (file) form.append('file', file);
     return request<AIExpenseResponse>(`/wallets/${walletId}/expenses/ai`, {
       method: 'POST',
       body: form,

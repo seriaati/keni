@@ -17,6 +17,7 @@ dependencies = [
     "pyjwt[crypto]>=2.8",
     "python-multipart>=0.0.9",
     "faster-whisper>=1.1.1",
+    "pymupdf>=1.25.0",
     "rapidocr-onnxruntime>=1.4.4",
     "sqlmodel>=0.0.37",
     "uvicorn>=0.42.0",

@@ -4,10 +4,12 @@ import {
   ArrowRight,
   Bot,
   Check,
+  FileText,
   Image,
   LayoutDashboard,
   Mic,
   MicOff,
+  Paperclip,
   Pencil,
   RefreshCw,
   Settings,
@@ -208,7 +210,11 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
     const file = e.target.files?.[0];
     if (!file) return;
     setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    if (file.type.startsWith('image/')) {
+      setImagePreview(URL.createObjectURL(file));
+    } else {
+      setImagePreview(null);
+    }
   };
 
   const startRecording = async () => {
@@ -335,15 +341,15 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
             </select>
           )}
 
-          {/* Image button */}
+          {/* Attach button */}
           <button
             className="icon-btn"
             onClick={() => fileInputRef.current?.click()}
-            title="Attach image"
+            title="Attach image or PDF"
           >
-            <Image size={16} />
+            <Paperclip size={16} />
           </button>
-          <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageSelect} />
+          <input ref={fileInputRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={handleImageSelect} />
 
           {/* Mic button */}
           <button
@@ -360,12 +366,20 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
           </button>
         </div>
 
-        {/* Image preview */}
-        {imagePreview && (
+        {/* File preview */}
+        {imageFile && (
           <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8, background: 'var(--cream)' }}>
-            <img src={imagePreview} alt="Receipt" style={{ height: 48, width: 48, objectFit: 'cover', borderRadius: 6 }} />
-            <span style={{ fontSize: 13, color: 'var(--ink-mid)' }}>Receipt attached</span>
-            <button className="icon-btn" onClick={() => { setImageFile(null); setImagePreview(null); }} style={{ marginLeft: 'auto' }}>
+            {imagePreview ? (
+              <img src={imagePreview} alt="Receipt" style={{ height: 48, width: 48, objectFit: 'cover', borderRadius: 6 }} />
+            ) : (
+              <div style={{ height: 48, width: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--cream-darker)', borderRadius: 6, flexShrink: 0 }}>
+                <FileText size={22} style={{ color: 'var(--ink-mid)' }} />
+              </div>
+            )}
+            <span style={{ fontSize: 13, color: 'var(--ink-mid)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {imageFile.name}
+            </span>
+            <button className="icon-btn" onClick={() => { setImageFile(null); setImagePreview(null); }} style={{ marginLeft: 'auto', flexShrink: 0 }}>
               <X size={14} />
             </button>
           </div>
@@ -660,7 +674,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
           <div style={{ padding: '6px 16px 10px', display: 'flex', gap: 12, fontSize: 11, color: 'var(--ink-faint)' }}>
             <span><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Enter</kbd> to submit</span>
             <span><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Esc</kbd> to close</span>
-            <span style={{ marginLeft: 'auto' }}>Paste an image to scan a receipt</span>
+            <span style={{ marginLeft: 'auto' }}>Paste or attach an image / PDF</span>
           </div>
         )}
       </div>

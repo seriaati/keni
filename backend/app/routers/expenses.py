@@ -29,6 +29,7 @@ from app.schemas.expense import (
 )
 from app.services.ai_expense import parse_expense_with_ai
 from app.services.category_tag import find_or_create_category, find_or_create_tag
+from app.services.pdf import extract_text_from_pdf
 from app.services.voice import transcribe_audio
 
 router = APIRouter(prefix="/api/wallets/{wallet_id}/expenses", tags=["expenses"])
@@ -118,22 +119,33 @@ async def create_expense_ai(
     current_user: CurrentUser,
     session: DbDep,
     text: Annotated[str | None, Form()] = None,
-    image: Annotated[UploadFile | None, File()] = None,
+    file: Annotated[UploadFile | None, File()] = None,
 ) -> AIExpenseResponse:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
 
-    if not text and not image:
+    if not text and not file:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Provide at least one of: text, image",
+            detail="Provide at least one of: text, file",
         )
 
     image_base64: str | None = None
     image_media_type: str | None = None
-    if image:
-        raw = await image.read()
-        image_base64 = _b64.b64encode(raw).decode()
-        image_media_type = image.content_type or "image/jpeg"
+    if file:
+        raw = await file.read()
+        content_type = file.content_type or ""
+        if content_type == "application/pdf":
+            pdf_text = extract_text_from_pdf(raw)
+            if pdf_text:
+                text = f"{pdf_text}\n\n{text}" if text else pdf_text
+        elif content_type.startswith("image/"):
+            image_base64 = _b64.b64encode(raw).decode()
+            image_media_type = content_type or "image/jpeg"
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Unsupported file type. Only images and PDFs are accepted.",
+            )
 
     parsed = await parse_expense_with_ai(
         user_id=current_user.id,
