@@ -19,6 +19,7 @@ from app.providers.errors import (
     ProviderPermissionError,
     ProviderRateLimitError,
 )
+from app.services.ocr import extract_text_from_base64
 
 logger = logging.getLogger(__name__)
 
@@ -66,18 +67,28 @@ async def get_ai_provider_record(user_id: uuid.UUID, session: AsyncSession) -> A
     return result.first()
 
 
-async def upsert_ai_provider(
-    user_id: uuid.UUID, provider: str, api_key: str, model: str, session: AsyncSession
+async def upsert_ai_provider(  # noqa: PLR0913, PLR0917
+    user_id: uuid.UUID,
+    provider: str,
+    api_key: str,
+    model: str,
+    session: AsyncSession,
+    ocr_enabled: bool = True,
 ) -> AIProvider:
     record = await get_ai_provider_record(user_id, session)
     if record is None:
         record = AIProvider(
-            user_id=user_id, provider=provider, api_key_encrypted=_encrypt_key(api_key), model=model
+            user_id=user_id,
+            provider=provider,
+            api_key_encrypted=_encrypt_key(api_key),
+            model=model,
+            ocr_enabled=ocr_enabled,
         )
     else:
         record.provider = provider
         record.api_key_encrypted = _encrypt_key(api_key)
         record.model = model
+        record.ocr_enabled = ocr_enabled
 
     session.add(record)
     await session.commit()
@@ -85,7 +96,7 @@ async def upsert_ai_provider(
     return record
 
 
-async def parse_expense_with_ai(
+async def parse_expense_with_ai(  # noqa: PLR0914
     user_id: uuid.UUID,
     text: str | None,
     image_base64: str | None,
@@ -100,6 +111,13 @@ async def parse_expense_with_ai(
         )
 
     api_key = _decrypt_key(record.api_key_encrypted)
+
+    if record.ocr_enabled and image_base64 is not None:
+        ocr_text = extract_text_from_base64(image_base64)
+        if ocr_text is not None:
+            text = "OCR extracted from receipt image:\n" + ocr_text
+            image_base64 = None
+            image_media_type = None
 
     cat_result = await session.exec(select(Category).where(Category.user_id == user_id))
     existing_categories = cat_result.all()

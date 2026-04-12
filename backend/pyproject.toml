@@ -16,6 +16,7 @@ dependencies = [
     "pydantic-settings>=2.0",
     "pyjwt[crypto]>=2.8",
     "python-multipart>=0.0.9",
+    "rapidocr-onnxruntime>=1.4.4",
     "sqlmodel>=0.0.37",
     "uvicorn>=0.42.0",
 ]

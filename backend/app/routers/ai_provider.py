@@ -40,6 +40,7 @@ async def get_ai_provider(current_user: CurrentUser, session: DbDep) -> AIProvid
         provider=record.provider,
         model=record.model,
         api_key_masked=_mask_key(_decrypt_key(record.api_key_encrypted)),
+        ocr_enabled=record.ocr_enabled,
     )
 
 
@@ -53,11 +54,13 @@ async def upsert_ai_provider_endpoint(
         api_key=body.api_key,
         model=body.model,
         session=session,
+        ocr_enabled=body.ocr_enabled,
     )
     return AIProviderResponse(
         provider=record.provider,
         model=record.model,
         api_key_masked=_mask_key(_decrypt_key(record.api_key_encrypted)),
+        ocr_enabled=record.ocr_enabled,
     )
 
 

@@ -7,12 +7,14 @@ class AIProviderUpsert(BaseModel):
     provider: str = Field(default="anthropic", pattern="^(anthropic|gemini|openai|openrouter)$")
     api_key: str = Field(min_length=1)
     model: str = Field(default="claude-opus-4-5", min_length=1)
+    ocr_enabled: bool = True
 
 
 class AIProviderResponse(BaseModel):
     provider: str
     model: str
     api_key_masked: str
+    ocr_enabled: bool
 
 
 class AIProviderModelsResponse(BaseModel):

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import uuid
 from datetime import datetime
 
@@ -17,6 +19,7 @@ class AIProvider(SQLModel, table=True):
     provider: str = Field(default="anthropic", max_length=50)
     api_key_encrypted: str
     model: str = Field(default="claude-opus-4-5", max_length=100)
+    ocr_enabled: bool = Field(default=True)
     created_at: datetime = Field(
         default=None,
         sa_column=sa.Column(
