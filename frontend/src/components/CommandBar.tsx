@@ -60,6 +60,8 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const dragCounterRef = useRef(0);
 
   const [editing, setEditing] = useState(false);
   const [editAmount, setEditAmount] = useState('');
@@ -67,6 +69,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
   const [editDescription, setEditDescription] = useState('');
   const [editTags, setEditTags] = useState('');
 
+  const dropZoneRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -191,6 +194,52 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
     setEditing(false);
   };
 
+  const handleDragEnter = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current += 1;
+    if (dragCounterRef.current === 1) setDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current -= 1;
+    if (dragCounterRef.current === 0) setDragging(false);
+  }, []);
+
+  const handleDragOver = useCallback((e: DragEvent) => {
+    e.preventDefault();
+  }, []);
+
+  const handleDrop = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current = 0;
+    setDragging(false);
+    const file = e.dataTransfer?.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    if (file.type.startsWith('image/')) {
+      setImagePreview(URL.createObjectURL(file));
+    } else {
+      setImagePreview(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const el = dropZoneRef.current;
+    if (!el) return;
+    el.addEventListener('dragenter', handleDragEnter);
+    el.addEventListener('dragleave', handleDragLeave);
+    el.addEventListener('dragover', handleDragOver);
+    el.addEventListener('drop', handleDrop);
+    return () => {
+      el.removeEventListener('dragenter', handleDragEnter);
+      el.removeEventListener('dragleave', handleDragLeave);
+      el.removeEventListener('dragover', handleDragOver);
+      el.removeEventListener('drop', handleDrop);
+    };
+  }, [open, handleDragEnter, handleDragLeave, handleDragOver, handleDrop]);
+
   const handleImagePaste = useCallback((e: ClipboardEvent) => {
     if (!open) return;
     const item = Array.from(e.clipboardData?.items ?? []).find((i) => i.type.startsWith('image/'));
@@ -255,6 +304,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
 
   return (
     <div
+      ref={dropZoneRef}
       style={{
         position: 'fixed',
         inset: 0,
@@ -279,8 +329,29 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
           boxShadow: '0 24px 80px oklch(18% 0.02 80 / 0.22), 0 4px 16px oklch(18% 0.02 80 / 0.1)',
           overflow: 'hidden',
           animation: 'scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both',
+          position: 'relative',
         }}
       >
+        {dragging && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 10,
+            borderRadius: 20,
+            border: '2.5px dashed var(--forest)',
+            background: '#F9F5EC',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            pointerEvents: 'none',
+          }}>
+            <Image size={28} style={{ color: 'var(--forest)' }} />
+            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font-body)' }}>Drop file to attach</span>
+            <span style={{ fontSize: 12, color: 'var(--ink-light)' }}>Image or PDF</span>
+          </div>
+        )}
         {/* Header bar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: '1px solid var(--cream-darker)' }}>
           {mode === 'processing' ? (
@@ -674,7 +745,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
           <div style={{ padding: '6px 16px 10px', display: 'flex', gap: 12, fontSize: 11, color: 'var(--ink-faint)' }}>
             <span><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Enter</kbd> to submit</span>
             <span><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Esc</kbd> to close</span>
-            <span style={{ marginLeft: 'auto' }}>Paste or attach an image / PDF</span>
+            <span style={{ marginLeft: 'auto' }}>Paste, drag & drop, or attach an image / PDF</span>
           </div>
         )}
       </div>
