@@ -4,16 +4,9 @@ import tempfile
 from typing import Any
 
 from fastapi import HTTPException, status
+from faster_whisper import WhisperModel
 
 from app.providers.stt.base import STTProvider
-
-try:
-    from faster_whisper import WhisperModel as _WhisperModel
-
-    _FASTER_WHISPER_AVAILABLE = True
-except ImportError:
-    _FASTER_WHISPER_AVAILABLE = False
-    _WhisperModel = None
 
 try:
     import torch as _torch  # pyright: ignore[reportMissingImports]
@@ -43,20 +36,13 @@ class LocalSTTProvider(STTProvider):
     def _load_model(self) -> None:
         if self._model is not None:
             return
-        if not _FASTER_WHISPER_AVAILABLE:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=(
-                    "Local STT is not available. Install the voice extras: uv sync --extra voice"
-                ),
-            )
 
         device = self._device
         if device == "auto":
             device = "cuda" if (_TORCH_AVAILABLE and _torch.cuda.is_available()) else "cpu"  # pyright: ignore[reportOptionalMemberAccess]
 
         compute_type = "float16" if device == "cuda" else "int8"
-        self._model = _WhisperModel(self._model_size, device=device, compute_type=compute_type)  # pyright: ignore[reportOptionalCall]
+        self._model = WhisperModel(self._model_size, device=device, compute_type=compute_type)
 
     async def transcribe(self, audio_bytes: bytes, content_type: str) -> str:
         self._load_model()
