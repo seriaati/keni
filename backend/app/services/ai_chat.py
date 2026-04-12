@@ -3,15 +3,20 @@ from __future__ import annotations
 import operator
 from typing import TYPE_CHECKING
 
-import anthropic as anthropic_sdk
 from fastapi import HTTPException, status
 from sqlmodel import col, select
 
 from app.models.category import Category
 from app.models.expense import Expense
 from app.models.wallet import Wallet
-from app.providers.anthropic import AnthropicProvider
+from app.providers import get_provider
 from app.providers.base import ChatContext
+from app.providers.errors import (
+    ProviderAPIError,
+    ProviderAuthError,
+    ProviderPermissionError,
+    ProviderRateLimitError,
+)
 from app.services.ai_expense import _decrypt_key, get_ai_provider_record
 
 if TYPE_CHECKING:
@@ -135,26 +140,28 @@ async def chat_about_expenses(
     expenses = list(expense_result.all())
 
     context = await _build_context(expenses, wallets, session)
-    provider = AnthropicProvider(api_key=_decrypt_key(record.api_key_encrypted), model=record.model)
+    provider = get_provider(
+        record.provider, api_key=_decrypt_key(record.api_key_encrypted), model=record.model
+    )
 
     try:
         return await provider.chat_with_data(message=message, context=context)
-    except anthropic_sdk.AuthenticationError as exc:
+    except ProviderAuthError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Invalid API key. Please update your AI provider configuration.",
         ) from exc
-    except anthropic_sdk.PermissionDeniedError as exc:
+    except ProviderPermissionError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="AI provider request was denied. Your API key may have insufficient credits or billing issues.",
         ) from exc
-    except anthropic_sdk.RateLimitError as exc:
+    except ProviderRateLimitError as exc:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="AI provider rate limit exceeded. Please try again later.",
         ) from exc
-    except anthropic_sdk.APIError as exc:
+    except ProviderAPIError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI provider error: {exc}"
         ) from exc

@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/Toast';
 import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
+import { SearchableSelect } from '../components/ui/SearchableSelect';
 import { DatePicker } from '../components/ui/DatePicker';
 import type { AIProviderResponse, APITokenCreateResponse, APITokenResponse } from '../lib/types';
 import { AI_PROVIDERS, fmtDate } from '../lib/utils';
@@ -154,7 +155,7 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
     const timer = setTimeout(async () => {
       setFetchingModels(true);
       try {
-        const { models: fetched } = await aiProviderApi.listModels(form.api_key);
+        const { models: fetched } = await aiProviderApi.listModels(form.api_key, form.provider);
         setModels(fetched);
         setForm((f) => ({ ...f, model: fetched.includes(f.model) ? f.model : (fetched[0] ?? '') }));
       } catch {
@@ -164,7 +165,7 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
       }
     }, 600);
     return () => clearTimeout(timer);
-  }, [form.api_key]);
+  }, [form.api_key, form.provider]);
 
   const handleSave = async () => {
     if (!form.api_key && !provider) { toast('API key is required', 'error'); return; }
@@ -249,7 +250,7 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
           <input
             className="input"
             type={showKey ? 'text' : 'password'}
-            placeholder={provider ? '••••••••••••' : 'sk-ant-...'}
+            placeholder={provider ? '••••••••••••' : { anthropic: 'sk-ant-...', gemini: 'AIza...', openai: 'sk-...', openrouter: 'sk-or-...' }[form.provider] ?? 'API key...'}
             value={form.api_key}
             onChange={(e) => setForm({ ...form, api_key: e.target.value })}
             style={{ paddingRight: 40 }}
@@ -272,7 +273,7 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
 
       <div className="input-group">
         <label className="input-label">Model</label>
-        <Select
+        <SearchableSelect
           value={form.model}
           onChange={(v) => setForm({ ...form, model: v })}
           options={modelOptions.map((m) => ({ value: m, label: m }))}

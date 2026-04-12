@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Literal, cast, get_args
+from typing import TYPE_CHECKING
 
-import anthropic
-from anthropic.types import Base64ImageSourceParam, ImageBlockParam, TextBlockParam
+import openai
+from openai.types.chat import (
+    ChatCompletionContentPartImageParam,
+    ChatCompletionContentPartTextParam,
+)
 
 from app.providers.base import (
     CHAT_SYSTEM_PROMPT,
@@ -24,27 +28,24 @@ from app.providers.errors import (
 if TYPE_CHECKING:
     from app.providers.base import ChatContext
 
-_SupportedMediaType = Literal["image/jpeg", "image/png", "image/gif", "image/webp"]
-_SUPPORTED_MEDIA_TYPES: frozenset[str] = frozenset(get_args(_SupportedMediaType))
 
-
-def _wrap_anthropic_error(exc: Exception) -> Exception:
-    if isinstance(exc, anthropic.AuthenticationError):
+def _wrap_openai_error(exc: Exception) -> Exception:
+    if isinstance(exc, openai.AuthenticationError):
         return ProviderAuthError(str(exc))
-    if isinstance(exc, anthropic.PermissionDeniedError):
+    if isinstance(exc, openai.PermissionDeniedError):
         return ProviderPermissionError(str(exc))
-    if isinstance(exc, anthropic.RateLimitError):
+    if isinstance(exc, openai.RateLimitError):
         return ProviderRateLimitError(str(exc))
-    if isinstance(exc, anthropic.APIConnectionError):
+    if isinstance(exc, openai.APIConnectionError):
         return ProviderConnectionError(str(exc))
-    if isinstance(exc, anthropic.APIError):
+    if isinstance(exc, openai.APIError):
         return ProviderAPIError(str(exc))
     return exc
 
 
-class AnthropicProvider(LLMProvider):
-    def __init__(self, api_key: str, model: str) -> None:
-        self._client = anthropic.AsyncAnthropic(api_key=api_key)
+class OpenAICompatibleProvider(LLMProvider):
+    def __init__(self, api_key: str, model: str, base_url: str | None = None) -> None:
+        self._client = openai.AsyncOpenAI(api_key=api_key, base_url=base_url)
         self._model = model
 
     async def parse_expense(
@@ -64,19 +65,13 @@ class AnthropicProvider(LLMProvider):
         category_list = ", ".join(categories) if categories else "Others"
         tag_list = ", ".join(tags) if tags else ""
 
-        parts: list[TextBlockParam | ImageBlockParam] = []
+        parts: list[ChatCompletionContentPartTextParam | ChatCompletionContentPartImageParam] = []
 
         if image_base64 and image_media_type:
-            safe_media_type = cast(
-                "_SupportedMediaType",
-                image_media_type if image_media_type in _SUPPORTED_MEDIA_TYPES else "image/jpeg",
-            )
             parts.append(
-                ImageBlockParam(
-                    type="image",
-                    source=Base64ImageSourceParam(
-                        type="base64", media_type=safe_media_type, data=image_base64
-                    ),
+                ChatCompletionContentPartImageParam(
+                    type="image_url",
+                    image_url={"url": f"data:{image_media_type};base64,{image_base64}"},
                 )
             )
 
@@ -90,23 +85,29 @@ class AnthropicProvider(LLMProvider):
         else:
             prompt_text += "Please extract the expense from the image above."
 
-        parts.append(TextBlockParam(type="text", text=prompt_text))
+        parts.append(ChatCompletionContentPartTextParam(type="text", text=prompt_text))
 
         try:
-            response = await self._client.messages.parse(
+            response = await self._client.beta.chat.completions.parse(
                 model=self._model,
                 max_tokens=1024,
-                system=SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": parts}],
-                output_format=ParsedExpense,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": parts},
+                ],
+                response_format=ParsedExpense,
             )
         except Exception as exc:
-            raise _wrap_anthropic_error(exc) from exc
+            raise _wrap_openai_error(exc) from exc
 
-        parsed = response.parsed_output
+        parsed = response.choices[0].message.parsed
         if parsed is None:
-            msg = "Failed to parse expense from input"
-            raise ValueError(msg)
+            raw = response.choices[0].message.content or ""
+            try:
+                return ParsedExpense.model_validate(json.loads(raw))
+            except Exception as exc:
+                msg = "Failed to parse expense from input"
+                raise ValueError(msg) from exc
         return parsed
 
     async def chat_with_data(self, *, message: str, context: ChatContext) -> ChatResponse:
@@ -142,27 +143,24 @@ Recent expenses (up to 10):
 User question: {message}"""
 
         try:
-            response = await self._client.messages.create(
+            response = await self._client.chat.completions.create(
                 model=self._model,
                 max_tokens=1024,
-                system=CHAT_SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": data_context}],
+                messages=[
+                    {"role": "system", "content": CHAT_SYSTEM_PROMPT},
+                    {"role": "user", "content": data_context},
+                ],
             )
         except Exception as exc:
-            raise _wrap_anthropic_error(exc) from exc
+            raise _wrap_openai_error(exc) from exc
 
-        raw = response.content[0]
-        if raw.type != "text":
-            msg = "Unexpected response type from Anthropic"
-            raise ValueError(msg)
-
-        return ChatResponse(response=raw.text)
+        return ChatResponse(response=response.choices[0].message.content or "")
 
     async def list_models(self) -> list[str]:
         try:
-            page = await self._client.models.list(limit=100)
+            page = await self._client.models.list()
         except Exception as exc:
-            raise _wrap_anthropic_error(exc) from exc
+            raise _wrap_openai_error(exc) from exc
         else:
             return [m.id for m in page.data]
 

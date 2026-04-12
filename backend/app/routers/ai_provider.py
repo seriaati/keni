@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from typing import Annotated
 
-import anthropic as anthropic_sdk
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.dependencies import get_current_user, get_db
 from app.models.user import User
+from app.providers import get_provider_client
+from app.providers.errors import ProviderAPIError, ProviderAuthError
 from app.schemas.ai_provider import (
     AIProviderModelsResponse,
     AIProviderResponse,
@@ -76,24 +77,36 @@ async def validate_ai_provider(
     current_user: CurrentUser,
     session: DbDep,
     api_key: Annotated[str | None, Body(embed=True)] = None,
+    provider: Annotated[str | None, Body(embed=True)] = None,
 ) -> AIProviderValidateResponse:
     resolved_key = api_key
-    if not resolved_key:
+    resolved_provider = provider
+
+    if not resolved_key or not resolved_provider:
         record = await get_ai_provider_record(current_user.id, session)
-        if record is None:
+        if record is None and (not resolved_key or not resolved_provider):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="No AI provider configured and no API key provided.",
+                detail="No AI provider configured and no API key/provider provided.",
             )
-        resolved_key = _decrypt_key(record.api_key_encrypted)
+        if record is not None:
+            if not resolved_key:
+                resolved_key = _decrypt_key(record.api_key_encrypted)
+            if not resolved_provider:
+                resolved_provider = record.provider
 
-    client = anthropic_sdk.AsyncAnthropic(api_key=resolved_key)
+    resolved_provider = resolved_provider or "anthropic"
+    resolved_key = resolved_key or ""
+
+    client = get_provider_client(resolved_provider, resolved_key)
     try:
-        await client.models.list(limit=1)
-        return AIProviderValidateResponse(valid=True, detail="API key is valid.")
-    except anthropic_sdk.AuthenticationError:
+        valid = await client.validate_key()
+        if valid:
+            return AIProviderValidateResponse(valid=True, detail="API key is valid.")
         return AIProviderValidateResponse(valid=False, detail="Invalid API key.")
-    except anthropic_sdk.APIError as exc:
+    except ProviderAuthError:
+        return AIProviderValidateResponse(valid=False, detail="Invalid API key.")
+    except ProviderAPIError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Failed to validate key: {exc}"
         ) from exc
@@ -104,26 +117,35 @@ async def list_provider_models(
     current_user: CurrentUser,
     session: DbDep,
     api_key: Annotated[str | None, Body(embed=True)] = None,
+    provider: Annotated[str | None, Body(embed=True)] = None,
 ) -> AIProviderModelsResponse:
     resolved_key = api_key
-    if not resolved_key:
+    resolved_provider = provider
+
+    if not resolved_key or not resolved_provider:
         record = await get_ai_provider_record(current_user.id, session)
-        if record is None:
+        if record is None and (not resolved_key or not resolved_provider):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="No AI provider configured and no API key provided.",
+                detail="No AI provider configured and no API key/provider provided.",
             )
-        resolved_key = _decrypt_key(record.api_key_encrypted)
+        if record is not None:
+            if not resolved_key:
+                resolved_key = _decrypt_key(record.api_key_encrypted)
+            if not resolved_provider:
+                resolved_provider = record.provider
 
-    client = anthropic_sdk.AsyncAnthropic(api_key=resolved_key)
+    resolved_provider = resolved_provider or "anthropic"
+    resolved_key = resolved_key or ""
+
+    client = get_provider_client(resolved_provider, resolved_key)
     try:
-        page = await client.models.list(limit=100)
-        model_ids = [m.id for m in page.data]
-    except anthropic_sdk.AuthenticationError as exc:
+        model_ids = await client.list_models()
+    except ProviderAuthError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid API key."
         ) from exc
-    except anthropic_sdk.APIError as exc:
+    except ProviderAPIError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Failed to fetch models: {exc}"
         ) from exc

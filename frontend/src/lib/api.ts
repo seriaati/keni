@@ -270,10 +270,10 @@ export const aiProvider = {
       body: JSON.stringify(data),
     }),
   delete: () => request<void>('/users/me/ai-provider', { method: 'DELETE' }),
-  listModels: (api_key?: string) =>
+  listModels: (api_key?: string, provider?: string) =>
     request<AIProviderModelsResponse>('/users/me/ai-provider/models', {
       method: 'POST',
-      body: JSON.stringify({ api_key: api_key || null }),
+      body: JSON.stringify({ api_key: api_key || null, provider: provider || null }),
     }),
 };
 

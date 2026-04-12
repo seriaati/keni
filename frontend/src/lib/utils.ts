@@ -83,6 +83,9 @@ export const FREQUENCIES = [
 
 export const AI_PROVIDERS = [
   { value: 'anthropic', label: 'Anthropic' },
+  { value: 'gemini', label: 'Google Gemini' },
+  { value: 'openai', label: 'OpenAI' },
+  { value: 'openrouter', label: 'OpenRouter' },
 ];
 
 export function isEmoji(str: string): boolean {

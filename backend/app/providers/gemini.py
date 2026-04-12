@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Literal, cast, get_args
+from typing import TYPE_CHECKING
 
-import anthropic
-from anthropic.types import Base64ImageSourceParam, ImageBlockParam, TextBlockParam
+from google import genai
+from google.genai import errors as genai_errors
+from google.genai import types as genai_types
 
 from app.providers.base import (
     CHAT_SYSTEM_PROMPT,
@@ -24,27 +26,32 @@ from app.providers.errors import (
 if TYPE_CHECKING:
     from app.providers.base import ChatContext
 
-_SupportedMediaType = Literal["image/jpeg", "image/png", "image/gif", "image/webp"]
-_SUPPORTED_MEDIA_TYPES: frozenset[str] = frozenset(get_args(_SupportedMediaType))
 
-
-def _wrap_anthropic_error(exc: Exception) -> Exception:
-    if isinstance(exc, anthropic.AuthenticationError):
-        return ProviderAuthError(str(exc))
-    if isinstance(exc, anthropic.PermissionDeniedError):
-        return ProviderPermissionError(str(exc))
-    if isinstance(exc, anthropic.RateLimitError):
-        return ProviderRateLimitError(str(exc))
-    if isinstance(exc, anthropic.APIConnectionError):
-        return ProviderConnectionError(str(exc))
-    if isinstance(exc, anthropic.APIError):
+def _wrap_google_error(exc: Exception) -> Exception:
+    if isinstance(exc, genai_errors.ClientError):
+        return _wrap_client_error(exc)
+    if isinstance(exc, genai_errors.ServerError):
         return ProviderAPIError(str(exc))
+    if isinstance(exc, (ConnectionError, TimeoutError, OSError)):
+        return ProviderConnectionError(str(exc))
     return exc
 
 
-class AnthropicProvider(LLMProvider):
+def _wrap_client_error(exc: genai_errors.ClientError) -> Exception:
+    msg = str(exc)
+    code = getattr(exc, "code", None) or getattr(exc, "status_code", None)
+    if code == 401 or "API_KEY_INVALID" in msg or "UNAUTHENTICATED" in msg:
+        return ProviderAuthError(msg)
+    if code == 403 or "PERMISSION_DENIED" in msg:
+        return ProviderPermissionError(msg)
+    if code == 429 or "RESOURCE_EXHAUSTED" in msg:
+        return ProviderRateLimitError(msg)
+    return ProviderAPIError(msg)
+
+
+class GeminiProvider(LLMProvider):
     def __init__(self, api_key: str, model: str) -> None:
-        self._client = anthropic.AsyncAnthropic(api_key=api_key)
+        self._client = genai.Client(api_key=api_key)
         self._model = model
 
     async def parse_expense(
@@ -64,19 +71,12 @@ class AnthropicProvider(LLMProvider):
         category_list = ", ".join(categories) if categories else "Others"
         tag_list = ", ".join(tags) if tags else ""
 
-        parts: list[TextBlockParam | ImageBlockParam] = []
+        parts: list[genai_types.Part] = []
 
         if image_base64 and image_media_type:
-            safe_media_type = cast(
-                "_SupportedMediaType",
-                image_media_type if image_media_type in _SUPPORTED_MEDIA_TYPES else "image/jpeg",
-            )
             parts.append(
-                ImageBlockParam(
-                    type="image",
-                    source=Base64ImageSourceParam(
-                        type="base64", media_type=safe_media_type, data=image_base64
-                    ),
+                genai_types.Part.from_bytes(
+                    data=__import__("base64").b64decode(image_base64), mime_type=image_media_type
                 )
             )
 
@@ -90,24 +90,29 @@ class AnthropicProvider(LLMProvider):
         else:
             prompt_text += "Please extract the expense from the image above."
 
-        parts.append(TextBlockParam(type="text", text=prompt_text))
+        parts.append(genai_types.Part.from_text(text=prompt_text))
+
+        schema = ParsedExpense.model_json_schema()
 
         try:
-            response = await self._client.messages.parse(
+            response = await self._client.aio.models.generate_content(
                 model=self._model,
-                max_tokens=1024,
-                system=SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": parts}],
-                output_format=ParsedExpense,
+                contents=genai_types.Content(role="user", parts=parts),
+                config=genai_types.GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT,
+                    response_mime_type="application/json",
+                    response_schema=schema,
+                ),
             )
         except Exception as exc:
-            raise _wrap_anthropic_error(exc) from exc
+            raise _wrap_google_error(exc) from exc
 
-        parsed = response.parsed_output
-        if parsed is None:
+        raw_text = response.text
+        if not raw_text:
             msg = "Failed to parse expense from input"
             raise ValueError(msg)
-        return parsed
+
+        return ParsedExpense.model_validate(json.loads(raw_text))
 
     async def chat_with_data(self, *, message: str, context: ChatContext) -> ChatResponse:
         by_category_lines = "\n".join(
@@ -142,29 +147,29 @@ Recent expenses (up to 10):
 User question: {message}"""
 
         try:
-            response = await self._client.messages.create(
+            response = await self._client.aio.models.generate_content(
                 model=self._model,
-                max_tokens=1024,
-                system=CHAT_SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": data_context}],
+                contents=genai_types.Content(
+                    role="user", parts=[genai_types.Part.from_text(text=data_context)]
+                ),
+                config=genai_types.GenerateContentConfig(system_instruction=CHAT_SYSTEM_PROMPT),
             )
         except Exception as exc:
-            raise _wrap_anthropic_error(exc) from exc
+            raise _wrap_google_error(exc) from exc
 
-        raw = response.content[0]
-        if raw.type != "text":
-            msg = "Unexpected response type from Anthropic"
-            raise ValueError(msg)
-
-        return ChatResponse(response=raw.text)
+        return ChatResponse(response=response.text or "")
 
     async def list_models(self) -> list[str]:
+        model_ids: list[str] = []
         try:
-            page = await self._client.models.list(limit=100)
+            async for m in await self._client.aio.models.list():
+                name: str = m.name or ""
+                if "generateContent" in (m.supported_actions or []):
+                    model_ids.append(name.removeprefix("models/"))
         except Exception as exc:
-            raise _wrap_anthropic_error(exc) from exc
+            raise _wrap_google_error(exc) from exc
         else:
-            return [m.id for m in page.data]
+            return model_ids
 
     async def validate_key(self) -> bool:
         try:

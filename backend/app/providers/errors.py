@@ -1,0 +1,16 @@
+from __future__ import annotations
+
+
+class ProviderAuthError(Exception): ...
+
+
+class ProviderPermissionError(Exception): ...
+
+
+class ProviderRateLimitError(Exception): ...
+
+
+class ProviderConnectionError(Exception): ...
+
+
+class ProviderAPIError(Exception): ...
