@@ -127,10 +127,15 @@ export const wallets = {
 };
 
 export const expenses = {
-  list: (walletId: string, params: Record<string, string | number | undefined> = {}) => {
+  list: (walletId: string, params: Record<string, string | number | string[] | undefined> = {}) => {
     const q = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) {
-      if (v !== undefined && v !== '') q.set(k, String(v));
+      if (v === undefined || v === '') continue;
+      if (Array.isArray(v)) {
+        for (const item of v) q.append(k, item);
+      } else {
+        q.set(k, String(v));
+      }
     }
     return request<ExpenseListResponse>(`/wallets/${walletId}/expenses?${q}`);
   },

@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Download, Filter, Layers, Search, SortAsc, SortDesc, X } from 'lucide-react';
-import { expenses as expensesApi, categories as categoriesApi, wallets as walletsApi } from '../lib/api';
+import { expenses as expensesApi, categories as categoriesApi, wallets as walletsApi, tags as tagsApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import { Select } from '../components/ui/Select';
 import { DatePicker } from '../components/ui/DatePicker';
-import type { CategoryResponse, ExpenseListResponse, ExpenseResponse, WalletSummary } from '../lib/types';
+import type { CategoryResponse, ExpenseListResponse, ExpenseResponse, TagResponse, WalletSummary } from '../lib/types';
 import { fmt, fmtRelative } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
 
@@ -16,10 +16,12 @@ export function WalletViewPage() {
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
   const [data, setData] = useState<ExpenseListResponse | null>(null);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
+  const [allTags, setAllTags] = useState<TagResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState('');
   const [categoryId, setCategoryId] = useState('');
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
@@ -35,14 +37,16 @@ export function WalletViewPage() {
     if (!walletId) return;
     setLoading(true);
     try {
-      const [w, cats, list] = await Promise.all([
+      const [w, cats, tagList, list] = await Promise.all([
         walletsApi.get(walletId),
         categoriesApi.list(),
+        tagsApi.list(),
         expensesApi.list(walletId, {
           page,
           page_size: PAGE_SIZE,
           search: search || undefined,
           category_id: categoryId || undefined,
+          tag_ids: selectedTagIds.length > 0 ? selectedTagIds : undefined,
           sort_by: sortBy,
           sort_order: sortOrder,
           start_date: startDate || undefined,
@@ -53,13 +57,14 @@ export function WalletViewPage() {
       ]);
       setWallet(w);
       setCategories(cats);
+      setAllTags(tagList);
       setData(list);
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed to load', 'error');
     } finally {
       setLoading(false);
     }
-  }, [walletId, page, search, categoryId, sortBy, sortOrder, startDate, endDate, minAmount, maxAmount, toast]);
+  }, [walletId, page, search, categoryId, selectedTagIds, sortBy, sortOrder, startDate, endDate, minAmount, maxAmount, toast]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -79,8 +84,15 @@ export function WalletViewPage() {
     }
   };
 
+  const toggleTag = (id: string) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
+    );
+    setPage(1);
+  };
+
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
-  const hasFilters = search || categoryId || startDate || endDate || minAmount || maxAmount;
+  const hasFilters = search || categoryId || selectedTagIds.length > 0 || startDate || endDate || minAmount || maxAmount;
 
   return (
     <div className="animate-fade-in">
@@ -177,11 +189,44 @@ export function WalletViewPage() {
               options={[{ value: 'date', label: 'Date' }, { value: 'amount', label: 'Amount' }]}
             />
           </div>
+          {allTags.length > 0 && (
+            <div className="input-group" style={{ gridColumn: '1 / -1' }}>
+              <label className="input-label">Tags</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {allTags.map((tag) => {
+                  const active = selectedTagIds.includes(tag.id);
+                  return (
+                    <button
+                      key={tag.id}
+                      onClick={() => toggleTag(tag.id)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        padding: '3px 10px',
+                        borderRadius: 100,
+                        fontSize: 12,
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        border: `1.5px solid ${tag.color ?? 'var(--cream-darker)'}`,
+                        background: active ? (tag.color ?? 'var(--ink)') : (tag.color ? `${tag.color}18` : 'var(--cream-dark)'),
+                        color: active ? 'white' : (tag.color ?? 'var(--ink-mid)'),
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: active ? 'white' : (tag.color ?? 'var(--sand-dark)'), flexShrink: 0 }} />
+                      {tag.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {hasFilters && (
             <div style={{ display: 'flex', alignItems: 'flex-end' }}>
               <button
                 className="btn btn-ghost btn-md"
-                onClick={() => { setSearch(''); setCategoryId(''); setStartDate(''); setEndDate(''); setMinAmount(''); setMaxAmount(''); setPage(1); }}
+                onClick={() => { setSearch(''); setCategoryId(''); setSelectedTagIds([]); setStartDate(''); setEndDate(''); setMinAmount(''); setMaxAmount(''); setPage(1); }}
               >
                 <X size={14} /> Clear all
               </button>
@@ -303,7 +348,7 @@ function ExpenseRow({
           {expense.tags.length > 0 && (
             <>
               <span>·</span>
-              {expense.tags.slice(0, 2).map((t) => (
+              {expense.tags.map((t) => (
                 <span key={t.id} className="chip" style={{ fontSize: 11, padding: '1px 6px' }}>{t.name}</span>
               ))}
             </>
