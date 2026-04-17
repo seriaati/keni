@@ -4,6 +4,8 @@ import {
   ArrowRight,
   Bot,
   Check,
+  ChevronLeft,
+  ChevronRight,
   FileText,
   Image,
   LayoutDashboard,
@@ -13,6 +15,7 @@ import {
   Pencil,
   RefreshCw,
   Settings,
+  Shuffle,
   WandSparkles,
   Tag,
   Wallet,
@@ -311,10 +314,22 @@ function MultipleReview({
   onSave: () => void;
   saving: boolean;
 }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+
   const update = (i: number, e: EditableExpense) => {
     const next = [...expenses];
     next[i] = e;
     onChange(next);
+  };
+
+  const goTo = (next: number) => {
+    const current = expenses[activeIndex];
+    if (current._editing) {
+      const next2 = [...expenses];
+      next2[activeIndex] = commitEditable(current);
+      onChange(next2);
+    }
+    setActiveIndex(next);
   };
 
   return (
@@ -322,17 +337,50 @@ function MultipleReview({
       <div style={{ fontSize: 12, color: 'var(--ink-light)', fontWeight: 600 }}>
         {expenses.length} expenses detected — each will be saved independently
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 400, overflowY: 'auto' }}>
-        {expenses.map((exp, i) => (
-          <ExpenseCard
-            key={i}
-            expense={exp}
-            onChange={(e) => update(i, e)}
-            currency={activeWalletCurrency}
-            label={`Expense ${i + 1}`}
-          />
-        ))}
+
+      <div style={{ overflow: 'hidden' }}>
+        <div
+          style={{
+            transform: `translateX(${-activeIndex * 100}%)`,
+            transition: 'transform 0.2s ease',
+            display: 'flex',
+          }}
+        >
+          {expenses.map((exp, i) => (
+            <div key={i} style={{ minWidth: '100%' }}>
+              <ExpenseCard
+                expense={exp}
+                onChange={(e) => update(i, e)}
+                currency={activeWalletCurrency}
+                label={`Expense ${i + 1}`}
+              />
+            </div>
+          ))}
+        </div>
       </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+        <button
+          className="btn btn-secondary btn-sm"
+          style={{ padding: '4px 10px' }}
+          onClick={() => goTo(activeIndex - 1)}
+          disabled={activeIndex === 0}
+        >
+          <ChevronLeft size={15} />
+        </button>
+        <span style={{ fontSize: 13, color: 'var(--ink-light)', fontWeight: 500, minWidth: 48, textAlign: 'center' }}>
+          {activeIndex + 1} / {expenses.length}
+        </span>
+        <button
+          className="btn btn-secondary btn-sm"
+          style={{ padding: '4px 10px' }}
+          onClick={() => goTo(activeIndex + 1)}
+          disabled={activeIndex === expenses.length - 1}
+        >
+          <ChevronRight size={15} />
+        </button>
+      </div>
+
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4 }}>
         <button className="btn btn-primary btn-sm" onClick={onSave} disabled={saving}>
           {saving && <span className="btn-spinner" />}
@@ -362,6 +410,9 @@ function GroupReview({
   saving: boolean;
   error: string;
 }) {
+  const [showItems, setShowItems] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+
   const updateItem = (i: number, e: EditableExpense) => {
     const next = [...items];
     next[i] = e;
@@ -369,7 +420,9 @@ function GroupReview({
   };
 
   const removeItem = (i: number) => {
-    onChangeItems(items.filter((_, idx) => idx !== i));
+    const next = items.filter((_, idx) => idx !== i);
+    onChangeItems(next);
+    setActiveIndex((prev) => Math.min(prev, next.length - 1));
   };
 
   const addItem = () => {
@@ -388,6 +441,16 @@ function GroupReview({
     ]);
   };
 
+  const goTo = (next: number) => {
+    const current = items[activeIndex];
+    if (current._editing) {
+      const nextItems = [...items];
+      nextItems[activeIndex] = commitEditable(current);
+      onChangeItems(nextItems);
+    }
+    setActiveIndex(next);
+  };
+
   const committedParent = parent._editing ? commitEditable(parent) : parent;
   const committedItems = items.map((e) => e._editing ? commitEditable(e) : e);
   const itemsSum = committedItems.reduce((s, e) => s + (e.amount ?? 0), 0);
@@ -396,51 +459,91 @@ function GroupReview({
 
   return (
     <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ fontSize: 12, color: 'var(--ink-light)', fontWeight: 600 }}>
-        Group expense — parent + {items.length} items
-      </div>
-
-      <ExpenseCard expense={parent} onChange={onChangeParent} currency={activeWalletCurrency} label="Group total" />
-
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-          Items
+        <div style={{ fontSize: 12, color: 'var(--ink-light)', fontWeight: 600 }}>
+          {showItems ? `Sub-expenses (${items.length})` : 'Group expense — parent total'}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: sumMismatch ? 'var(--rose)' : 'var(--forest)',
-          }}>
-            {fmt(itemsSum, parent.currency ?? activeWalletCurrency)} / {fmt(parentTotal, parent.currency ?? activeWalletCurrency)}
-          </span>
-          <button
-            className="btn btn-secondary btn-sm"
-            style={{ fontSize: 11, padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-            onClick={addItem}
-          >
-            <Plus size={11} /> Add item
-          </button>
-        </div>
+        <button
+          className="btn btn-ghost btn-sm"
+          style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 5, color: 'var(--ink-light)' }}
+          onClick={() => setShowItems((v) => !v)}
+        >
+          <Shuffle size={12} />
+          {showItems ? 'Parent' : 'Sub-expenses'}
+        </button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
-        {items.map((item, i) => (
-          <ExpenseCard
-            key={i}
-            expense={item}
-            onChange={(e) => updateItem(i, e)}
-            currency={activeWalletCurrency}
-            label={`Item ${i + 1}`}
-            onRemove={items.length > 1 ? () => removeItem(i) : undefined}
-          />
-        ))}
-      </div>
+      {!showItems ? (
+        <ExpenseCard expense={parent} onChange={onChangeParent} currency={activeWalletCurrency} label="Group total" />
+      ) : (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: sumMismatch ? 'var(--rose)' : 'var(--forest)',
+            }}>
+              {fmt(itemsSum, parent.currency ?? activeWalletCurrency)} / {fmt(parentTotal, parent.currency ?? activeWalletCurrency)}
+            </span>
+            <button
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: 11, padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              onClick={addItem}
+            >
+              <Plus size={11} /> Add item
+            </button>
+          </div>
 
-      {sumMismatch && !error && (
-        <div style={{ fontSize: 12, color: 'var(--rose)', background: 'var(--rose-light)', borderRadius: 8, padding: '8px 12px' }}>
-          Items sum ({fmt(itemsSum, parent.currency ?? activeWalletCurrency)}) must equal group total ({fmt(parentTotal, parent.currency ?? activeWalletCurrency)})
-        </div>
+          <div style={{ overflow: 'hidden' }}>
+            <div
+              style={{
+                transform: `translateX(${-activeIndex * 100}%)`,
+                transition: 'transform 0.2s ease',
+                display: 'flex',
+              }}
+            >
+              {items.map((item, i) => (
+                <div key={i} style={{ minWidth: '100%' }}>
+                  <ExpenseCard
+                    expense={item}
+                    onChange={(e) => updateItem(i, e)}
+                    currency={activeWalletCurrency}
+                    label={`Item ${i + 1}`}
+                    onRemove={items.length > 1 ? () => removeItem(i) : undefined}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+            <button
+              className="btn btn-secondary btn-sm"
+              style={{ padding: '4px 10px' }}
+              onClick={() => goTo(activeIndex - 1)}
+              disabled={activeIndex === 0}
+            >
+              <ChevronLeft size={15} />
+            </button>
+            <span style={{ fontSize: 13, color: 'var(--ink-light)', fontWeight: 500, minWidth: 48, textAlign: 'center' }}>
+              {activeIndex + 1} / {items.length}
+            </span>
+            <button
+              className="btn btn-secondary btn-sm"
+              style={{ padding: '4px 10px' }}
+              onClick={() => goTo(activeIndex + 1)}
+              disabled={activeIndex === items.length - 1}
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
+
+          {sumMismatch && !error && (
+            <div style={{ fontSize: 12, color: 'var(--rose)', background: 'var(--rose-light)', borderRadius: 8, padding: '8px 12px' }}>
+              Items sum ({fmt(itemsSum, parent.currency ?? activeWalletCurrency)}) must equal group total ({fmt(parentTotal, parent.currency ?? activeWalletCurrency)})
+            </div>
+          )}
+        </>
       )}
 
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4 }}>
@@ -840,47 +943,25 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
             }}
           />
 
-          {wallets.length > 1 && (
-            <select
-              value={activeWallet?.id ?? ''}
-              onChange={(e) => {
-                const w = wallets.find((w) => w.id === e.target.value);
-                if (w) setActiveWallet(w);
-              }}
-              style={{
-                fontSize: 12,
-                border: '1px solid var(--sand)',
-                borderRadius: 6,
-                padding: '3px 6px',
-                background: 'var(--cream)',
-                color: 'var(--ink-mid)',
-                cursor: 'pointer',
-                outline: 'none',
-              }}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <button className="icon-btn" onClick={() => fileInputRef.current?.click()} title="Attach image or PDF">
+              <Paperclip size={16} />
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={handleImageSelect} />
+
+            <button
+              className="icon-btn"
+              onClick={recording ? stopRecording : startRecording}
+              title={recording ? 'Stop recording' : 'Record voice'}
+              style={recording ? { color: 'var(--rose)', background: 'var(--rose-light)' } : {}}
             >
-              {wallets.map((w) => (
-                <option key={w.id} value={w.id}>{w.name}</option>
-              ))}
-            </select>
-          )}
+              {recording ? <MicOff size={16} /> : <Mic size={16} />}
+            </button>
 
-          <button className="icon-btn" onClick={() => fileInputRef.current?.click()} title="Attach image or PDF">
-            <Paperclip size={16} />
-          </button>
-          <input ref={fileInputRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={handleImageSelect} />
-
-          <button
-            className="icon-btn"
-            onClick={recording ? stopRecording : startRecording}
-            title={recording ? 'Stop recording' : 'Record voice'}
-            style={recording ? { color: 'var(--rose)', background: 'var(--rose-light)' } : {}}
-          >
-            {recording ? <MicOff size={16} /> : <Mic size={16} />}
-          </button>
-
-          <button className="icon-btn" onClick={onClose}>
-            <X size={16} />
-          </button>
+            <button className="icon-btn" onClick={onClose}>
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         {/* File preview */}
@@ -1044,14 +1125,6 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
           </div>
         )}
 
-        {/* Footer hint */}
-        {mode === 'input' && (
-          <div style={{ padding: '6px 16px 10px', display: 'flex', gap: 12, fontSize: 11, color: 'var(--ink-faint)' }}>
-            <span><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Enter</kbd> to submit</span>
-            <span><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Esc</kbd> to close</span>
-            <span style={{ marginLeft: 'auto' }}>Paste, drag & drop, or attach an image / PDF</span>
-          </div>
-        )}
       </div>
     </div>
   );

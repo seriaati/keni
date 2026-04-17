@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
-import { AlertTriangle, ArrowRight, Wallet } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Layers, Wallet } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { expenses as expensesApi, budgets as budgetsApi, categories as categoriesApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
@@ -238,7 +238,7 @@ export function DashboardPage() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: 20, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: 20, alignItems: 'start' }} className="dashboard-bottom-grid">
         {/* Recent expenses */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -292,8 +292,19 @@ export function DashboardPage() {
                     <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {expense.description ?? expense.category.name}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>
-                      {expense.category.name} · {fmtRelative(expense.date)}
+                    <div style={{ fontSize: 12, color: 'var(--ink-faint)', display: 'flex', gap: 5, alignItems: 'center' }}>
+                      <span>{expense.category.name}</span>
+                      {expense.children && expense.children.length > 0 && (
+                        <>
+                          <span>·</span>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            <Layers size={11} />
+                            {expense.children.length} items
+                          </span>
+                        </>
+                      )}
+                      <span>·</span>
+                      <span>{fmtRelative(expense.date)}</span>
                     </div>
                   </div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', flexShrink: 0 }}>

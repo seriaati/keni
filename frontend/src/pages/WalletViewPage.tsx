@@ -1,8 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Download, Filter, Search, SortAsc, SortDesc, X } from 'lucide-react';
+import { Download, Filter, Layers, Search, SortAsc, SortDesc, X } from 'lucide-react';
 import { expenses as expensesApi, categories as categoriesApi, wallets as walletsApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
+import { Select } from '../components/ui/Select';
+import { DatePicker } from '../components/ui/DatePicker';
 import type { CategoryResponse, ExpenseListResponse, ExpenseResponse, WalletSummary } from '../lib/types';
 import { fmt, fmtRelative } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
@@ -112,15 +114,12 @@ export function WalletViewPage() {
           />
         </div>
 
-        <select
-          className="input"
-          style={{ width: 'auto', minWidth: 140 }}
+        <Select
           value={categoryId}
-          onChange={(e) => { setCategoryId(e.target.value); setPage(1); }}
-        >
-          <option value="">All categories</option>
-          {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+          onChange={(v) => { setCategoryId(v); setPage(1); }}
+          options={[{ value: '', label: 'All categories' }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
+          placeholder="All categories"
+        />
 
         <button
           className={`btn btn-secondary btn-md ${showFilters ? 'btn-active' : ''}`}
@@ -156,11 +155,11 @@ export function WalletViewPage() {
         }}>
           <div className="input-group">
             <label className="input-label">From date</label>
-            <input className="input" type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setPage(1); }} />
+            <DatePicker value={startDate} onChange={(v) => { setStartDate(v); setPage(1); }} />
           </div>
           <div className="input-group">
             <label className="input-label">To date</label>
-            <input className="input" type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setPage(1); }} />
+            <DatePicker value={endDate} onChange={(v) => { setEndDate(v); setPage(1); }} />
           </div>
           <div className="input-group">
             <label className="input-label">Min amount</label>
@@ -172,10 +171,11 @@ export function WalletViewPage() {
           </div>
           <div className="input-group">
             <label className="input-label">Sort by</label>
-            <select className="input" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-              <option value="date">Date</option>
-              <option value="amount">Amount</option>
-            </select>
+            <Select
+              value={sortBy}
+              onChange={setSortBy}
+              options={[{ value: 'date', label: 'Date' }, { value: 'amount', label: 'Amount' }]}
+            />
           </div>
           {hasFilters && (
             <div style={{ display: 'flex', alignItems: 'flex-end' }}>
@@ -291,6 +291,15 @@ function ExpenseRow({
         </div>
         <div style={{ fontSize: 12, color: 'var(--ink-faint)', display: 'flex', gap: 6, alignItems: 'center' }}>
           <span>{expense.category.name}</span>
+          {expense.children && expense.children.length > 0 && (
+            <>
+              <span>·</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--ink-faint)' }}>
+                <Layers size={11} />
+                {expense.children.length} items
+              </span>
+            </>
+          )}
           {expense.tags.length > 0 && (
             <>
               <span>·</span>

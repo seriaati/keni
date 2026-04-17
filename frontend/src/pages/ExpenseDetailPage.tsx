@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Bot, Pencil, Trash2, Check, X, Plus, Search } from 'lucide-react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, CornerUpLeft, Bot, Layers, Pencil, Trash2, Check, X, Plus, Search } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { expenses as expensesApi, categories as categoriesApi, tags as tagsApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
@@ -479,11 +479,33 @@ export function ExpenseDetailPage() {
         }
       >
         <p style={{ fontSize: 14, color: 'var(--ink-mid)', margin: 0 }}>
-          Are you sure you want to delete this expense? This action cannot be undone.
+          {expense.children && expense.children.length > 0
+            ? <>This is a group expense with <strong>{expense.children.length} sub-expense{expense.children.length !== 1 ? 's' : ''}</strong>. Deleting it will also delete all sub-expenses. This action cannot be undone.</>
+            : 'Are you sure you want to delete this expense? This action cannot be undone.'
+          }
         </p>
       </Modal>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Part of group indicator */}
+        {expense.group_id && (
+          <Link
+            to={`/wallets/${walletId}/expenses/${expense.group_id}`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 13,
+              color: 'var(--ink-mid)',
+              textDecoration: 'none',
+              fontWeight: 500,
+            }}
+          >
+            <CornerUpLeft size={14} />
+            Go back to parent expense
+          </Link>
+        )}
+
         {/* Amount */}
         <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px' }}>
           <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Amount</div>
@@ -586,6 +608,46 @@ export function ExpenseDetailPage() {
             <p style={{ fontSize: 13, color: 'var(--ink-faint)', fontStyle: 'italic' }}>No tags</p>
           )}
         </div>
+
+        {/* Sub-expenses */}
+        {expense.children && expense.children.length > 0 && (
+          <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+              <Layers size={13} style={{ color: 'var(--ink-faint)' }} />
+              <span style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Sub-expenses</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {expense.children.map((child, i) => (
+                <Link
+                  key={child.id}
+                  to={`/wallets/${walletId}/expenses/${child.id}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '10px 0',
+                    textDecoration: 'none',
+                    borderTop: i === 0 ? 'none' : '1px solid var(--cream)',
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {child.description ?? child.category.name}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{child.category.name}</div>
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', flexShrink: 0 }}>
+                    {fmt(child.amount)}
+                  </div>
+                </Link>
+              ))}
+            </div>
+            <div style={{ borderTop: '1px solid var(--cream-darker)', marginTop: 8, paddingTop: 10, display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--ink-light)' }}>
+              <span>{expense.children.length} item{expense.children.length !== 1 ? 's' : ''}</span>
+              <span style={{ fontWeight: 600 }}>{fmt(expense.children.reduce((s, c) => s + c.amount, 0))}</span>
+            </div>
+          </div>
+        )}
 
         {/* AI context */}
         {expense.ai_context && (

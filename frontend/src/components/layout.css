@@ -324,6 +324,10 @@
   .page-content {
     padding: 16px;
   }
+
+  .dashboard-bottom-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 /* ===== PAGE HEADERS ===== */
