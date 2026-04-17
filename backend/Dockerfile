@@ -19,6 +19,13 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 FROM python:3.14-slim-bookworm
 
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+    libxcb1 \
+    libglib2.0-0 \
+    libgl1 \
+ && rm -rf /var/lib/apt/lists/*
+
 RUN groupadd --system --gid 999 nonroot \
  && useradd --system --gid 999 --uid 999 --create-home nonroot
 
