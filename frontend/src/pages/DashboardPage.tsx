@@ -49,7 +49,7 @@ export function DashboardPage() {
         setBudgets(budgetList);
         setCategories(categoryList);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, [activeWallet, expenseAddedKey]);
 
@@ -318,7 +318,7 @@ export function DashboardPage() {
 
         {/* Category breakdown */}
         <div>
-          <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 14 }}>By category</h2>
+          <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 14 }}>Spending by category</h2>
           {loading ? (
             <div className="skeleton" style={{ height: 220, borderRadius: 12 }} />
           ) : summary && summary.by_category.length > 0 ? (

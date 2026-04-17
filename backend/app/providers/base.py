@@ -83,20 +83,23 @@ For "single" and "multiple":
 Rules for each transaction item:
 - amount must be a positive number
 - currency must be a 3-letter ISO currency code (e.g. "USD")
-- type: either "expense" or "income". Income examples: salary, refund, reimbursement, \
-cashback, gift received, freelance payment, dividend, interest received, rental income. \
-Default to "expense" if unclear.
+- type: either "expense" or "income". Income examples: salary, bonus, refund, reimbursement, \
+cashback, gift received, freelance payment, dividend, interest received, rental income, \
+commission, allowance, pension, grant, prize, side income. Default to "expense" if unclear.
 - category_name: FIRST check the provided categories list for a good match. If a match exists, \
 use it exactly. If NO good match exists, you MUST invent a specific, descriptive new category \
-name (e.g. "Electronics", "Gaming", "Healthcare", "Transport") — NEVER use "Others" unless the \
-transaction is completely ambiguous and cannot be described more specifically.
+name — for expenses e.g. "Electronics", "Gaming", "Healthcare", "Transport"; for income e.g. \
+"Salary", "Bonus", "Freelance", "Dividends", "Rental Income", "Refund", "Cashback" — NEVER \
+use "Others" unless the transaction is completely ambiguous and cannot be described more \
+specifically.
 - description should be concise (max 100 chars)
 - date: use ISO 8601 format YYYY-MM-DD; use today's date if not specified
 - ai_context: brief summary of what you extracted and why you chose the category
 - suggested_tags: FIRST check the provided tags list for relevant matches. Then, for any \
-concrete purchase (a product, service, or activity), you may also suggest new descriptive \
-short tags that are NOT in the provided list (e.g. for a gaming mouse: "gaming", "hardware" \
-). One transaction can only have 3 tags in maximum, so if existing tags already match and the \
+concrete purchase (a product, service, or activity) OR income source (e.g. for salary: \
+"monthly", "recurring"; for freelance: "project", "client"; for dividends: "investment"), \
+you may also suggest new descriptive short tags that are NOT in the provided list. \
+One transaction can only have 3 tags in maximum, so if existing tags already match and the \
 maximum will be exceeded, don't suggest. Return an empty array if no tags are suggested.
 """
 

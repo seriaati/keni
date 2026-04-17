@@ -83,7 +83,7 @@ class OpenAICompatibleProvider(LLMProvider):
         if text:
             prompt_text += f"User input: {text}"
         else:
-            prompt_text += "Please extract the expense from the image above."
+            prompt_text += "Please extract the transaction from the image above."
 
         parts.append(ChatCompletionContentPartTextParam(type="text", text=prompt_text))
 
