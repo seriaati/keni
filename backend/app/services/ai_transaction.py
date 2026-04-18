@@ -108,13 +108,16 @@ async def get_ai_provider_record(user_id: uuid.UUID, session: AsyncSession) -> A
 async def upsert_ai_provider(  # noqa: PLR0913, PLR0917
     user_id: uuid.UUID,
     provider: str,
-    api_key: str,
+    api_key: str | None,
     model: str,
     session: AsyncSession,
     ocr_enabled: bool = True,
 ) -> AIProvider:
     record = await get_ai_provider_record(user_id, session)
     if record is None:
+        if not api_key:
+            msg = "API key is required when creating a new AI provider"
+            raise ValueError(msg)
         record = AIProvider(
             user_id=user_id,
             provider=provider,
@@ -124,7 +127,8 @@ async def upsert_ai_provider(  # noqa: PLR0913, PLR0917
         )
     else:
         record.provider = provider
-        record.api_key_encrypted = _encrypt_key(api_key)
+        if api_key:
+            record.api_key_encrypted = _encrypt_key(api_key)
         record.model = model
         record.ocr_enabled = ocr_enabled
 

@@ -175,7 +175,7 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
       const updated = await aiProviderApi.upsert({
         provider: form.provider,
         model: form.model,
-        api_key: form.api_key || '***',
+        api_key: form.api_key || undefined,
         ocr_enabled: form.ocr_enabled,
       });
       setProvider(updated);
