@@ -48,6 +48,7 @@ const {
         <div class="nav-links">
           <a href="#features">{t.nav.features}</a>
           <a href="#privacy">{t.nav.privacy}</a>
+          <a href="https://github.com/seriaati/zeni" target="_blank" rel="noopener">GitHub</a>
         </div>
         <a href={t.site.appUrl} class="nav-cta">{t.nav.cta}</a>
       </nav>
@@ -64,6 +65,7 @@ const {
           <span>{t.footer.brand}</span>
         </div>
         <p class="footer-copy">{t.footer.tagline}</p>
+        <a href="https://github.com/seriaati/zeni" target="_blank" rel="noopener" class="footer-link">GitHub</a>
       </div>
     </footer>
 
@@ -184,6 +186,7 @@ const {
     display: flex;
     align-items: center;
     gap: 16px;
+    justify-content: space-between;
   }
 
   .footer-brand {
@@ -198,7 +201,16 @@ const {
   .footer-copy {
     font-size: 13px;
     color: var(--ink-faint);
-    margin-left: auto;
+  }
+
+  .footer-link {
+    font-size: 13px;
+    color: var(--ink-light);
+    transition: color 0.15s;
+  }
+
+  .footer-link:hover {
+    color: var(--ink);
   }
 
   @media (max-width: 600px) {
