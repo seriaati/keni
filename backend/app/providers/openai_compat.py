@@ -58,6 +58,7 @@ class OpenAICompatibleProvider(LLMProvider):
         categories: list[str],
         tags: list[str],
         timezone: str = "UTC",
+        custom_prompt: str | None = None,
     ) -> ParsedTransactionOutput:
         if not text and not image_base64:
             msg = "At least one of text or image must be provided"
@@ -84,6 +85,8 @@ class OpenAICompatibleProvider(LLMProvider):
         prompt_text = f"Today's date: {today}\nAvailable categories: {category_list}\n"
         if tag_list:
             prompt_text += f"Available tags: {tag_list}\n"
+        if custom_prompt:
+            prompt_text += f"Custom instructions: {custom_prompt}\n"
         prompt_text += "\n"
 
         if text:

@@ -18,6 +18,7 @@ class User(SQLModel, table=True):
     display_name: str = Field(max_length=100)
     is_admin: bool = Field(default=False)
     timezone: str | None = Field(default=None, max_length=50)
+    custom_ai_prompt: str | None = Field(default=None, max_length=500)
     created_at: datetime = Field(
         default=None,
         sa_column=sa.Column(

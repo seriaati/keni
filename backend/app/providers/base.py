@@ -157,6 +157,7 @@ class LLMProvider(ABC):
         categories: list[str],
         tags: list[str],
         timezone: str = "UTC",
+        custom_prompt: str | None = None,
     ) -> ParsedTransactionOutput: ...
 
     @abstractmethod

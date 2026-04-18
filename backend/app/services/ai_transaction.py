@@ -11,6 +11,7 @@ from sqlmodel import select
 from app.models.ai_provider import AIProvider
 from app.models.category import Category
 from app.models.tag import Tag
+from app.models.user import User
 from app.providers import get_provider
 from app.providers.errors import (
     ProviderAPIError,
@@ -153,6 +154,10 @@ async def parse_transactions_with_ai(  # noqa: PLR0913, PLR0914, PLR0915, PLR091
             detail="No AI provider configured. Set up your API key at /api/users/me/ai-provider.",
         )
 
+    user_result = await session.exec(select(User).where(User.id == user_id))
+    user = user_result.first()
+    custom_ai_prompt = user.custom_ai_prompt if user else None
+
     api_key = _decrypt_key(record.api_key_encrypted)
 
     if record.ocr_enabled and image_base64 is not None:
@@ -180,6 +185,7 @@ async def parse_transactions_with_ai(  # noqa: PLR0913, PLR0914, PLR0915, PLR091
             categories=category_names,
             tags=tag_names,
             timezone=timezone or "UTC",
+            custom_prompt=custom_ai_prompt,
         )
     except ProviderAuthError as exc:
         logger.warning("AI transaction parse failed - auth error for user %s: %s", user_id, exc)

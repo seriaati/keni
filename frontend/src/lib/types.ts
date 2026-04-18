@@ -10,6 +10,7 @@ export interface UserResponse {
   is_admin: boolean;
   created_at: string;
   timezone: string | null;
+  custom_ai_prompt: string | null;
 }
 
 export interface WalletResponse {

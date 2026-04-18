@@ -36,7 +36,7 @@ export function SettingsPage() {
       </div>
 
       {activeTab === 'profile' && <ProfileTab user={user} refreshUser={refreshUser} toast={toast} />}
-      {activeTab === 'ai' && <AIProviderTab toast={toast} />}
+      {activeTab === 'ai' && <AIProviderTab user={user} refreshUser={refreshUser} toast={toast} />}
       {activeTab === 'tokens' && <TokensTab toast={toast} />}
     </div>
   );
@@ -134,12 +134,14 @@ function ProfileTab({ user, refreshUser, toast }: { user: any; refreshUser: () =
   );
 }
 
-function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) {
+function AIProviderTab({ user, refreshUser, toast }: { user: any; refreshUser: () => Promise<void>; toast: (msg: string, type?: any) => void }) {
   const [provider, setProvider] = useState<AIProviderResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showKey, setShowKey] = useState(false);
   const [form, setForm] = useState({ provider: 'anthropic', model: '', api_key: '', ocr_enabled: true });
+  const [customPrompt, setCustomPrompt] = useState<string>(user?.custom_ai_prompt ?? '');
+  const [savingPrompt, setSavingPrompt] = useState(false);
   const [models, setModels] = useState<string[]>([]);
   const [fetchingModels, setFetchingModels] = useState(false);
 
@@ -231,92 +233,130 @@ function AIProviderTab({ toast }: { toast: (msg: string, type?: any) => void }) 
   const modelOptions = models.length > 0 ? models : (provider && !form.api_key ? [provider.model] : []);
 
   return (
-    <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {provider && (
-        <div style={{ background: 'oklch(96% 0.04 155)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Check size={16} style={{ color: 'var(--forest)' }} />
-          <div>
-            <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--forest)' }}>
-              {AI_PROVIDERS.find((p) => p.value === provider.provider)?.label ?? provider.provider} configured
-            </span>
-            <span style={{ fontSize: 12, color: 'var(--forest-light)', display: 'block' }}>
-              Model: {provider.model} · Key: {provider.api_key_masked} · OCR: {provider.ocr_enabled ? 'on' : 'off'}
-            </span>
+    <>
+      <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {provider && (
+          <div style={{ background: 'oklch(96% 0.04 155)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Check size={16} style={{ color: 'var(--forest)' }} />
+            <div>
+              <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--forest)' }}>
+                {AI_PROVIDERS.find((p) => p.value === provider.provider)?.label ?? provider.provider} configured
+              </span>
+              <span style={{ fontSize: 12, color: 'var(--forest-light)', display: 'block' }}>
+                Model: {provider.model} · Key: {provider.api_key_masked} · OCR: {provider.ocr_enabled ? 'on' : 'off'}
+              </span>
+            </div>
+            <button className="btn btn-ghost btn-sm" onClick={handleDelete} disabled={saving} style={{ marginLeft: 'auto', color: 'var(--rose)' }}>
+              Remove
+            </button>
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={handleDelete} disabled={saving} style={{ marginLeft: 'auto', color: 'var(--rose)' }}>
-            Remove
+        )}
+
+        <div className="input-group">
+          <label className="input-label">Provider</label>
+          <Select
+            value={form.provider}
+            onChange={(v) => setForm({ ...form, provider: v, model: '' })}
+            options={AI_PROVIDERS}
+          />
+        </div>
+
+        <div className="input-group">
+          <label className="input-label">API Key {provider && '(leave blank to keep current)'}</label>
+          <div style={{ position: 'relative' }}>
+            <input
+              className="input"
+              type={showKey ? 'text' : 'password'}
+              placeholder={provider ? '••••••••••••' : { anthropic: 'sk-ant-...', gemini: 'AIza...', openai: 'sk-...', openrouter: 'sk-or-...' }[form.provider] ?? 'API key...'}
+              value={form.api_key}
+              onChange={(e) => setForm({ ...form, api_key: e.target.value })}
+              style={{ paddingRight: 40 }}
+            />
+            <button
+              className="icon-btn"
+              onClick={() => setShowKey(!showKey)}
+              style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)' }}
+            >
+              {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
+            </button>
+          </div>
+          {fetchingModels && (
+            <span className="input-hint">Fetching available models…</span>
+          )}
+          {!fetchingModels && models.length === 0 && form.api_key && (
+            <span className="input-hint" style={{ color: 'var(--rose)' }}>Could not fetch models — check your API key</span>
+          )}
+        </div>
+
+        <div className="input-group">
+          <label className="input-label">Model</label>
+          <SearchableSelect
+            value={form.model}
+            onChange={(v) => setForm({ ...form, model: v })}
+            options={modelOptions.map((m) => ({ value: m, label: m }))}
+            placeholder={fetchingModels ? '— loading models… —' : '— enter API key to load models —'}
+            disabled={modelOptions.length === 0}
+          />
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
+            <input
+              type="checkbox"
+              checked={form.ocr_enabled}
+              onChange={(e) => setForm({ ...form, ocr_enabled: e.target.checked })}
+              style={{ width: 16, height: 16, accentColor: 'var(--forest)', cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: 14, color: 'var(--ink)' }}>
+              Use OCR for image parsing
+            </span>
+            <span style={{ fontSize: 12, color: 'var(--ink-faint)' }}>
+              (can save tokens)
+            </span>
+          </label>
+          <button className="btn btn-primary btn-md" onClick={handleSave} disabled={saving}>
+            {saving && <span className="btn-spinner" />}
+            {provider ? 'Update provider' : 'Save provider'}
           </button>
         </div>
-      )}
-
-      <div className="input-group">
-        <label className="input-label">Provider</label>
-        <Select
-          value={form.provider}
-          onChange={(v) => setForm({ ...form, provider: v, model: '' })}
-          options={AI_PROVIDERS}
-        />
       </div>
 
-      <div className="input-group">
-        <label className="input-label">API Key {provider && '(leave blank to keep current)'}</label>
-        <div style={{ position: 'relative' }}>
-          <input
+      <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>Custom AI Prompt</div>
+          <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>Instructions applied to every AI expense parsing (e.g. "Always use USD", "Categorize Uber as Transport")</div>
+        </div>
+        <div className="input-group" style={{ marginBottom: 0 }}>
+          <textarea
             className="input"
-            type={showKey ? 'text' : 'password'}
-            placeholder={provider ? '••••••••••••' : { anthropic: 'sk-ant-...', gemini: 'AIza...', openai: 'sk-...', openrouter: 'sk-or-...' }[form.provider] ?? 'API key...'}
-            value={form.api_key}
-            onChange={(e) => setForm({ ...form, api_key: e.target.value })}
-            style={{ paddingRight: 40 }}
+            rows={3}
+            maxLength={500}
+            placeholder='e.g. "Always use JPY as currency" or "Categorize Uber as Transport"'
+            value={customPrompt}
+            onChange={(e) => setCustomPrompt(e.target.value)}
+            style={{ resize: 'vertical', fontFamily: 'inherit' }}
           />
-          <button
-            className="icon-btn"
-            onClick={() => setShowKey(!showKey)}
-            style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)' }}
-          >
-            {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
+          <div style={{ fontSize: 11, color: 'var(--ink-faint)', textAlign: 'right', marginTop: 4 }}>{customPrompt.length}/500</div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button className="btn btn-primary btn-md" onClick={async () => {
+            setSavingPrompt(true);
+            try {
+              await usersApi.update({ custom_ai_prompt: customPrompt || null });
+              await refreshUser();
+              toast('Custom prompt saved', 'success');
+            } catch (e) {
+              toast(e instanceof Error ? e.message : 'Failed', 'error');
+            } finally {
+              setSavingPrompt(false);
+            }
+          }} disabled={savingPrompt}>
+            {savingPrompt && <span className="btn-spinner" />}
+            Save prompt
           </button>
         </div>
-        {fetchingModels && (
-          <span className="input-hint">Fetching available models…</span>
-        )}
-        {!fetchingModels && models.length === 0 && form.api_key && (
-          <span className="input-hint" style={{ color: 'var(--rose)' }}>Could not fetch models — check your API key</span>
-        )}
       </div>
-
-      <div className="input-group">
-        <label className="input-label">Model</label>
-        <SearchableSelect
-          value={form.model}
-          onChange={(v) => setForm({ ...form, model: v })}
-          options={modelOptions.map((m) => ({ value: m, label: m }))}
-          placeholder={fetchingModels ? '— loading models… —' : '— enter API key to load models —'}
-          disabled={modelOptions.length === 0}
-        />
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
-          <input
-            type="checkbox"
-            checked={form.ocr_enabled}
-            onChange={(e) => setForm({ ...form, ocr_enabled: e.target.checked })}
-            style={{ width: 16, height: 16, accentColor: 'var(--forest)', cursor: 'pointer' }}
-          />
-          <span style={{ fontSize: 14, color: 'var(--ink)' }}>
-            Use OCR for image parsing
-          </span>
-          <span style={{ fontSize: 12, color: 'var(--ink-faint)' }}>
-            (can save tokens)
-          </span>
-        </label>
-        <button className="btn btn-primary btn-md" onClick={handleSave} disabled={saving}>
-          {saving && <span className="btn-spinner" />}
-          {provider ? 'Update provider' : 'Save provider'}
-        </button>
-      </div>
-    </div>
+    </>
   );
 }
 
