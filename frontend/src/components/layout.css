@@ -323,10 +323,15 @@
 
   .page-content {
     padding: 16px;
+    overflow-x: hidden;
   }
 
   .dashboard-bottom-grid {
     grid-template-columns: 1fr !important;
+  }
+
+  .page-header {
+    flex-direction: column;
   }
 }
 

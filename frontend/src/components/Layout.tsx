@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import logoSrc from '../assets/logo.svg';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
@@ -198,13 +199,11 @@ export function Layout() {
               <line x1="3" y1="18" x2="21" y2="18" />
             </svg>
           </button>
-          <Link to="/" className="sidebar-logo">
+          <Link to="/" className="sidebar-logo mobile-header-logo">
             <img src={logoSrc} alt="" className="sidebar-logo-img" />
             <span className="sidebar-logo-name">Zeni</span>
           </Link>
-          <button className="icon-btn icon-btn-lg" onClick={() => setCmdOpen(true)}>
-            <Command size={18} />
-          </button>
+          <div className="icon-btn icon-btn-lg" style={{ visibility: 'hidden' }} />
         </header>
 
         <div className="page-content">
@@ -213,9 +212,12 @@ export function Layout() {
       </main>
 
       {/* Mobile FAB */}
-      <button className="fab" onClick={() => setCmdOpen(true)} aria-label="Quick add expense">
-        <Command size={22} />
-      </button>
+      {createPortal(
+        <button className="fab" onClick={() => setCmdOpen(true)} aria-label="Quick add expense">
+          <Command size={22} />
+        </button>,
+        document.body,
+      )}
 
       <CommandBar open={cmdOpen} onClose={() => setCmdOpen(false)} onExpenseAdded={handleExpenseAdded} />
     </div>
