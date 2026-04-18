@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.dependencies import get_current_user, get_db
@@ -17,8 +17,18 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 @router.post("")
-async def chat(body: ChatRequest, current_user: CurrentUser, session: DbDep) -> ChatResponse:
+async def chat(
+    body: ChatRequest,
+    current_user: CurrentUser,
+    session: DbDep,
+    x_timezone: Annotated[str | None, Header()] = None,
+) -> ChatResponse:
+    timezone = current_user.timezone or x_timezone or None
     result = await chat_about_expenses(
-        user_id=current_user.id, message=body.message, wallet_id=body.wallet_id, session=session
+        user_id=current_user.id,
+        message=body.message,
+        wallet_id=body.wallet_id,
+        session=session,
+        timezone=timezone,
     )
     return ChatResponse(response=result.response, data=result.data)

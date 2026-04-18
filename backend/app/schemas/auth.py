@@ -31,11 +31,13 @@ class UserResponse(BaseModel):
     display_name: str
     is_admin: bool
     created_at: datetime
+    timezone: str | None = None
 
 
 class UpdateProfileRequest(BaseModel):
     display_name: str | None = Field(default=None, min_length=1, max_length=100)
     password: str | None = Field(default=None, min_length=8)
+    timezone: str | None = Field(default=None, max_length=50)
 
 
 class AdminSettingsRequest(BaseModel):

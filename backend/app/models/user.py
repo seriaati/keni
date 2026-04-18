@@ -17,6 +17,7 @@ class User(SQLModel, table=True):
     password_hash: str
     display_name: str = Field(max_length=100)
     is_admin: bool = Field(default=False)
+    timezone: str | None = Field(default=None, max_length=50)
     created_at: datetime = Field(
         default=None,
         sa_column=sa.Column(

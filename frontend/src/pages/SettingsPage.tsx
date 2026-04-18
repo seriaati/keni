@@ -42,10 +42,13 @@ export function SettingsPage() {
   );
 }
 
+const TIMEZONES = Intl.supportedValuesOf('timeZone');
+
 function ProfileTab({ user, refreshUser, toast }: { user: any; refreshUser: () => Promise<void>; toast: (msg: string, type?: any) => void }) {
   const [displayName, setDisplayName] = useState(user?.display_name ?? '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [timezone, setTimezone] = useState<string>(user?.timezone ?? '');
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -58,6 +61,7 @@ function ProfileTab({ user, refreshUser, toast }: { user: any; refreshUser: () =
       await usersApi.update({
         display_name: displayName || undefined,
         password: password || undefined,
+        timezone: timezone || null,
       });
       await refreshUser();
       setPassword('');
@@ -86,6 +90,15 @@ function ProfileTab({ user, refreshUser, toast }: { user: any; refreshUser: () =
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
           />
+        </div>        <div className="input-group">
+          <label className="input-label">Timezone</label>
+          <SearchableSelect
+            value={timezone}
+            onChange={setTimezone}
+            options={TIMEZONES.map((tz) => ({ value: tz, label: tz }))}
+            placeholder={`Browser default (${Intl.DateTimeFormat().resolvedOptions().timeZone})`}
+          />
+          <span className="input-hint">Used for "today's date" in AI transaction parsing</span>
         </div>
         <hr className="divider" />
         <div className="input-group">

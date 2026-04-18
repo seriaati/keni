@@ -87,7 +87,7 @@ def _build_recent(expenses: list[Transaction], cat_map: dict) -> list[dict]:
 
 
 async def _build_context(
-    expenses: list[Transaction], wallets: list[Wallet], session: AsyncSession
+    expenses: list[Transaction], wallets: list[Wallet], session: AsyncSession, timezone: str = "UTC"
 ) -> ChatContext:
     wallet_names = [w.name for w in wallets]
     currency = wallets[0].currency if len(wallets) == 1 else "mixed"
@@ -104,6 +104,7 @@ async def _build_context(
             total_income=0.0,
             income_count=0,
             wallet_names=wallet_names,
+            timezone=timezone,
         )
 
     expense_txns = [e for e in expenses if e.type == "expense"]
@@ -122,11 +123,16 @@ async def _build_context(
         total_income=sum(e.amount for e in income_txns),
         income_count=len(income_txns),
         wallet_names=wallet_names,
+        timezone=timezone,
     )
 
 
 async def chat_about_expenses(
-    user_id: uuid.UUID, message: str, wallet_id: uuid.UUID | None, session: AsyncSession
+    user_id: uuid.UUID,
+    message: str,
+    wallet_id: uuid.UUID | None,
+    session: AsyncSession,
+    timezone: str | None = None,
 ) -> ChatResponse:
     record = await get_ai_provider_record(user_id, session)
     if record is None:
@@ -145,7 +151,7 @@ async def chat_about_expenses(
     )
     expenses = list(expense_result.all())
 
-    context = await _build_context(expenses, wallets, session)
+    context = await _build_context(expenses, wallets, session, timezone=timezone or "UTC")
     provider = get_provider(
         record.provider, api_key=_decrypt_key(record.api_key_encrypted), model=record.model
     )

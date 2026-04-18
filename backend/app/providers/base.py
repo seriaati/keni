@@ -60,6 +60,7 @@ class ChatContext:
     total_income: float = 0.0
     income_count: int = 0
     wallet_names: list[str] = field(default_factory=list)
+    timezone: str = "UTC"
 
 
 @dataclass
@@ -147,7 +148,7 @@ Guidelines:
 
 class LLMProvider(ABC):
     @abstractmethod
-    async def parse_transactions(
+    async def parse_transactions(  # noqa: PLR0913
         self,
         *,
         text: str | None,
@@ -155,6 +156,7 @@ class LLMProvider(ABC):
         image_media_type: str | None,
         categories: list[str],
         tags: list[str],
+        timezone: str = "UTC",
     ) -> ParsedTransactionOutput: ...
 
     @abstractmethod

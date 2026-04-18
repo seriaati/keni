@@ -113,7 +113,7 @@ export const auth = {
 
 export const users = {
   me: () => request<UserResponse>('/users/me'),
-  update: (data: { display_name?: string; password?: string }) =>
+  update: (data: { display_name?: string; password?: string; timezone?: string | null }) =>
     request<UserResponse>('/users/me', { method: 'PATCH', body: JSON.stringify(data) }),
 };
 
@@ -183,7 +183,7 @@ export const expenses = {
     return request<AIParseResponse>(`/wallets/${walletId}/transactions/ai`, {
       method: 'POST',
       body: form,
-      headers: {},
+      headers: { 'X-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone },
     });
   },
   voiceParse: (walletId: string, audio: Blob) => {
@@ -192,7 +192,7 @@ export const expenses = {
     return request<VoiceParseResponse>(`/wallets/${walletId}/transactions/voice`, {
       method: 'POST',
       body: form,
-      headers: {},
+      headers: { 'X-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone },
     });
   },
   createGroup: (walletId: string, data: GroupTransactionRequest) =>
@@ -311,6 +311,7 @@ export const chat = {
     request<ChatResponse>('/chat', {
       method: 'POST',
       body: JSON.stringify({ message, wallet_id }),
+      headers: { 'X-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone },
     }),
 };
 

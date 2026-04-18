@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import openai
 from openai.types.chat import (
@@ -48,7 +49,7 @@ class OpenAICompatibleProvider(LLMProvider):
         self._client = openai.AsyncOpenAI(api_key=api_key, base_url=base_url)
         self._model = model
 
-    async def parse_transactions(
+    async def parse_transactions(  # noqa: PLR0913
         self,
         *,
         text: str | None,
@@ -56,12 +57,17 @@ class OpenAICompatibleProvider(LLMProvider):
         image_media_type: str | None,
         categories: list[str],
         tags: list[str],
+        timezone: str = "UTC",
     ) -> ParsedTransactionOutput:
         if not text and not image_base64:
             msg = "At least one of text or image must be provided"
             raise ValueError(msg)
 
-        today = datetime.now(UTC).strftime("%Y-%m-%d")
+        try:
+            tz = ZoneInfo(timezone)
+        except KeyError, ZoneInfoNotFoundError:
+            tz = UTC
+        today = datetime.now(tz).strftime("%Y-%m-%d")
         category_list = ", ".join(categories) if categories else "Others"
         tag_list = ", ".join(tags) if tags else ""
 
@@ -125,8 +131,15 @@ class OpenAICompatibleProvider(LLMProvider):
         )
         wallets_line = ", ".join(context.wallet_names) if context.wallet_names else "all wallets"
 
+        try:
+            tz = ZoneInfo(context.timezone)
+        except KeyError, ZoneInfoNotFoundError:
+            tz = UTC
+        today = datetime.now(tz).strftime("%Y-%m-%d")
+
         data_context = f"""\
 Financial data summary ({wallets_line}):
+- Today's date: {today}
 - Date range: {context.date_range}
 - Total expenses: {context.total_expenses} transactions, {context.total_amount:.2f} {context.currency}
 - Total income: {context.income_count} transactions, {context.total_income:.2f} {context.currency}

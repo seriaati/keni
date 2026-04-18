@@ -32,6 +32,7 @@ async def get_me(current_user: CurrentUser) -> UserResponse:
         display_name=current_user.display_name,
         is_admin=current_user.is_admin,
         created_at=current_user.created_at,
+        timezone=current_user.timezone,
     )
 
 
@@ -43,6 +44,8 @@ async def update_me(
         current_user.display_name = body.display_name
     if body.password is not None:
         current_user.password_hash = hash_password(body.password)
+    if body.timezone is not None:
+        current_user.timezone = body.timezone
 
     session.add(current_user)
     await session.commit()
@@ -54,6 +57,7 @@ async def update_me(
         display_name=current_user.display_name,
         is_admin=current_user.is_admin,
         created_at=current_user.created_at,
+        timezone=current_user.timezone,
     )
 
 

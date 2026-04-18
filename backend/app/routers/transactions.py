@@ -6,7 +6,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile, status
 from sqlalchemy import func
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -205,12 +205,13 @@ def _build_ai_transaction_item(parsed: ParsedTransactionResult) -> AITransaction
 
 
 @router.post("/ai", status_code=status.HTTP_201_CREATED)
-async def create_transaction_ai(
+async def create_transaction_ai(  # noqa: PLR0913, PLR0917
     wallet_id: uuid.UUID,
     current_user: CurrentUser,
     session: DbDep,
     text: Annotated[str | None, Form()] = None,
     file: Annotated[UploadFile | None, File()] = None,
+    x_timezone: Annotated[str | None, Header()] = None,
 ) -> AITransactionsResponse:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
 
@@ -238,12 +239,14 @@ async def create_transaction_ai(
                 detail="Unsupported file type. Only images and PDFs are accepted.",
             )
 
+    timezone = current_user.timezone or x_timezone or None
     parsed = await parse_transactions_with_ai(
         user_id=current_user.id,
         text=text,
         image_base64=image_base64,
         image_media_type=image_media_type,
         session=session,
+        timezone=timezone,
     )
 
     group: AITransactionGroupInfo | None = None
@@ -291,6 +294,7 @@ async def create_transaction_voice(
     current_user: CurrentUser,
     session: DbDep,
     audio: Annotated[UploadFile, File()],
+    x_timezone: Annotated[str | None, Header()] = None,
 ) -> VoiceTransactionsResponse:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
 
@@ -303,12 +307,14 @@ async def create_transaction_voice(
     content_type = audio.content_type or "audio/webm"
     transcript = await transcribe_audio(audio_bytes, content_type)
 
+    timezone = current_user.timezone or x_timezone or None
     parsed = await parse_transactions_with_ai(
         user_id=current_user.id,
         text=transcript,
         image_base64=None,
         image_media_type=None,
         session=session,
+        timezone=timezone,
     )
 
     group: AITransactionGroupInfo | None = None

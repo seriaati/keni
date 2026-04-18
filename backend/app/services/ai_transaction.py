@@ -138,12 +138,13 @@ async def upsert_ai_provider(  # noqa: PLR0913, PLR0917
     return record
 
 
-async def parse_transactions_with_ai(  # noqa: PLR0914, PLR0915
+async def parse_transactions_with_ai(  # noqa: PLR0913, PLR0914, PLR0915, PLR0917
     user_id: uuid.UUID,
     text: str | None,
     image_base64: str | None,
     image_media_type: str | None,
     session: AsyncSession,
+    timezone: str | None = None,
 ) -> ParsedTransactionsResult:
     record = await get_ai_provider_record(user_id, session)
     if record is None:
@@ -178,6 +179,7 @@ async def parse_transactions_with_ai(  # noqa: PLR0914, PLR0915
             image_media_type=image_media_type,
             categories=category_names,
             tags=tag_names,
+            timezone=timezone or "UTC",
         )
     except ProviderAuthError as exc:
         logger.warning("AI transaction parse failed - auth error for user %s: %s", user_id, exc)

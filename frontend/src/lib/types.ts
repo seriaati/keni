@@ -9,6 +9,7 @@ export interface UserResponse {
   display_name: string | null;
   is_admin: boolean;
   created_at: string;
+  timezone: string | null;
 }
 
 export interface WalletResponse {
