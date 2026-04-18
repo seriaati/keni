@@ -1,27 +1,36 @@
 {
-    "folders": [
-        {
-            "name": "backend",
-            "path": "./backend"
-        },
-        {
-            "name": "frontend",
-            "path": "./frontend"
-        },
-        {
-            "name": "website",
-            "path": "./website"
-        },
-        {
-            "name": "root",
-            "path": "."
-        }
-    ],
-    "settings": {
-        "python.defaultInterpreterPath": "${workspaceFolder:backend}/.venv/bin/python",
-        "python.analysis.extraPaths": [
-            "${workspaceFolder:backend}"
-        ],
-        "chat.useCustomizationsInParentRepositories": true,
-    }
+	"folders": [
+		{
+			"name": "backend",
+			"path": "./backend"
+		},
+		{
+			"name": "frontend",
+			"path": "./frontend"
+		},
+		{
+			"name": "website",
+			"path": "./website"
+		},
+		{
+			"name": "root",
+			"path": "."
+		}
+	],
+	"settings": {
+		"python.defaultInterpreterPath": "${workspaceFolder:backend}/.venv/bin/python",
+		"python.analysis.extraPaths": [
+			"${workspaceFolder:backend}"
+		],
+		"chat.useCustomizationsInParentRepositories": true,
+		"mcp": {
+			"servers": {
+				"zeni": {
+					"url": "http://localhost:8000/mcp/sse",
+					"type": "http"
+				}
+			},
+			"inputs": []
+		}
+	}
 }
