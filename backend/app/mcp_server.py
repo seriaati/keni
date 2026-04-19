@@ -8,9 +8,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from mcp.server.auth.middleware.auth_context import get_access_token
+from mcp.server.auth.provider import AccessToken, TokenVerifier
+from mcp.server.auth.settings import AuthSettings
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import Icon
+from pydantic import AnyHttpUrl
 from sqlmodel import col, select
 
 from app.config import settings as app_settings
@@ -30,6 +34,30 @@ def _load_icon(filename: str, size: str) -> Icon:
     return Icon(src=f"data:image/png;base64,{data}", mimeType="image/png", sizes=[size])
 
 
+class ZeniTokenVerifier(TokenVerifier):
+    async def verify_token(self, token: str) -> AccessToken | None:
+        token_hash = hash_api_token(token)
+        async for session in get_session():
+            result = await session.exec(select(APIToken).where(APIToken.token_hash == token_hash))
+            api_token = result.first()
+            if not api_token:
+                return None
+            if api_token.expires_at and api_token.expires_at < datetime.now(UTC):
+                return None
+            api_token.last_used = datetime.now(UTC)
+            session.add(api_token)
+            await session.commit()
+            return AccessToken(
+                token=token,
+                client_id=str(api_token.user_id),
+                scopes=["user"],
+                expires_at=(
+                    int(api_token.expires_at.timestamp()) if api_token.expires_at else None
+                ),
+            )
+        return None
+
+
 mcp = FastMCP(
     name="Zeni",
     icons=[
@@ -45,26 +73,32 @@ mcp = FastMCP(
     instructions=(
         "Zeni is a personal finance tracker. "
         "Use these tools to create and query transaction records on behalf of the authenticated user. "
-        "All tools require a valid API token passed as the `token` argument."
+        "Authentication is handled via Bearer token in the Authorization header."
+    ),
+    token_verifier=ZeniTokenVerifier(),
+    auth=AuthSettings(
+        issuer_url=AnyHttpUrl(app_settings.mcp_issuer_url),
+        resource_server_url=AnyHttpUrl(app_settings.mcp_resource_server_url),
+        required_scopes=["user"],
     ),
 )
 
 
-async def _resolve_user(token: str) -> User | None:
-    token_hash = hash_api_token(token)
+async def _get_authenticated_user() -> User:
+    access_token = get_access_token()
+    if not access_token:
+        msg = "Not authenticated"
+        raise ValueError(msg)
+    user_id = uuid.UUID(access_token.client_id)
     async for session in get_session():
-        result = await session.exec(select(APIToken).where(APIToken.token_hash == token_hash))
-        api_token = result.first()
-        if not api_token:
-            return None
-        if api_token.expires_at and api_token.expires_at < datetime.now(UTC):
-            return None
-        api_token.last_used = datetime.now(UTC)
-        session.add(api_token)
-        await session.commit()
-        user_result = await session.exec(select(User).where(User.id == api_token.user_id))
-        return user_result.first()
-    return None
+        result = await session.exec(select(User).where(User.id == user_id))
+        user = result.first()
+        if not user:
+            msg = "User not found"
+            raise ValueError(msg)
+        return user
+    msg = "Database error"
+    raise ValueError(msg)
 
 
 def _parse_uuid(value: str, name: str) -> uuid.UUID | str:
@@ -82,11 +116,9 @@ def _parse_dt(value: str, name: str) -> datetime | str:
 
 
 @mcp.tool()
-async def list_wallets(token: str) -> list[dict[str, Any]]:
+async def list_wallets() -> list[dict[str, Any]]:
     """List all wallets belonging to the authenticated user."""
-    user = await _resolve_user(token)
-    if not user:
-        return [{"error": "Invalid or expired token"}]
+    user = await _get_authenticated_user()
     async for session in get_session():
         result = await session.exec(select(Wallet).where(Wallet.user_id == user.id))
         return [
@@ -103,11 +135,9 @@ async def list_wallets(token: str) -> list[dict[str, Any]]:
 
 
 @mcp.tool()
-async def list_categories(token: str) -> list[dict[str, Any]]:
+async def list_categories() -> list[dict[str, Any]]:
     """List all categories belonging to the authenticated user."""
-    user = await _resolve_user(token)
-    if not user:
-        return [{"error": "Invalid or expired token"}]
+    user = await _get_authenticated_user()
     async for session in get_session():
         result = await session.exec(select(Category).where(Category.user_id == user.id))
         return [
@@ -126,7 +156,6 @@ async def list_categories(token: str) -> list[dict[str, Any]]:
 
 @dataclass
 class ListTransactionsInput:
-    token: str
     wallet_id: str
     limit: int = 20
     start_date: str | None = None
@@ -214,7 +243,6 @@ async def list_transactions(params: ListTransactionsInput) -> list[dict[str, Any
     List transactions for a wallet with optional filters.
 
     Args:
-        params.token: API token for authentication.
         params.wallet_id: UUID of the wallet to query.
         params.limit: Maximum number of results (default 20, max 100).
         params.start_date: ISO 8601 start date filter (e.g. "2024-01-01").
@@ -222,9 +250,7 @@ async def list_transactions(params: ListTransactionsInput) -> list[dict[str, Any
         params.category_id: UUID of category to filter by.
         params.type: Filter by type: "expense" or "income".
     """
-    user = await _resolve_user(params.token)
-    if not user:
-        return [{"error": "Invalid or expired token"}]
+    user = await _get_authenticated_user()
     result = await _fetch_transactions(params, user.id)
     if isinstance(result, str):
         return [{"error": result}]
@@ -233,7 +259,6 @@ async def list_transactions(params: ListTransactionsInput) -> list[dict[str, Any
 
 @dataclass
 class GetSummaryInput:
-    token: str
     wallet_id: str
     start_date: str | None = None
     end_date: str | None = None
@@ -306,14 +331,11 @@ async def get_summary(params: GetSummaryInput) -> dict[str, Any]:
     Returns total expenses, total income, balance, and breakdown by category.
 
     Args:
-        params.token: API token for authentication.
         params.wallet_id: UUID of the wallet to summarize.
         params.start_date: ISO 8601 start date filter.
         params.end_date: ISO 8601 end date filter.
     """
-    user = await _resolve_user(params.token)
-    if not user:
-        return {"error": "Invalid or expired token"}
+    user = await _get_authenticated_user()
     result = await _compute_summary(params, user.id)
     if isinstance(result, str):
         return {"error": result}
@@ -322,7 +344,6 @@ async def get_summary(params: GetSummaryInput) -> dict[str, Any]:
 
 @dataclass
 class CreateTransactionInput:
-    token: str
     wallet_id: str
     category_id: str
     amount: float
@@ -403,7 +424,6 @@ async def create_transaction(params: CreateTransactionInput) -> dict[str, Any]:
     Create a new transaction record (expense or income).
 
     Args:
-        params.token: API token for authentication.
         params.wallet_id: UUID of the wallet to add the transaction to.
         params.category_id: UUID of the category for this transaction.
         params.amount: Transaction amount (must be positive).
@@ -411,9 +431,7 @@ async def create_transaction(params: CreateTransactionInput) -> dict[str, Any]:
         params.description: Optional description of the transaction.
         params.date: ISO 8601 date string (defaults to now if omitted).
     """
-    user = await _resolve_user(params.token)
-    if not user:
-        return {"error": "Invalid or expired token"}
+    user = await _get_authenticated_user()
     if params.amount <= 0:
         return {"error": "Amount must be positive"}
     if params.type not in {"expense", "income"}:
