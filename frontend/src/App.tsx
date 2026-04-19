@@ -15,7 +15,6 @@ import { CategoriesPage } from './pages/CategoriesPage';
 import { TagsPage } from './pages/TagsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AdminPage } from './pages/AdminPage';
-import { OAuthAuthorizePage } from './pages/OAuthAuthorizePage';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -61,7 +60,6 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/oauth/authorize" element={<OAuthAuthorizePage />} />
       <Route
         path="/"
         element={

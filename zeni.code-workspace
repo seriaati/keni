@@ -23,5 +23,14 @@
 			"${workspaceFolder:backend}"
 		],
 		"chat.useCustomizationsInParentRepositories": true,
+		"mcp": {
+			"servers": {
+				"zeni": {
+					"url": "http://localhost:8000/mcp/sse",
+					"type": "http"
+				}
+			},
+			"inputs": []
+		}
 	}
 }
