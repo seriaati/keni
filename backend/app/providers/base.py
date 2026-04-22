@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
     from datetime import timezone
 
 
@@ -58,16 +59,9 @@ class ParsedTransactionOutput(BaseModel):
 
 @dataclass
 class ChatContext:
-    total_expenses: int
-    total_amount: float
+    wallet_ids: list[str]
+    wallet_names: list[str]
     currency: str
-    date_range: str
-    by_category: list[dict]
-    by_month: list[dict]
-    recent_expenses: list[dict]
-    total_income: float = 0.0
-    income_count: int = 0
-    wallet_names: list[str] = field(default_factory=list)
     timezone: str = "UTC"
 
 
@@ -75,6 +69,16 @@ class ChatContext:
 class ChatResponse:
     response: str
     data: dict | None = None
+
+
+@dataclass
+class ChatTool:
+    name: str
+    description: str
+    parameters: dict[str, Any]
+
+
+ToolExecutor = "Callable[[str, dict[str, Any]], Awaitable[Any]]"
 
 
 SYSTEM_PROMPT = """\
@@ -160,15 +164,15 @@ no icon fits well. Available icons: \
 
 CHAT_SYSTEM_PROMPT = """\
 You are a personal finance assistant helping a user understand their financial habits. \
-You have access to a summary of the user's transaction data (both expenses and income) \
-provided in the user message.
+You have access to tools to query the user's transaction data on demand.
 
 Guidelines:
 - Be concise, friendly, and insightful
 - Focus on actionable financial insights and tips when relevant
-- When the user asks for numbers, reference the data provided
+- Use the provided tools to fetch the data you need to answer the question accurately
+- Call tools as many times as needed to gather sufficient information before responding
 - If the data doesn't contain enough information to answer, say so honestly
-- Do not make up transaction data that isn't in the context
+- Do not make up transaction data that isn't returned by the tools
 - Respond in plain text; do not use markdown formatting
 """
 
@@ -204,40 +208,15 @@ def build_parse_prompt(
     return prompt
 
 
-def build_chat_context_str(*, message: str, context: ChatContext) -> str:
-    by_category_lines = "\n".join(
-        f"  - {row['category_name']}: {row['total']:.2f} ({row['count']} transactions)"
-        for row in context.by_category
-    )
-    by_month_lines = "\n".join(
-        f"  - {row['period']}: {row['total']:.2f} ({row['count']} transactions)"
-        for row in context.by_month
-    )
-    recent_lines = "\n".join(
-        f"  - {row['date']} | {row['category']} | {row['amount']:.2f} | {row['description']}"
-        for row in context.recent_expenses
-    )
+def build_chat_user_message(*, message: str, context: ChatContext) -> str:
     wallets_line = ", ".join(context.wallet_names) if context.wallet_names else "all wallets"
     today = datetime.now(resolve_tz(context.timezone)).strftime("%Y-%m-%d")
-
-    return f"""\
-Financial data summary ({wallets_line}):
-- Today's date: {today}
-- Date range: {context.date_range}
-- Total expenses: {context.total_expenses} transactions, {context.total_amount:.2f} {context.currency}
-- Total income: {context.income_count} transactions, {context.total_income:.2f} {context.currency}
-- Net balance: {context.total_income - context.total_amount:.2f} {context.currency}
-
-Spending by category:
-{by_category_lines or "  (no data)"}
-
-Spending by month:
-{by_month_lines or "  (no data)"}
-
-Recent transactions (up to 10):
-{recent_lines or "  (no data)"}
-
-User question: {message}"""
+    return (
+        f"Wallet(s): {wallets_line}\n"
+        f"Today's date: {today}\n"
+        f"Currency: {context.currency}\n\n"
+        f"User question: {message}"
+    )
 
 
 class LLMProvider(ABC):
@@ -255,7 +234,14 @@ class LLMProvider(ABC):
     ) -> ParsedTransactionOutput: ...
 
     @abstractmethod
-    async def chat_with_data(self, *, message: str, context: ChatContext) -> ChatResponse: ...
+    async def chat_with_data(
+        self,
+        *,
+        message: str,
+        context: ChatContext,
+        tools: list[ChatTool],
+        tool_executor: Callable[[str, dict[str, Any]], Awaitable[Any]],
+    ) -> ChatResponse: ...
 
     @abstractmethod
     async def list_models(self) -> list[str]: ...

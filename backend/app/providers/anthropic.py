@@ -1,9 +1,18 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal, cast, get_args
+import json
+import logging
+from typing import TYPE_CHECKING, Any, Literal, cast, get_args
 
 import anthropic
-from anthropic.types import Base64ImageSourceParam, ImageBlockParam, TextBlockParam
+from anthropic.types import (
+    Base64ImageSourceParam,
+    ImageBlockParam,
+    TextBlockParam,
+    ToolParam,
+    ToolResultBlockParam,
+    ToolUseBlock,
+)
 
 from app.providers.base import (
     CHAT_SYSTEM_PROMPT,
@@ -11,7 +20,7 @@ from app.providers.base import (
     ChatResponse,
     LLMProvider,
     ParsedTransactionOutput,
-    build_chat_context_str,
+    build_chat_user_message,
     build_parse_prompt,
 )
 from app.providers.errors import (
@@ -23,7 +32,15 @@ from app.providers.errors import (
 )
 
 if TYPE_CHECKING:
-    from app.providers.base import ChatContext
+    from collections.abc import Awaitable, Callable
+
+    from anthropic.types import MessageParam
+
+    from app.providers.base import ChatContext, ChatTool
+
+logger = logging.getLogger(__name__)
+
+_MAX_TOOL_ROUNDS = 10
 
 _SupportedMediaType = Literal["image/jpeg", "image/png", "image/gif", "image/webp"]
 _SUPPORTED_MEDIA_TYPES: frozenset[str] = frozenset(get_args(_SupportedMediaType))
@@ -105,25 +122,94 @@ class AnthropicProvider(LLMProvider):
             raise ValueError(msg)
         return parsed
 
-    async def chat_with_data(self, *, message: str, context: ChatContext) -> ChatResponse:
-        data_context = build_chat_context_str(message=message, context=context)
-
+    async def _run_tool_round(
+        self,
+        messages: list[MessageParam],
+        anthropic_tools: list[ToolParam],
+        tool_executor: Callable[[str, dict[str, Any]], Awaitable[Any]],
+    ) -> tuple[bool, list[MessageParam], list[Any]]:
+        """Execute one tool round. Returns (done, updated_messages, last_response_content)."""
         try:
             response = await self._client.messages.create(
                 model=self._model,
                 max_tokens=1024,
                 system=CHAT_SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": data_context}],
+                messages=messages,
+                tools=anthropic_tools,
             )
         except Exception as exc:
             raise _wrap_anthropic_error(exc) from exc
 
-        raw = response.content[0]
-        if raw.type != "text":
-            msg = "Unexpected response type from Anthropic"
-            raise ValueError(msg)
+        tool_uses = [b for b in response.content if isinstance(b, ToolUseBlock)]
+        if response.stop_reason == "end_turn" or not tool_uses:
+            logger.debug("Anthropic chat finished: stop_reason=%s", response.stop_reason)
+            messages.append({"role": "assistant", "content": response.content})  # type: ignore[arg-type]
+            return True, messages, response.content
 
-        return ChatResponse(response=raw.text)
+        logger.info("Anthropic requesting %d tool call(s)", len(tool_uses))
+
+        messages.append({"role": "assistant", "content": response.content})  # type: ignore[arg-type]
+
+        tool_results: list[ToolResultBlockParam] = []
+        for tool_use in tool_uses:
+            fn_args: dict[str, Any] = dict(tool_use.input)
+            try:
+                result = await tool_executor(tool_use.name, fn_args)
+            except Exception as exc:
+                logger.warning("Tool %s failed: %s", tool_use.name, exc)
+                result = {"error": str(exc)}
+
+            tool_results.append(
+                ToolResultBlockParam(
+                    type="tool_result", tool_use_id=tool_use.id, content=json.dumps(result)
+                )
+            )
+
+        messages.append({"role": "user", "content": tool_results})  # type: ignore[arg-type]
+        return False, messages, []
+
+    async def chat_with_data(
+        self,
+        *,
+        message: str,
+        context: ChatContext,
+        tools: list[ChatTool],
+        tool_executor: Callable[[str, dict[str, Any]], Awaitable[Any]],
+    ) -> ChatResponse:
+        user_message = build_chat_user_message(message=message, context=context)
+
+        anthropic_tools: list[ToolParam] = [
+            ToolParam(
+                name=t.name,
+                description=t.description,
+                input_schema=t.parameters,  # type: ignore[arg-type]
+            )
+            for t in tools
+        ]
+
+        messages: list[MessageParam] = [{"role": "user", "content": user_message}]
+
+        for _ in range(_MAX_TOOL_ROUNDS):
+            done, messages, content = await self._run_tool_round(
+                messages, anthropic_tools, tool_executor
+            )
+            if done:
+                for block in content:
+                    if block.type == "text":
+                        return ChatResponse(response=block.text)
+                return ChatResponse(response="")
+
+        try:
+            response = await self._client.messages.create(
+                model=self._model, max_tokens=1024, system=CHAT_SYSTEM_PROMPT, messages=messages
+            )
+        except Exception as exc:
+            raise _wrap_anthropic_error(exc) from exc
+
+        for block in response.content:
+            if block.type == "text":
+                return ChatResponse(response=block.text)
+        return ChatResponse(response="")
 
     async def list_models(self) -> list[str]:
         try:

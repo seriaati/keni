@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING
+import logging
+from typing import TYPE_CHECKING, Any
 
 from google import genai
 from google.genai import errors as genai_errors
@@ -13,7 +14,7 @@ from app.providers.base import (
     ChatResponse,
     LLMProvider,
     ParsedTransactionOutput,
-    build_chat_context_str,
+    build_chat_user_message,
     build_parse_prompt,
 )
 from app.providers.errors import (
@@ -25,7 +26,13 @@ from app.providers.errors import (
 )
 
 if TYPE_CHECKING:
-    from app.providers.base import ChatContext
+    from collections.abc import Awaitable, Callable
+
+    from app.providers.base import ChatContext, ChatTool
+
+logger = logging.getLogger(__name__)
+
+_MAX_TOOL_ROUNDS = 10
 
 
 def _wrap_google_error(exc: Exception) -> Exception:
@@ -110,15 +117,81 @@ class GeminiProvider(LLMProvider):
 
         return ParsedTransactionOutput.model_validate(json.loads(raw_text))
 
-    async def chat_with_data(self, *, message: str, context: ChatContext) -> ChatResponse:
-        data_context = build_chat_context_str(message=message, context=context)
+    async def chat_with_data(
+        self,
+        *,
+        message: str,
+        context: ChatContext,
+        tools: list[ChatTool],
+        tool_executor: Callable[[str, dict[str, Any]], Awaitable[Any]],
+    ) -> ChatResponse:
+        user_message = build_chat_user_message(message=message, context=context)
+
+        gemini_tools = genai_types.Tool(
+            function_declarations=[
+                genai_types.FunctionDeclaration(
+                    name=t.name,
+                    description=t.description,
+                    parameters=genai_types.Schema.model_validate(t.parameters),
+                )
+                for t in tools
+            ]
+        )
+
+        contents: list[Any] = [
+            genai_types.Content(role="user", parts=[genai_types.Part.from_text(text=user_message)])
+        ]
+
+        for _ in range(_MAX_TOOL_ROUNDS):
+            try:
+                response = await self._client.aio.models.generate_content(
+                    model=self._model,
+                    contents=contents,  # type: ignore[arg-type]
+                    config=genai_types.GenerateContentConfig(
+                        system_instruction=CHAT_SYSTEM_PROMPT, tools=[gemini_tools]
+                    ),
+                )
+            except Exception as exc:
+                raise _wrap_google_error(exc) from exc
+
+            candidate = response.candidates[0] if response.candidates else None
+            if candidate is None or candidate.content is None:
+                return ChatResponse(response="")
+
+            function_calls = [
+                p.function_call
+                for p in (candidate.content.parts or [])
+                if p.function_call is not None
+            ]
+
+            if not function_calls:
+                logger.debug("Gemini chat finished: no function calls in response")
+                return ChatResponse(response=response.text or "")
+
+            logger.info("Gemini requesting %d tool call(s)", len(function_calls))
+
+            contents.append(candidate.content)
+
+            tool_response_parts: list[genai_types.Part] = []
+            for fc in function_calls:
+                fn_name = fc.name or ""
+                fn_args: dict[str, Any] = dict(fc.args) if fc.args else {}
+                try:
+                    result = await tool_executor(fn_name, fn_args)
+                except Exception as exc:
+                    logger.warning("Tool %s failed: %s", fn_name, exc)
+                    result = {"error": str(exc)}
+
+                tool_response_parts.append(
+                    genai_types.Part.from_function_response(name=fn_name, response=result)
+                )
+
+            contents.append(genai_types.Content(role="tool", parts=tool_response_parts))
 
         try:
             response = await self._client.aio.models.generate_content(
                 model=self._model,
-                contents=genai_types.Content(
-                    role="user", parts=[genai_types.Part.from_text(text=data_context)]
-                ),
+                contents=contents,  # type: ignore[arg-type]
                 config=genai_types.GenerateContentConfig(system_instruction=CHAT_SYSTEM_PROMPT),
             )
         except Exception as exc:
