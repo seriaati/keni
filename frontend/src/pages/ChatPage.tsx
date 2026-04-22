@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Bot, Send, User } from 'lucide-react';
+import { marked } from 'marked';
 import { chat as chatApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
 import { useToast } from '../components/ui/Toast';
@@ -161,6 +162,11 @@ export function ChatPage() {
                       />
                     ))}
                   </div>
+                ) : msg.role === 'assistant' ? (
+                  <div
+                    className="markdown-body"
+                    dangerouslySetInnerHTML={{ __html: marked.parse(msg.content) as string }}
+                  />
                 ) : (
                   <p style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</p>
                 )}

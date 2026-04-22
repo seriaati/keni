@@ -198,3 +198,111 @@ h6 {
   animation: shimmer 1.5s infinite;
   border-radius: var(--radius-sm);
 }
+
+/* Markdown rendered content */
+.markdown-body {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.markdown-body p {
+  margin-bottom: 0.6em;
+}
+
+.markdown-body p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
+  font-family: var(--font-body);
+  font-weight: 600;
+  margin: 0.8em 0 0.3em;
+  line-height: 1.3;
+}
+
+.markdown-body h1 { font-size: 1.1em; }
+.markdown-body h2 { font-size: 1.05em; }
+.markdown-body h3 { font-size: 1em; }
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 1.4em;
+  margin-bottom: 0.6em;
+}
+
+.markdown-body li {
+  margin-bottom: 0.2em;
+}
+
+.markdown-body code {
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 0.85em;
+  background: var(--cream-dark);
+  padding: 0.1em 0.35em;
+  border-radius: var(--radius-sm);
+}
+
+.markdown-body pre {
+  background: var(--cream-dark);
+  border: 1px solid var(--cream-darker);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  overflow-x: auto;
+  margin-bottom: 0.6em;
+}
+
+.markdown-body pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.85em;
+}
+
+.markdown-body strong {
+  font-weight: 600;
+}
+
+.markdown-body em {
+  font-style: italic;
+}
+
+.markdown-body blockquote {
+  border-left: 3px solid var(--sand);
+  padding-left: 0.8em;
+  color: var(--ink-light);
+  margin-bottom: 0.6em;
+}
+
+.markdown-body a {
+  color: var(--forest-mid);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.markdown-body hr {
+  border: none;
+  border-top: 1px solid var(--cream-darker);
+  margin: 0.8em 0;
+}
+
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 0.6em;
+}
+
+.markdown-body th,
+.markdown-body td {
+  padding: 6px 10px;
+  border: 1px solid var(--cream-darker);
+  text-align: left;
+}
+
+.markdown-body th {
+  background: var(--cream-dark);
+  font-weight: 600;
+}
