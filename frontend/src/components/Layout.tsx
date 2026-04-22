@@ -29,7 +29,7 @@ const NAV = [
   { to: '/recurring', icon: RefreshCw, label: 'Recurring' },
   { to: '/categories', icon: Tag, label: 'Categories' },
   { to: '/tags', icon: Tags, label: 'Tags' },
-  { to: '/chat', icon: Bot, label: 'Chat with AI' },
+  { to: '/chat', icon: Bot, label: 'Chat' },
 ];
 
 export interface LayoutOutletContext {
@@ -127,9 +127,8 @@ export function Layout() {
 
         {/* Quick add button */}
         <button className="quick-add-btn" onClick={() => setCmdOpen(true)}>
-          <Command size={14} />
           <span>Add expense</span>
-          <kbd className="kbd-hint">⌘K</kbd>
+          <kbd className="kbd-hint">⌘ K</kbd>
         </button>
 
         {/* Navigation */}
