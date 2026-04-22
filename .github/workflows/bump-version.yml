@@ -67,7 +67,7 @@ jobs:
         uses: orhun/git-cliff-action@v4
         id: git-cliff
         with:
-          args: --latest --strip header --config template.toml
+          args: --latest --strip header
           version: v2.9.0
         env:
           GITHUB_REPO: ${{ github.repository }}
