@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -845,6 +846,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
   const [mode, setMode] = useState<Mode>('input');
   const [parseResult, setParseResult] = useState<AIParseResponse | null>(null);
   const [transcript, setTranscript] = useState('');
+  const [imageEnlarged, setImageEnlarged] = useState(false);
 
   const [singleExpense, setSingleExpense] = useState<EditableExpense | null>(null);
   const [multiExpenses, setMultiExpenses] = useState<EditableExpense[]>([]);
@@ -885,6 +887,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
     setError('');
     setImageFile(null);
     setImagePreview(null);
+    setImageEnlarged(false);
     setSaving(false);
   }, []);
 
@@ -1178,6 +1181,57 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
   const resultType = parseResult?.result_type;
 
   return (
+    <>
+    {imageEnlarged && imagePreview && createPortal(
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 3000,
+          background: 'oklch(18% 0.02 80 / 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+          backdropFilter: 'blur(4px)',
+        }}
+        onClick={() => setImageEnlarged(false)}
+      >
+        <img
+          src={imagePreview}
+          alt="Receipt enlarged"
+          style={{
+            maxWidth: '90vw',
+            maxHeight: '85vh',
+            objectFit: 'contain',
+            borderRadius: 12,
+            boxShadow: '0 32px 80px oklch(18% 0.02 80 / 0.4)',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        />
+        <button
+          onClick={() => setImageEnlarged(false)}
+          style={{
+            position: 'absolute',
+            top: 16,
+            right: 16,
+            background: 'oklch(18% 0.02 80 / 0.6)',
+            border: 'none',
+            borderRadius: '50%',
+            width: 36,
+            height: 36,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: 'white',
+          }}
+        >
+          <X size={18} />
+        </button>
+      </div>,
+      document.body
+    )}
     <div
       ref={dropZoneRef}
       style={{
@@ -1317,7 +1371,12 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
         {imageFile && (
           <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8, background: 'var(--cream)' }}>
             {imagePreview ? (
-              <img src={imagePreview} alt="Receipt" style={{ height: 48, width: 48, objectFit: 'cover', borderRadius: 6 }} />
+              <img
+                src={imagePreview}
+                alt="Receipt"
+                onClick={() => setImageEnlarged(true)}
+                style={{ height: 48, width: 48, objectFit: 'cover', borderRadius: 6, cursor: 'zoom-in' }}
+              />
             ) : (
               <div style={{ height: 48, width: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--cream-darker)', borderRadius: 6, flexShrink: 0 }}>
                 <FileText size={22} style={{ color: 'var(--ink-mid)' }} />
@@ -1485,5 +1544,6 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
 
       </div>
     </div>
+    </>
   );
 }
