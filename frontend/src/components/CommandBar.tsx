@@ -372,6 +372,7 @@ function MultipleReview({
       date: ref?.date ?? null,
       ai_context: null,
       suggested_tags: [],
+      suggested_icon: null,
       type: 'expense',
     });
     newExpense._editing = true;
@@ -733,6 +734,7 @@ function GroupReview({
       date: parent.date,
       ai_context: null,
       suggested_tags: [],
+      suggested_icon: null,
       type: 'expense',
     });
     newItem._editing = true;
@@ -859,6 +861,7 @@ function GroupReview({
                       date: parent.date,
                       ai_context: null,
                       suggested_tags: [],
+                      suggested_icon: null,
                       type: 'expense',
                     }),
                   ]);
@@ -1002,6 +1005,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
       const exp = singleExpense._editing ? commitEditable(singleExpense) : singleExpense;
       await expensesApi.create(activeWallet.id, {
         category_name: exp.category_name ?? 'Others',
+        category_icon: exp.suggested_icon ?? undefined,
         amount: exp.amount ?? 0,
         type: exp.type ?? 'expense',
         description: exp.description ?? undefined,
@@ -1027,6 +1031,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
       await Promise.all(committed.map((exp) =>
         expensesApi.create(activeWallet.id, {
           category_name: exp.category_name ?? 'Others',
+          category_icon: exp.suggested_icon ?? undefined,
           amount: exp.amount ?? 0,
           type: exp.type ?? 'expense',
           description: exp.description ?? undefined,
@@ -1055,6 +1060,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
         .filter(Boolean);
       await recurringApi.create(activeWallet.id, {
         category_name: recurringExpense._editCategory.trim() || recurringExpense.category_name,
+        category_icon: recurringExpense.suggested_icon ?? undefined,
         amount: parseFloat(recurringExpense._editAmount) || recurringExpense.amount,
         type: recurringExpense.type,
         description: recurringExpense._editDescription.trim() || undefined,
@@ -1088,6 +1094,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
       await expensesApi.createGroup(activeWallet.id, {
         group: {
           category_name: parent.category_name ?? 'Others',
+          category_icon: parent.suggested_icon ?? undefined,
           amount: parent.amount ?? 0,
           description: parent.description ?? undefined,
           date: parent.date ?? undefined,
@@ -1096,6 +1103,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
         },
         items: items.map((e) => ({
           category_name: e.category_name ?? 'Others',
+          category_icon: e.suggested_icon ?? undefined,
           amount: e.amount ?? 0,
           description: e.description ?? undefined,
           tag_names: e.suggested_tags.map((t) => t.name),

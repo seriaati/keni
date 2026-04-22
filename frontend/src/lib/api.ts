@@ -145,6 +145,7 @@ export const expenses = {
   create: (walletId: string, data: {
     category_id?: string;
     category_name?: string;
+    category_icon?: string;
     amount: number;
     type?: 'expense' | 'income';
     description?: string;
@@ -257,6 +258,7 @@ export const recurring = {
   create: (walletId: string, data: {
     category_id?: string;
     category_name?: string;
+    category_icon?: string;
     amount: number;
     type?: 'expense' | 'income';
     description?: string;

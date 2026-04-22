@@ -115,6 +115,7 @@ export interface AIExpenseResponse {
   date: string | null;
   ai_context: string | null;
   suggested_tags: SuggestedTag[];
+  suggested_icon: string | null;
   type: 'expense' | 'income';
 }
 
@@ -129,6 +130,7 @@ export interface AIRecurringResponse {
   ai_context: string;
   type: 'expense' | 'income';
   suggested_tags: SuggestedTag[];
+  suggested_icon: string | null;
 }
 
 export interface AIParseResponse {
@@ -145,6 +147,7 @@ export interface VoiceParseResponse extends AIParseResponse {
 export interface GroupTransactionItemRequest {
   category_name?: string;
   category_id?: string;
+  category_icon?: string;
   amount: number;
   description?: string;
   tag_names?: string[];
@@ -157,6 +160,7 @@ export interface GroupTransactionRequest {
   group: {
     category_name?: string;
     category_id?: string;
+    category_icon?: string;
     amount: number;
     description?: string;
     date?: string;

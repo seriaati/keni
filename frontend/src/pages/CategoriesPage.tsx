@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, Tag } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { Plus, Pencil, Trash2, Tag, Search } from 'lucide-react';
 import { categories as categoriesApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import { Modal } from '../components/ui/Modal';
@@ -19,6 +19,7 @@ export function CategoriesPage() {
   const [editCat, setEditCat] = useState<CategoryResponse | null>(null);
   const [deleteCat, setDeleteCat] = useState<CategoryResponse | null>(null);
   const [saving, setSaving] = useState(false);
+  const [iconSearch, setIconSearch] = useState('');
 
   const [form, setForm] = useState<{
     name: string;
@@ -47,13 +48,23 @@ export function CategoriesPage() {
 
   const openCreate = () => {
     setForm({ name: '', icon: '', color: null, type: 'expense' });
+    setIconSearch('');
     setShowCreate(true);
   };
 
   const openEdit = (c: CategoryResponse) => {
     setForm({ name: c.name, icon: c.icon ?? '', color: c.color ?? null, type: c.type });
+    setIconSearch('');
     setEditCat(c);
   };
+
+  const filteredIcons = useMemo(() => {
+    const q = iconSearch.trim().toLowerCase();
+    if (!q) return CATEGORY_ICONS;
+    return CATEGORY_ICONS.filter(({ label, name }) =>
+      label.toLowerCase().includes(q) || name.toLowerCase().includes(q)
+    );
+  }, [iconSearch]);
 
   const handleSave = async () => {
     if (!form.name.trim()) return;
@@ -113,29 +124,41 @@ export function CategoriesPage() {
       </div>
       <div className="input-group">
         <label className="input-label">Icon</label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          <button
-            title="No icon"
-            onClick={() => setForm({ ...form, icon: '' })}
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              border: `2px solid ${form.icon === '' ? 'var(--forest)' : 'var(--cream-darker)'}`,
-              background: form.icon === '' ? 'oklch(92% 0.06 155)' : 'white',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 15,
-              color: form.icon === '' ? 'var(--forest)' : 'var(--ink-faint)',
-              fontWeight: 700,
-              transition: 'border-color 0.12s, background 0.12s',
-            }}
-          >
-            ∅
-          </button>
-          {CATEGORY_ICONS.map(({ name, icon: Icon, label }) => {
+        <div style={{ position: 'relative', marginBottom: 8 }}>
+          <Search size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-faint)', pointerEvents: 'none' }} />
+          <input
+            className="input"
+            placeholder="Search icons…"
+            value={iconSearch}
+            onChange={(e) => setIconSearch(e.target.value)}
+            style={{ paddingLeft: 28, height: 32, fontSize: 13 }}
+          />
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, maxHeight: 180, overflowY: 'auto', padding: '2px 0' }}>
+          {!iconSearch && (
+            <button
+              title="No icon"
+              onClick={() => setForm({ ...form, icon: '' })}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                border: `2px solid ${form.icon === '' ? 'var(--forest)' : 'var(--cream-darker)'}`,
+                background: form.icon === '' ? 'oklch(92% 0.06 155)' : 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 15,
+                color: form.icon === '' ? 'var(--forest)' : 'var(--ink-faint)',
+                fontWeight: 700,
+                transition: 'border-color 0.12s, background 0.12s',
+              }}
+            >
+              ∅
+            </button>
+          )}
+          {filteredIcons.map(({ name, icon: Icon, label }) => {
             const selected = form.icon === name;
             const iconColor = selected ? iconColorForBg(form.color) : 'var(--ink-mid)';
             return (
@@ -160,6 +183,9 @@ export function CategoriesPage() {
               </button>
             );
           })}
+          {filteredIcons.length === 0 && (
+            <span style={{ fontSize: 13, color: 'var(--ink-faint)', padding: '8px 2px' }}>No icons found</span>
+          )}
         </div>
       </div>
       <div className="input-group">
