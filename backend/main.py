@@ -81,7 +81,7 @@ app.include_router(export.router)
 app.include_router(tokens.router)
 app.include_router(oauth.router)
 
-_mcp_app = mcp.sse_app()
+_mcp_app = mcp.streamable_http_app()
 app.mount("/mcp", _mcp_app)
 
 
