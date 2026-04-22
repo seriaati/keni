@@ -276,9 +276,9 @@ function relativeLuminance(r: number, g: number, b: number): number {
 }
 
 export function iconColorForBg(bgColor: string | null | undefined): string {
-  if (!bgColor) return 'white';
+  if (!bgColor) return 'rgba(0,0,0,0.5)';
   const rgb = hexToRgb(bgColor);
-  if (!rgb) return 'white';
+  if (!rgb) return 'rgba(0,0,0,0.5)';
   const lum = relativeLuminance(rgb.r, rgb.g, rgb.b);
   return lum > 0.35 ? 'rgba(0,0,0,0.65)' : 'white';
 }
