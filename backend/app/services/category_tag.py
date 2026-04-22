@@ -14,14 +14,18 @@ if TYPE_CHECKING:
 
 
 async def find_or_create_category(
-    user_id: uuid.UUID, name: str, session: AsyncSession, category_type: str = "expense"
+    user_id: uuid.UUID,
+    name: str,
+    session: AsyncSession,
+    category_type: str = "expense",
+    icon: str | None = None,
 ) -> Category:
     result = await session.exec(select(Category).where(Category.user_id == user_id))
     for cat in result.all():
         if cat.name.lower() == name.lower():
             return cat
 
-    category = Category(user_id=user_id, name=name, type=category_type)
+    category = Category(user_id=user_id, name=name, type=category_type, icon=icon)
     session.add(category)
     await session.flush()
     await session.refresh(category)

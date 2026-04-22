@@ -156,7 +156,11 @@ async def _create_single_transaction(
     else:
         assert body.category_name is not None
         category = await find_or_create_category(
-            user_id=user_id, name=body.category_name, session=session, category_type=body.type
+            user_id=user_id,
+            name=body.category_name,
+            session=session,
+            category_type=body.type,
+            icon=body.category_icon,
         )
         resolved_category_id = category.id
 
@@ -201,6 +205,7 @@ def _build_ai_transaction_item(parsed: ParsedTransactionResult) -> AITransaction
         ai_context=parsed.ai_context,
         type=parsed.type,
         suggested_tags=[SuggestedTag(name=t.name, is_new=t.is_new) for t in parsed.suggested_tags],
+        suggested_icon=parsed.suggested_icon,
     )
 
 
@@ -262,6 +267,7 @@ async def create_transaction_ai(  # noqa: PLR0913, PLR0917
             ai_context=g.ai_context,
             type=g.type,
             suggested_tags=[SuggestedTag(name=t.name, is_new=t.is_new) for t in g.suggested_tags],
+            suggested_icon=g.suggested_icon,
         )
 
     recurring: AIRecurringItem | None = None
@@ -278,6 +284,7 @@ async def create_transaction_ai(  # noqa: PLR0913, PLR0917
             ai_context=r.ai_context,
             type=r.type,
             suggested_tags=[SuggestedTag(name=t.name, is_new=t.is_new) for t in r.suggested_tags],
+            suggested_icon=r.suggested_icon,
         )
 
     return AITransactionsResponse(
@@ -330,6 +337,7 @@ async def create_transaction_voice(
             ai_context=g.ai_context,
             type=g.type,
             suggested_tags=[SuggestedTag(name=t.name, is_new=t.is_new) for t in g.suggested_tags],
+            suggested_icon=g.suggested_icon,
         )
 
     voice_recurring: AIRecurringItem | None = None
@@ -346,6 +354,7 @@ async def create_transaction_voice(
             ai_context=r.ai_context,
             type=r.type,
             suggested_tags=[SuggestedTag(name=t.name, is_new=t.is_new) for t in r.suggested_tags],
+            suggested_icon=r.suggested_icon,
         )
 
     return VoiceTransactionsResponse(

@@ -21,6 +21,7 @@ class ParsedTransaction(BaseModel):
     ai_context: str
     type: str = "expense"
     suggested_tags: list[str] = Field(default_factory=list)
+    suggested_icon: str | None = None
 
 
 class ParsedTransactionGroupInfo(BaseModel):
@@ -32,6 +33,7 @@ class ParsedTransactionGroupInfo(BaseModel):
     ai_context: str
     type: str = "expense"
     suggested_tags: list[str] = Field(default_factory=list)
+    suggested_icon: str | None = None
 
 
 class ParsedRecurringTransaction(BaseModel):
@@ -44,6 +46,7 @@ class ParsedRecurringTransaction(BaseModel):
     ai_context: str
     type: str = "expense"
     suggested_tags: list[str] = Field(default_factory=list)
+    suggested_icon: str | None = None
 
 
 class ParsedTransactionOutput(BaseModel):

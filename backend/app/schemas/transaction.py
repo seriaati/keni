@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, model_validator
 class TransactionCreate(BaseModel):
     category_id: uuid.UUID | None = None
     category_name: str | None = None
+    category_icon: str | None = None
     type: Literal["expense", "income"] = "expense"
     amount: float = Field(gt=0)
     description: str | None = Field(default=None, max_length=500)

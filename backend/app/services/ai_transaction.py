@@ -50,6 +50,7 @@ class ParsedTransactionResult:
     ai_context: str
     type: str = "expense"
     suggested_tags: list[SuggestedTagResult] = field(default_factory=list)
+    suggested_icon: str | None = None
 
 
 @dataclass
@@ -63,6 +64,7 @@ class ParsedGroupResult:
     ai_context: str
     type: str = "expense"
     suggested_tags: list[SuggestedTagResult] = field(default_factory=list)
+    suggested_icon: str | None = None
 
 
 @dataclass
@@ -77,6 +79,7 @@ class ParsedRecurringResult:
     ai_context: str
     type: str = "expense"
     suggested_tags: list[SuggestedTagResult] = field(default_factory=list)
+    suggested_icon: str | None = None
 
 
 @dataclass
@@ -251,6 +254,7 @@ async def parse_transactions_with_ai(  # noqa: PLR0913, PLR0914, PLR0915, PLR091
             ai_context=parsed_rec.ai_context,
             type=parsed_rec.type,
             suggested_tags=tags,
+            suggested_icon=parsed_rec.suggested_icon if is_new else None,
         )
 
     def _enrich_transaction(parsed_txn: ParsedTransaction) -> ParsedTransactionResult:
@@ -269,6 +273,7 @@ async def parse_transactions_with_ai(  # noqa: PLR0913, PLR0914, PLR0915, PLR091
             ai_context=parsed_txn.ai_context,
             type=parsed_txn.type,
             suggested_tags=tags,
+            suggested_icon=parsed_txn.suggested_icon if is_new else None,
         )
 
     enriched_transactions = [_enrich_transaction(e) for e in output.expenses]
@@ -291,6 +296,7 @@ async def parse_transactions_with_ai(  # noqa: PLR0913, PLR0914, PLR0915, PLR091
             ai_context=g.ai_context,
             type=g.type,
             suggested_tags=g_tags,
+            suggested_icon=g.suggested_icon if is_new else None,
         )
 
     enriched_recurring: ParsedRecurringResult | None = None

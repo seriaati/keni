@@ -47,6 +47,7 @@ class AITransactionItem(BaseModel):
     ai_context: str
     type: str
     suggested_tags: list[SuggestedTag]
+    suggested_icon: str | None = None
 
 
 class AITransactionGroupInfo(BaseModel):
@@ -59,6 +60,7 @@ class AITransactionGroupInfo(BaseModel):
     ai_context: str
     type: str
     suggested_tags: list[SuggestedTag]
+    suggested_icon: str | None = None
 
 
 class AIRecurringItem(BaseModel):
@@ -72,6 +74,7 @@ class AIRecurringItem(BaseModel):
     ai_context: str
     type: str
     suggested_tags: list[SuggestedTag]
+    suggested_icon: str | None = None
 
 
 class AITransactionsResponse(BaseModel):
