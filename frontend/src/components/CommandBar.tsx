@@ -57,6 +57,7 @@ interface EditableExpense extends AIExpenseResponse {
   _editDescription: string;
   _editTags: string;
   _editing: boolean;
+  _isNew?: boolean;
 }
 
 const NAV_ITEMS = [
@@ -120,12 +121,14 @@ function ExpenseCard({
   currency,
   label,
   onRemove,
+  onCancelNew,
 }: {
   expense: EditableExpense;
   onChange: (e: EditableExpense) => void;
   currency?: string;
   label?: string;
   onRemove?: () => void;
+  onCancelNew?: () => void;
 }) {
   const amountRef = useRef<HTMLInputElement>(null);
 
@@ -282,7 +285,7 @@ function ExpenseCard({
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
         {expense._editing ? (
           <>
-            <button className="btn btn-secondary btn-sm" style={{ fontSize: 12, padding: '3px 10px' }} onClick={() => onChange({ ...expense, _editing: false })}>Cancel</button>
+            <button className="btn btn-secondary btn-sm" style={{ fontSize: 12, padding: '3px 10px' }} onClick={() => expense._isNew && onCancelNew ? onCancelNew() : onChange({ ...expense, _editing: false })}>Cancel</button>
             <button className="btn btn-primary btn-sm" style={{ fontSize: 12, padding: '3px 10px', display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={commit}>
               <Check size={11} /> Apply
             </button>
@@ -358,10 +361,45 @@ function MultipleReview({
     setActiveIndex(next);
   };
 
+  const addExpense = () => {
+    const ref = expenses[0];
+    const newExpense = makeEditable({
+      amount: 0,
+      currency: ref?.currency ?? null,
+      category_name: null,
+      is_new_category: false,
+      description: null,
+      date: ref?.date ?? null,
+      ai_context: null,
+      suggested_tags: [],
+      type: 'expense',
+    });
+    newExpense._editing = true;
+    newExpense._isNew = true;
+    const newList = [...expenses, newExpense];
+    onChange(newList);
+    setActiveIndex(newList.length - 1);
+  };
+
+  const removeExpense = (i: number) => {
+    const next = expenses.filter((_, idx) => idx !== i);
+    onChange(next);
+    setActiveIndex((prev) => Math.min(prev, next.length - 1));
+  };
+
   return (
     <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ fontSize: 12, color: 'var(--ink-light)', fontWeight: 600 }}>
-        {expenses.length} expenses detected — each will be saved independently
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ fontSize: 12, color: 'var(--ink-light)', fontWeight: 600 }}>
+          {expenses.length} expenses detected — each will be saved independently
+        </div>
+        <button
+          className="btn btn-secondary btn-sm"
+          style={{ fontSize: 11, padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+          onClick={addExpense}
+        >
+          <Plus size={11} /> Add expense
+        </button>
       </div>
 
       <div style={{ overflow: 'hidden' }}>
@@ -379,6 +417,7 @@ function MultipleReview({
                 onChange={(e) => update(i, e)}
                 currency={activeWalletCurrency}
                 label={`Expense ${i + 1}`}
+                onCancelNew={exp._isNew ? () => removeExpense(i) : undefined}
               />
             </div>
           ))}
@@ -685,20 +724,22 @@ function GroupReview({
   };
 
   const addItem = () => {
-    onChangeItems([
-      ...items,
-      makeEditable({
-        amount: 0,
-        currency: parent.currency,
-        category_name: parent.category_name,
-        is_new_category: false,
-        description: null,
-        date: parent.date,
-        ai_context: null,
-        suggested_tags: [],
-        type: 'expense',
-      }),
-    ]);
+    const newItem = makeEditable({
+      amount: 0,
+      currency: parent.currency,
+      category_name: parent.category_name,
+      is_new_category: false,
+      description: null,
+      date: parent.date,
+      ai_context: null,
+      suggested_tags: [],
+      type: 'expense',
+    });
+    newItem._editing = true;
+    newItem._isNew = true;
+    const newItems = [...items, newItem];
+    onChangeItems(newItems);
+    setActiveIndex(newItems.length - 1);
   };
 
   const goTo = (next: number) => {
@@ -770,6 +811,7 @@ function GroupReview({
                     currency={activeWalletCurrency}
                     label={`Item ${i + 1}`}
                     onRemove={items.length > 1 ? () => removeItem(i) : undefined}
+                    onCancelNew={item._isNew ? () => removeItem(i) : undefined}
                   />
                 </div>
               ))}
