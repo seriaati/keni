@@ -146,14 +146,16 @@ maximum will be exceeded, don't suggest new ones. Return an empty array if no ta
 category_name is not in the provided categories list). Suggest a single icon name from the \
 following list that best represents the category. Use null if the category already exists or \
 no icon fits well. Available icons: \
-"shopping-cart", "utensils", "car", "train", "plane", "bus", "home", "heart", "pill", \
-"stethoscope", "dumbbell", "gamepad-2", "monitor", "smartphone", "laptop", "tv", \
-"music", "film", "book", "graduation-cap", "briefcase", "building-2", "coffee", \
-"beer", "wine", "pizza", "apple", "shirt", "scissors", "sparkles", "gift", \
-"banknote", "credit-card", "trending-up", "piggy-bank", "wallet", "receipt", \
-"zap", "wifi", "phone", "globe", "map-pin", "tree", "sun", "cloud", "umbrella", \
-"paw-print", "baby", "users", "party-popper", "ticket", "camera", "bike", \
-"fuel", "wrench", "hammer", "package", "truck", "star", "flame"
+"Utensils", "Coffee", "Pizza", "Wine", "Beer", "Apple", "ShoppingCart", "ShoppingBag", \
+"Shirt", "Car", "Bus", "Train", "Bike", "Plane", "Fuel", "Truck", "Ship", "MapPin", \
+"Home", "Building2", "Hotel", "Tent", "Sofa", "Hammer", "Paintbrush", "Lightbulb", \
+"Zap", "Droplets", "Flame", "Wifi", "Phone", "Tv", "Smartphone", "Laptop", "Monitor", \
+"Headphones", "Camera", "Pill", "Stethoscope", "Heart", "Dumbbell", "Syringe", \
+"Brain", "Eye", "Smile", "BookOpen", "GraduationCap", "Globe", "Pen", "Newspaper", \
+"Clapperboard", "Music", "Gamepad2", "Palette", "Volleyball", "Mountain", "Waves", \
+"Briefcase", "Rocket", "Star", "Sparkles", "Gift", "PartyPopper", "Users", "Baby", \
+"PawPrint", "Wrench", "Scissors", "Landmark", "TrendingUp", "PiggyBank", "CreditCard", \
+"Receipt", "Banknote", "Coins", "Diamond", "Package", "Ticket", "Leaf", "Wallet"
 """
 
 CHAT_SYSTEM_PROMPT = """\
