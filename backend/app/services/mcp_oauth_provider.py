@@ -147,7 +147,20 @@ class ZeniOAuthProvider(OAuthAuthorizationServerProvider):
             )
             row = result.first()
             if row is None:
+                logger.warning(
+                    "load_authorization_code: not found — code=%s client_id=%s",
+                    authorization_code[:8] + "…",
+                    client.client_id,
+                )
                 return None
+            logger.info(
+                "load_authorization_code: found — redirect_uri=%r redirect_uri_provided_explicitly=%s "
+                "code_challenge=%r expires_at=%s",
+                row.redirect_uri,
+                row.redirect_uri_provided_explicitly,
+                row.code_challenge,
+                row.expires_at,
+            )
             return ZeniAuthorizationCode(
                 db_id=row.id,
                 code=row.code,

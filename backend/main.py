@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
 
@@ -30,6 +31,8 @@ from app.services.scheduler import run_data_retention, run_recurring_transaction
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, MutableMapping
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -108,6 +111,16 @@ async def _proxy_to_mcp(request: Request) -> Response:
     raw_headers: list[tuple[bytes, bytes]] = response_started.get("headers", [])
     headers = {k.decode(): v.decode() for k, v in raw_headers}
     body = b"".join(body_parts)
+    if status >= 400:
+        logger.warning(
+            "_proxy_to_mcp %s %s → %d: %s",
+            request.method,
+            path,
+            status,
+            body.decode(errors="replace"),
+        )
+    else:
+        logger.info("_proxy_to_mcp %s %s → %d", request.method, path, status)
     return Response(content=body, status_code=status, headers=headers)
 
 
