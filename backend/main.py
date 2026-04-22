@@ -82,7 +82,6 @@ app.include_router(tokens.router)
 app.include_router(oauth.router)
 
 _mcp_app = mcp.streamable_http_app()
-app.mount("/mcp", _mcp_app)
 
 
 async def _proxy_to_mcp(request: Request) -> Response:
@@ -131,6 +130,7 @@ _MCP_ROOT_PATHS = [
     "/token",
     "/register",
     "/revoke",
+    "/mcp",
 ]
 
 for _path in _MCP_ROOT_PATHS:
