@@ -139,7 +139,7 @@ function AIProviderTab({ user, refreshUser, toast }: { user: any; refreshUser: (
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showKey, setShowKey] = useState(false);
-  const [form, setForm] = useState({ provider: 'anthropic', model: '', api_key: '', ocr_enabled: true });
+  const [form, setForm] = useState({ provider: 'anthropic', model: '', api_key: '', ocr_enabled: false });
   const [customPrompt, setCustomPrompt] = useState<string>(user?.custom_ai_prompt ?? '');
   const [savingPrompt, setSavingPrompt] = useState(false);
   const [models, setModels] = useState<string[]>([]);

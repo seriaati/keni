@@ -19,7 +19,7 @@ class AIProvider(SQLModel, table=True):
     provider: str = Field(default="anthropic", max_length=50)
     api_key_encrypted: str
     model: str = Field(default="claude-opus-4-5", max_length=100)
-    ocr_enabled: bool = Field(default=True, sa_column_kwargs={"server_default": text("true")})
+    ocr_enabled: bool = Field(default=False, sa_column_kwargs={"server_default": text("false")})
     created_at: datetime = Field(
         default=None,
         sa_column=sa.Column(
