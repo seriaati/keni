@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Download, Filter, Layers, Search, SortAsc, SortDesc, X } from 'lucide-react';
 import { expenses as expensesApi, categories as categoriesApi, wallets as walletsApi, tags as tagsApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
@@ -11,6 +11,7 @@ import { CategoryIcon } from '../lib/categoryIcons';
 
 export function WalletViewPage() {
   const { walletId } = useParams<{ walletId: string }>();
+  const [searchParams] = useSearchParams();
   const toast = useToast();
 
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
@@ -20,14 +21,14 @@ export function WalletViewPage() {
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [categoryId, setCategoryId] = useState(() => searchParams.get('category_id') ?? '');
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(() => searchParams.getAll('tag_ids'));
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState(() => searchParams.get('start_date') ?? '');
+  const [endDate, setEndDate] = useState(() => searchParams.get('end_date') ?? '');
   const [minAmount, setMinAmount] = useState('');
   const [maxAmount, setMaxAmount] = useState('');
 

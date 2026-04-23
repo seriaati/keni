@@ -539,7 +539,12 @@ export function ExpenseDetailPage() {
                 options={categoryOptions}
               />
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Link
+                to={`/wallets/${walletId}?category_id=${expense.category.id}`}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: 'inherit' }}
+                onMouseEnter={(e) => { (e.currentTarget.querySelector('span') as HTMLElement).style.textDecoration = 'underline'; }}
+                onMouseLeave={(e) => { (e.currentTarget.querySelector('span') as HTMLElement).style.textDecoration = 'none'; }}
+              >
                 <CategoryIcon
                   iconName={expense.category.icon}
                   color={expense.category.color}
@@ -549,7 +554,7 @@ export function ExpenseDetailPage() {
                   fallbackLetter={expense.category.name[0]}
                 />
                 <span style={{ fontSize: 15, fontWeight: 500 }}>{expense.category.name}</span>
-              </div>
+              </Link>
             )}
           </div>
 
@@ -561,7 +566,14 @@ export function ExpenseDetailPage() {
                 onChange={(v) => setForm({ ...form, date: v })}
               />
             ) : (
-              <div style={{ fontSize: 15, fontWeight: 500 }}>{fmtDate(expense.date)}</div>
+              <Link
+                to={(() => { const d = new Date(expense.date); const local = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; return `/wallets/${walletId}?start_date=${local}&end_date=${local}`; })()}
+                style={{ fontSize: 15, fontWeight: 500, textDecoration: 'none', color: 'inherit' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.textDecoration = 'underline'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.textDecoration = 'none'; }}
+              >
+                {fmtDate(expense.date)}
+              </Link>
             )}
           </div>
         </div>
@@ -598,13 +610,16 @@ export function ExpenseDetailPage() {
           ) : expense.tags.length > 0 ? (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {expense.tags.map((tag) => (
-                <span
+                <Link
                   key={tag.id}
+                  to={`/wallets/${walletId}?tag_ids=${tag.id}`}
                   className="chip"
-                  style={{ background: tag.color ? `${tag.color}14` : undefined, borderColor: tag.color ? `${tag.color}50` : undefined }}
+                  style={{ background: tag.color ? `${tag.color}14` : undefined, borderColor: tag.color ? `${tag.color}50` : undefined, textDecoration: 'none', color: 'inherit' }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.textDecoration = 'underline'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.textDecoration = 'none'; }}
                 >
                   {tag.name}
-                </span>
+                </Link>
               ))}
             </div>
           ) : (
