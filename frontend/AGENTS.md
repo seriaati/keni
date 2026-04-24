@@ -7,11 +7,14 @@ React 19 + TypeScript + Vite, React Router v7, Recharts, date-fns, lucide-react,
 No test framework configured.
 
 ## Commands
+
+**Package manager: `bun`** — `bun.lock` is present; do not use npm or yarn.
+
 ```
-npm run dev      # Vite dev server on :5173
-npm run build    # tsc -b && vite build
-npm run lint     # eslint .
-npm run preview  # vite preview
+bun dev          # Vite dev server on :5173
+bun run build    # tsc -b && vite build
+bun run lint     # eslint .
+bun run preview  # vite preview
 ```
 
 ## Key Architecture

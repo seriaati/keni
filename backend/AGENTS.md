@@ -20,7 +20,11 @@ uv run alembic revision --autogenerate -m "<msg>"  # generate migration
 uv run ruff check .                       # lint
 uv run ruff format .                      # format
 uv run pyright                            # type check
-docker compose up -d                      # start postgres + backend
+```
+
+Full-stack (run from **repo root**):
+```sh
+docker compose up -d   # starts postgres + backend + frontend
 ```
 
 **After modifying any Python file**, always run:
