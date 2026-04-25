@@ -30,7 +30,7 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api\//],
       },
       devOptions: {
-        enabled: false,
+        enabled: true,
       },
     }),
   ],
