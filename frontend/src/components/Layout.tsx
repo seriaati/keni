@@ -1,10 +1,16 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
 import { createPortal } from 'react-dom';
 import logoSrc from '../assets/logo.svg';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   Bot,
   ChevronDown,
+  Download,
   LayoutDashboard,
   LogOut,
   RefreshCw,
@@ -44,6 +50,9 @@ export function Layout() {
   const [walletMenuOpen, setWalletMenuOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [expenseAddedKey, setExpenseAddedKey] = useState(0);
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(
+    () => ((window as Window & { __pwaPrompt?: BeforeInstallPromptEvent }).__pwaPrompt ?? null)
+  );
   const navigate = useNavigate();
   const walletSelectorRef = useRef<HTMLDivElement>(null);
 
@@ -72,6 +81,26 @@ export function Layout() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [walletMenuOpen]);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      setInstallPrompt(e as BeforeInstallPromptEvent);
+    };
+    const clearPrompt = () => setInstallPrompt(null);
+    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', clearPrompt);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', clearPrompt);
+    };
+  }, []);
+
+  const handleInstall = async () => {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') setInstallPrompt(null);
+  };
 
   const handleLogout = () => {
     logout();
@@ -149,6 +178,12 @@ export function Layout() {
 
         {/* Bottom section */}
         <div className="sidebar-bottom">
+          {installPrompt && (
+            <button className="nav-item pwa-install-btn" onClick={handleInstall}>
+              <Download size={16} />
+              Install app
+            </button>
+          )}
           <NavLink
             to="/settings"
             className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}

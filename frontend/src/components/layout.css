@@ -189,6 +189,21 @@
   font-weight: 500;
 }
 
+/* PWA install */
+.pwa-install-btn {
+  width: 100%;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  color: var(--amber);
+}
+
+.pwa-install-btn:hover {
+  background: oklch(from var(--amber) l c h / 0.08);
+  color: var(--amber);
+}
+
 /* Sidebar bottom */
 .sidebar-bottom {
   padding: 8px;
