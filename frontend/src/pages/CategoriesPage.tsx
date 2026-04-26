@@ -68,7 +68,7 @@ function CategoryForm({
                 height: 36,
                 borderRadius: 8,
                 border: `2px solid ${form.icon === '' ? 'var(--forest)' : 'var(--cream-darker)'}`,
-                background: form.icon === '' ? 'oklch(92% 0.06 155)' : 'white',
+                background: form.icon === '' ? (form.color ?? 'var(--cream-darker)') : 'white',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
