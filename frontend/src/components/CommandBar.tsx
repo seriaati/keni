@@ -17,6 +17,8 @@ import {
   RefreshCw,
   Settings,
   Shuffle,
+  TrendingDown,
+  TrendingUp,
   WandSparkles,
   Tag,
   Wallet,
@@ -115,6 +117,29 @@ function makeEditableRecurring(r: AIRecurringResponse): EditableRecurring {
   };
 }
 
+function TypeBadge({ type }: { type: 'expense' | 'income' }) {
+  const isIncome = type === 'income';
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 3,
+      fontSize: 10,
+      fontWeight: 700,
+      letterSpacing: '0.05em',
+      textTransform: 'uppercase',
+      borderRadius: 4,
+      padding: '2px 6px',
+      color: isIncome ? 'oklch(42% 0.14 155)' : 'oklch(42% 0.12 20)',
+      background: isIncome ? 'oklch(94% 0.05 155)' : 'oklch(95% 0.03 20)',
+      border: `1px solid ${isIncome ? 'oklch(80% 0.1 155)' : 'oklch(85% 0.06 20)'}`,
+    }}>
+      {isIncome ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
+      {isIncome ? 'Income' : 'Expense'}
+    </span>
+  );
+}
+
 function ExpenseCard({
   expense,
   onChange,
@@ -168,20 +193,21 @@ function ExpenseCard({
       gap: 8,
       border: expense._editing ? '1.5px solid var(--forest)' : '1.5px solid transparent',
     }}>
-      {(label || onRemove) && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {label && <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</div>}
-          {onRemove && (
-            <button
-              type="button"
-              onClick={onRemove}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-faint)', padding: 2, display: 'flex', alignItems: 'center' }}
-            >
-              <Trash2 size={12} />
-            </button>
-          )}
+          <TypeBadge type={expense.type ?? 'expense'} />
         </div>
-      )}
+        {onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-faint)', padding: 2, display: 'flex', alignItems: 'center' }}
+          >
+            <Trash2 size={12} />
+          </button>
+        )}
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
         <div>
@@ -313,13 +339,26 @@ function SingleReview({
   onSave: () => void;
   saving: boolean;
 }) {
+  const isIncome = expense.type === 'income';
   return (
     <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
       <ExpenseCard expense={expense} onChange={onChange} currency={activeWalletCurrency} />
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4 }}>
-        <button className="btn btn-primary btn-sm" onClick={onSave} disabled={saving}>
+        <button
+          className="btn btn-primary btn-sm"
+          onClick={onSave}
+          disabled={saving}
+          style={isIncome ? {
+            background: 'oklch(42% 0.14 155)',
+            borderColor: 'oklch(42% 0.14 155)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+          } : { display: 'inline-flex', alignItems: 'center', gap: 5 }}
+        >
           {saving && <span className="btn-spinner" />}
-          Save expense
+          {isIncome ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+          Save {isIncome ? 'income' : 'expense'}
         </button>
       </div>
       <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--ink-faint)' }}>
@@ -388,11 +427,19 @@ function MultipleReview({
     setActiveIndex((prev) => Math.min(prev, next.length - 1));
   };
 
+  const incomeCount = expenses.filter((e) => e.type === 'income').length;
+  const expenseCount = expenses.filter((e) => e.type === 'expense').length;
+  const mixedLabel = incomeCount > 0 && expenseCount > 0
+    ? `${incomeCount} income, ${expenseCount} expense`
+    : incomeCount > 0
+      ? `${incomeCount} income`
+      : `${expenseCount} expense`;
+
   return (
     <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ fontSize: 12, color: 'var(--ink-light)', fontWeight: 600 }}>
-          {expenses.length} expenses detected — each will be saved independently
+          {mixedLabel} {expenses.length === 1 ? 'entry' : 'entries'} detected — each saved independently
         </div>
         <button
           className="btn btn-secondary btn-sm"
@@ -448,9 +495,9 @@ function MultipleReview({
       </div>
 
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4 }}>
-        <button className="btn btn-primary btn-sm" onClick={onSave} disabled={saving}>
+        <button className="btn btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }} onClick={onSave} disabled={saving}>
           {saving && <span className="btn-spinner" />}
-          Save all {expenses.length} expenses
+          Save all {expenses.length} transactions
         </button>
       </div>
     </div>
@@ -528,9 +575,12 @@ function RecurringReview({
         gap: 10,
         border: recurring._editing ? '1.5px solid var(--forest)' : '1.5px solid transparent',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--forest)', fontWeight: 600 }}>
-          <RefreshCw size={12} />
-          Recurring
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--forest)', fontWeight: 600 }}>
+            <RefreshCw size={12} />
+            Recurring
+          </div>
+          <TypeBadge type={recurring.type ?? 'expense'} />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -676,10 +726,21 @@ function RecurringReview({
       </div>
 
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4 }}>
-        <button className="btn btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }} onClick={onSave} disabled={saving}>
+        <button
+          className="btn btn-primary btn-sm"
+          style={recurring.type === 'income' ? {
+            background: 'oklch(42% 0.14 155)',
+            borderColor: 'oklch(42% 0.14 155)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+          } : { display: 'inline-flex', alignItems: 'center', gap: 5 }}
+          onClick={onSave}
+          disabled={saving}
+        >
           {saving && <span className="btn-spinner" />}
           <RefreshCw size={13} />
-          Save recurring
+          Save recurring {recurring.type === 'income' ? 'income' : 'expense'}
         </button>
       </div>
       <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--ink-faint)' }}>
