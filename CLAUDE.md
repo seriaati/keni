@@ -8,6 +8,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
+### Website (`website/`)
+
+Marketing/landing site. Built with Astro + Tailwind CSS. Package manager: **bun only**.
+
+```bash
+bun dev          # dev server
+bun run build    # build site
+```
+
 ### Frontend (`frontend/`)
 
 Package manager: **bun only** — never npm/yarn.
