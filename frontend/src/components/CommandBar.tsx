@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
+  ArrowLeftRight,
   ArrowRight,
   Bot,
   Check,
@@ -21,7 +22,6 @@ import {
   TrendingUp,
   WandSparkles,
   Tag,
-  Wallet,
   X,
   Zap,
   Plus,
@@ -62,9 +62,8 @@ interface EditableExpense extends AIExpenseResponse {
   _isNew?: boolean;
 }
 
-const NAV_ITEMS = [
+const NAV_ITEMS_STATIC = [
   { label: 'Dashboard', path: '/', icon: LayoutDashboard, keywords: ['home', 'dashboard', 'overview'] },
-  { label: 'Wallets', path: '/wallets', icon: Wallet, keywords: ['wallet', 'money', 'account'] },
   { label: 'Budgets', path: '/budgets', icon: Zap, keywords: ['budget', 'limit', 'spending'] },
   { label: 'Recurring', path: '/recurring', icon: RefreshCw, keywords: ['recurring', 'subscription', 'repeat'] },
   { label: 'Categories', path: '/categories', icon: Tag, keywords: ['category', 'categories'] },
@@ -1031,6 +1030,13 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
     setMode('review');
   };
 
+  const transactionsNavItem = {
+    label: 'Transactions',
+    path: activeWallet ? `/wallets/${activeWallet.id}` : '/wallets',
+    icon: ArrowLeftRight,
+    keywords: ['transactions', 'expenses', 'wallet', 'money', 'account'],
+  };
+  const NAV_ITEMS = [NAV_ITEMS_STATIC[0], transactionsNavItem, ...NAV_ITEMS_STATIC.slice(1)];
   const navSuggestions = text.trim()
     ? NAV_ITEMS.filter(
       (item) =>

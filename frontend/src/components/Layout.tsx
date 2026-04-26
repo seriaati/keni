@@ -8,6 +8,7 @@ import { createPortal } from 'react-dom';
 import logoSrc from '../assets/logo.svg';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
+  ArrowLeftRight,
   Bot,
   ChevronDown,
   Download,
@@ -17,7 +18,6 @@ import {
   Settings,
   Tag,
   Tags,
-  Wallet,
   Zap,
   Command,
   PlusCircle,
@@ -28,9 +28,7 @@ import { CommandBar } from './CommandBar';
 import { getInitials } from '../lib/utils';
 import './layout.css';
 
-const NAV = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
-  { to: '/wallets', icon: Wallet, label: 'Wallets' },
+const NAV_AFTER_TRANSACTIONS = [
   { to: '/budgets', icon: Zap, label: 'Budgets' },
   { to: '/recurring', icon: RefreshCw, label: 'Recurring' },
   { to: '/categories', icon: Tag, label: 'Categories' },
@@ -162,11 +160,27 @@ export function Layout() {
 
         {/* Navigation */}
         <nav className="sidebar-nav">
-          {NAV.map(({ to, icon: Icon, label, end }) => (
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}
+            onClick={() => setMobileNavOpen(false)}
+          >
+            <LayoutDashboard size={16} />
+            Dashboard
+          </NavLink>
+          <NavLink
+            to={activeWallet ? `/wallets/${activeWallet.id}` : '/wallets'}
+            className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}
+            onClick={() => setMobileNavOpen(false)}
+          >
+            <ArrowLeftRight size={16} />
+            Transactions
+          </NavLink>
+          {NAV_AFTER_TRANSACTIONS.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
-              end={end}
               className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}
               onClick={() => setMobileNavOpen(false)}
             >
