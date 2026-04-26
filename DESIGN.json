@@ -1,0 +1,264 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-04-26T00:00:00Z",
+  "title": "Design System: Keni",
+  "extensions": {
+    "colorMeta": {
+      "warm-parchment": {
+        "role": "neutral",
+        "displayName": "Warm Parchment",
+        "canonical": "oklch(97% 0.012 85)",
+        "tonalRamp": [
+          "oklch(20% 0.008 85)",
+          "oklch(32% 0.009 85)",
+          "oklch(45% 0.010 85)",
+          "oklch(57% 0.011 85)",
+          "oklch(68% 0.011 85)",
+          "oklch(78% 0.012 85)",
+          "oklch(88% 0.012 85)",
+          "oklch(97% 0.012 85)"
+        ]
+      },
+      "near-black-warm": {
+        "role": "primary",
+        "displayName": "Near-Black Warm",
+        "canonical": "oklch(18% 0.01 80)",
+        "tonalRamp": [
+          "oklch(10% 0.007 80)",
+          "oklch(18% 0.010 80)",
+          "oklch(28% 0.010 80)",
+          "oklch(38% 0.010 80)",
+          "oklch(50% 0.009 80)",
+          "oklch(63% 0.009 80)",
+          "oklch(78% 0.007 80)",
+          "oklch(92% 0.005 80)"
+        ]
+      },
+      "burnished-amber": {
+        "role": "secondary",
+        "displayName": "Burnished Amber",
+        "canonical": "oklch(72% 0.14 65)",
+        "tonalRamp": [
+          "oklch(22% 0.07 65)",
+          "oklch(32% 0.09 65)",
+          "oklch(42% 0.11 65)",
+          "oklch(52% 0.13 65)",
+          "oklch(62% 0.14 65)",
+          "oklch(72% 0.14 65)",
+          "oklch(82% 0.12 70)",
+          "oklch(93% 0.06 68)"
+        ]
+      },
+      "rose": {
+        "role": "tertiary",
+        "displayName": "Rose",
+        "canonical": "oklch(52% 0.12 20)",
+        "tonalRamp": [
+          "oklch(20% 0.07 20)",
+          "oklch(30% 0.09 20)",
+          "oklch(40% 0.11 20)",
+          "oklch(52% 0.12 20)",
+          "oklch(62% 0.10 20)",
+          "oklch(72% 0.07 20)",
+          "oklch(82% 0.05 20)",
+          "oklch(93% 0.02 20)"
+        ]
+      },
+      "sky": {
+        "role": "tertiary",
+        "displayName": "Sky",
+        "canonical": "oklch(62% 0.1 230)",
+        "tonalRamp": [
+          "oklch(20% 0.06 230)",
+          "oklch(30% 0.08 230)",
+          "oklch(40% 0.09 230)",
+          "oklch(52% 0.10 230)",
+          "oklch(62% 0.10 230)",
+          "oklch(72% 0.09 230)",
+          "oklch(82% 0.07 230)",
+          "oklch(92% 0.04 230)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Page titles only. Instrument Serif italic. One per screen." },
+      "title": { "displayName": "Title", "purpose": "Modal headers, named section anchors. Instrument Serif italic." },
+      "body": { "displayName": "Body", "purpose": "All UI prose and content. DM Sans. Max 65ch line length." },
+      "label": { "displayName": "Label", "purpose": "Input labels, nav items, button text, badge text." },
+      "small": { "displayName": "Small", "purpose": "Timestamps, sub-labels, currency codes, metadata." }
+    },
+    "shadows": [
+      {
+        "name": "surface-lift",
+        "value": "0 1px 3px oklch(18% 0.02 80 / 0.08)",
+        "purpose": "Active tab within a tab group. Smallest perceptible separation."
+      },
+      {
+        "name": "dropdown",
+        "value": "0 2px 8px oklch(18% 0.02 80 / 0.1), 0 1px 2px oklch(18% 0.02 80 / 0.06)",
+        "purpose": "Cards at rest, standard dropdowns. The working shadow of the system."
+      },
+      {
+        "name": "overlay-low",
+        "value": "0 8px 32px oklch(18% 0.02 80 / 0.12), 0 2px 8px oklch(18% 0.02 80 / 0.08)",
+        "purpose": "Opened dropdowns, wallet selector panel, FAB, toasts."
+      },
+      {
+        "name": "overlay-high",
+        "value": "0 20px 60px oklch(18% 0.02 80 / 0.18), 0 4px 16px oklch(18% 0.02 80 / 0.1)",
+        "purpose": "Modals only. The highest layer in the system."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-expo-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "All entrance animations and state transitions. The only easing in the system."
+      },
+      {
+        "name": "duration-micro",
+        "value": "0.12s",
+        "purpose": "Dropdown micro-animations."
+      },
+      {
+        "name": "duration-state",
+        "value": "0.15s",
+        "purpose": "Hover/focus state transitions on buttons, inputs, nav items."
+      },
+      {
+        "name": "duration-entrance",
+        "value": "0.2s",
+        "purpose": "Modal scale-in, standard component entrances."
+      },
+      {
+        "name": "duration-slide",
+        "value": "0.25s",
+        "purpose": "Sidebar slide-in on mobile, toast slide-down."
+      }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "768px", "purpose": "Sidebar collapses to off-canvas drawer; FAB appears; page padding reduces to 16px." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The default action button. Near-black warm background with parchment text.",
+      "html": "<button class=\"ds-btn-primary\">Add transaction</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; font-weight: 500; padding: 8px 16px; height: 38px; background: oklch(18% 0.01 80); color: oklch(97% 0.012 85); border: none; border-radius: 10px; cursor: pointer; transition: background 0.15s cubic-bezier(0.16, 1, 0.3, 1); white-space: nowrap; } .ds-btn-primary:hover { background: oklch(28% 0.01 80); } .ds-btn-primary:focus-visible { outline: 2px solid oklch(28% 0.01 80); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Non-destructive secondary action. Parchment background with sand border.",
+      "html": "<button class=\"ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; font-weight: 500; padding: 8px 16px; height: 38px; background: oklch(93% 0.018 80); color: oklch(18% 0.02 80); border: 1px solid oklch(82% 0.028 75); border-radius: 10px; cursor: pointer; transition: background 0.15s cubic-bezier(0.16, 1, 0.3, 1); white-space: nowrap; } .ds-btn-secondary:hover { background: oklch(88% 0.022 78); } .ds-btn-secondary:focus-visible { outline: 2px solid oklch(28% 0.01 80); outline-offset: 2px; } .ds-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Transparent button for dense contexts. Ink-mid text, parchment hover.",
+      "html": "<button class=\"ds-btn-ghost\">View all</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; font-weight: 500; padding: 8px 16px; height: 38px; background: transparent; color: oklch(35% 0.02 80); border: none; border-radius: 10px; cursor: pointer; transition: background 0.15s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s cubic-bezier(0.16, 1, 0.3, 1); white-space: nowrap; } .ds-btn-ghost:hover { background: oklch(93% 0.018 80); color: oklch(18% 0.02 80); } .ds-btn-ghost:focus-visible { outline: 2px solid oklch(28% 0.01 80); outline-offset: 2px; } .ds-btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Standard text field. White, sand border at rest, forest-mid border on focus.",
+      "html": "<div class=\"ds-input-group\"><label class=\"ds-input-label\">Amount</label><input class=\"ds-input\" type=\"text\" placeholder=\"0.00\" /></div>",
+      "css": ".ds-input-group { display: flex; flex-direction: column; gap: 6px; } .ds-input-label { font-family: 'DM Sans', system-ui, sans-serif; font-size: 13px; font-weight: 500; color: oklch(35% 0.02 80); } .ds-input { width: 100%; padding: 9px 12px; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; font-weight: 400; background: white; border: 1.5px solid oklch(82% 0.028 75); border-radius: 10px; color: oklch(18% 0.02 80); outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; height: 38px; } .ds-input::placeholder { color: oklch(72% 0.015 80); } .ds-input:focus { border-color: oklch(28% 0.01 80); box-shadow: 0 0 0 3px oklch(28% 0.01 80 / 0.12); }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Standard white surface above the parchment canvas. Rounded, subtle border.",
+      "html": "<div class=\"ds-card\"><p class=\"ds-card-label\">Total this month</p><p class=\"ds-card-value\">¥48,200</p></div>",
+      "css": ".ds-card { background: white; border: 1px solid oklch(88% 0.022 78); border-radius: 16px; padding: 20px; box-shadow: 0 2px 8px oklch(18% 0.02 80 / 0.1), 0 1px 2px oklch(18% 0.02 80 / 0.06); font-family: 'DM Sans', system-ui, sans-serif; } .ds-card-label { font-size: 13px; font-weight: 500; color: oklch(35% 0.02 80); margin-bottom: 6px; } .ds-card-value { font-size: 24px; font-weight: 400; color: oklch(18% 0.02 80); }"
+    },
+    {
+      "name": "Chip",
+      "kind": "chip",
+      "refersTo": null,
+      "description": "Compact label for categories and tags. Fully rounded, neutral-warm palette.",
+      "html": "<span class=\"ds-chip\">Food &amp; Drink</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 100px; font-family: 'DM Sans', system-ui, sans-serif; font-size: 12px; font-weight: 500; background: oklch(93% 0.018 80); color: oklch(35% 0.02 80); border: 1px solid oklch(88% 0.022 78); }"
+    },
+    {
+      "name": "Badge — Amber",
+      "kind": "chip",
+      "refersTo": null,
+      "description": "Warning or over-budget indicator. The only chromatic badge.",
+      "html": "<span class=\"ds-badge-amber\">Over budget</span>",
+      "css": ".ds-badge-amber { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 100px; font-family: 'DM Sans', system-ui, sans-serif; font-size: 12px; font-weight: 500; background: oklch(94% 0.06 70); color: oklch(52% 0.14 65); }"
+    },
+    {
+      "name": "Nav Item",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "Sidebar navigation link. Active state uses near-black-warm tint with forest text.",
+      "html": "<nav class=\"ds-nav\"><a href=\"#\" class=\"ds-nav-item ds-nav-active\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\"/></svg>Dashboard</a><a href=\"#\" class=\"ds-nav-item\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"8\" y1=\"6\" x2=\"21\" y2=\"6\"/><line x1=\"8\" y1=\"12\" x2=\"21\" y2=\"12\"/><line x1=\"8\" y1=\"18\" x2=\"21\" y2=\"18\"/><line x1=\"3\" y1=\"6\" x2=\"3.01\" y2=\"6\"/><line x1=\"3\" y1=\"12\" x2=\"3.01\" y2=\"12\"/><line x1=\"3\" y1=\"18\" x2=\"3.01\" y2=\"18\"/></svg>Transactions</a></nav>",
+      "css": ".ds-nav { display: flex; flex-direction: column; gap: 1px; padding: 0 8px; font-family: 'DM Sans', system-ui, sans-serif; } .ds-nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 6px; font-size: 13.5px; font-weight: 400; color: oklch(35% 0.02 80); text-decoration: none; transition: background 0.12s ease, color 0.12s ease; } .ds-nav-item:hover { background: oklch(97% 0.012 85); color: oklch(18% 0.02 80); } .ds-nav-active { background: oklch(90% 0.005 80); color: oklch(18% 0.01 80); font-weight: 500; }"
+    },
+    {
+      "name": "Tab Group",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Segmented control for switching views. Active tab lifts out on surface-lift shadow.",
+      "html": "<div class=\"ds-tabs\"><button class=\"ds-tab ds-tab-active\">Monthly</button><button class=\"ds-tab\">Weekly</button><button class=\"ds-tab\">Daily</button></div>",
+      "css": ".ds-tabs { display: flex; gap: 2px; background: oklch(93% 0.018 80); padding: 3px; border-radius: 10px; } .ds-tab { flex: 1; padding: 6px 12px; font-family: 'DM Sans', system-ui, sans-serif; font-size: 13px; font-weight: 500; color: oklch(55% 0.018 80); border-radius: 8px; cursor: pointer; border: none; background: none; transition: all 0.15s ease; } .ds-tab:hover { color: oklch(18% 0.02 80); } .ds-tab-active { background: white; color: oklch(18% 0.02 80); box-shadow: 0 1px 3px oklch(18% 0.02 80 / 0.08); }"
+    },
+    {
+      "name": "Toast — Success",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Success notification. Near-black-warm background — same as primary button for visual consistency.",
+      "html": "<div class=\"ds-toast ds-toast-success\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"20 6 9 17 4 12\"/></svg>Transaction saved</div>",
+      "css": ".ds-toast { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 10px; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; box-shadow: 0 8px 32px oklch(18% 0.02 80 / 0.12), 0 2px 8px oklch(18% 0.02 80 / 0.08); max-width: 360px; animation: ds-slide-down 0.25s cubic-bezier(0.16, 1, 0.3, 1) both; } .ds-toast-success { background: oklch(18% 0.01 80); color: oklch(97% 0.012 85); } @keyframes ds-slide-down { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Still Notebook",
+    "overview": "Keni is a tool for the daily practice of financial clarity. Its design language draws from the physical notebook: deliberate, unhurried, built to be used without thinking about it. Surfaces are parchment-warm rather than clinical white. Type is chosen to feel written-into rather than rendered. Every interaction is quiet enough that the data inside it can speak louder than the chrome around it.\n\nThe system does not celebrate itself. Buttons do not animate triumphantly; inputs do not shimmer with gradient focus states; the dashboard does not resemble a command center. The interface recedes — as a good notebook does — so the record inside it feels like the point.\n\nThis is explicitly not a fintech product with urgency baked into its visuals. It avoids the compulsive metrics density of Mint and Personal Capital, the neon of crypto wallets, and the over-animated productivity tools that clap for you. Keni's restraint is a design position, not a lack of ambition.",
+    "keyCharacteristics": [
+      "Warm parchment surfaces instead of neutral white or dark backgrounds",
+      "Near-black text with warm undertone — never pure black, never cool grey",
+      "Burnished amber as the single chromatic accent, used sparingly enough that it registers",
+      "Instrument Serif in italic for display moments only; DM Sans everywhere else",
+      "Flat at rest, soft shadow on elevation — depth earned, not assumed",
+      "Expo ease-out on all entrances; no bounce, no elastic, no spring"
+    ],
+    "rules": [
+      { "name": "The One Accent Rule", "body": "Burnished Amber is the system's only chromatic color. It appears on less than 5% of any given screen. Resist adding secondary accents.", "section": "colors" },
+      { "name": "The No-White Canvas Rule", "body": "Pure white is reserved for elevated surfaces only — cards, sidebar, modal, inputs. The page background is always Warm Parchment.", "section": "colors" },
+      { "name": "The Serif Scarcity Rule", "body": "Instrument Serif appears at one or two moments per screen maximum. If a third element reaches for the serif, use DM Sans instead.", "section": "typography" },
+      { "name": "The No-Italic-Sans Rule", "body": "Italic is Instrument Serif's domain. DM Sans never italicizes in this system.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "A surface has no shadow at rest. Shadow is added only when a surface floats above another: dropdown, modal, FAB, toast.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use Warm Parchment as the page background. Never pure white for the canvas.",
+      "Do render page titles and modal headers in Instrument Serif italic.",
+      "Do use Near-Black Warm for primary buttons and primary navigation.",
+      "Do keep Burnished Amber below 5% of any screen surface.",
+      "Do apply shadows only to genuinely elevated surfaces: dropdowns, modals, FAB, toasts.",
+      "Do use expo ease-out (cubic-bezier(0.16, 1, 0.3, 1)) for all entrance animations.",
+      "Do keep focus states visible: 2px Near-Black Warm outline, 2px offset, :focus-visible only."
+    ],
+    "donts": [
+      "Don't use gradient text (background-clip: text + gradient).",
+      "Don't use border-left greater than 1px as a colored stripe on cards or list items.",
+      "Don't build a metrics-grid dashboard — big numbers, small labels, gradient accent cards.",
+      "Don't use glassmorphism decoratively. Blur is reserved for modal backdrops only.",
+      "Don't introduce a dark mode or dark surface as a default.",
+      "Don't add a second chromatic accent. Extend the neutral tonal scale first.",
+      "Don't use identical card grids (same-size cards, icon + heading + text, repeated).",
+      "Don't animate standard hover states with scale or translate on UI components.",
+      "Don't exceed chroma 0.14 in any new color introduced."
+    ]
+  }
+}
