@@ -399,7 +399,7 @@ function MultipleReview({
           style={{ fontSize: 11, padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}
           onClick={addExpense}
         >
-          <Plus size={11} /> Add expense
+          <Plus size={11} /> Add transaction
         </button>
       </div>
 
@@ -1232,368 +1232,368 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
 
   return (
     <>
-    {imageEnlarged && imagePreview && createPortal(
+      {imageEnlarged && imagePreview && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 3000,
+            background: 'oklch(18% 0.02 80 / 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 24,
+            backdropFilter: 'blur(4px)',
+          }}
+          onClick={() => setImageEnlarged(false)}
+        >
+          <img
+            src={imagePreview}
+            alt="Receipt enlarged"
+            style={{
+              maxWidth: '90vw',
+              maxHeight: '85vh',
+              objectFit: 'contain',
+              borderRadius: 12,
+              boxShadow: '0 32px 80px oklch(18% 0.02 80 / 0.4)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setImageEnlarged(false)}
+            style={{
+              position: 'absolute',
+              top: 16,
+              right: 16,
+              background: 'oklch(18% 0.02 80 / 0.6)',
+              border: 'none',
+              borderRadius: '50%',
+              width: 36,
+              height: 36,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: 'white',
+            }}
+          >
+            <X size={18} />
+          </button>
+        </div>,
+        document.body
+      )}
       <div
+        ref={dropZoneRef}
         style={{
           position: 'fixed',
           inset: 0,
-          zIndex: 3000,
-          background: 'oklch(18% 0.02 80 / 0.8)',
+          background: 'oklch(18% 0.02 80 / 0.45)',
+          zIndex: 2000,
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           justifyContent: 'center',
-          padding: 24,
-          backdropFilter: 'blur(4px)',
+          padding: 'clamp(60px, 12vh, 140px) 16px 16px',
+          backdropFilter: 'blur(3px)',
+          animation: 'fadeIn 0.15s ease both',
         }}
-        onClick={() => setImageEnlarged(false)}
+        onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       >
-        <img
-          src={imagePreview}
-          alt="Receipt enlarged"
+        <div
           style={{
-            maxWidth: '90vw',
-            maxHeight: '85vh',
-            objectFit: 'contain',
-            borderRadius: 12,
-            boxShadow: '0 32px 80px oklch(18% 0.02 80 / 0.4)',
-          }}
-          onClick={(e) => e.stopPropagation()}
-        />
-        <button
-          onClick={() => setImageEnlarged(false)}
-          style={{
-            position: 'absolute',
-            top: 16,
-            right: 16,
-            background: 'oklch(18% 0.02 80 / 0.6)',
-            border: 'none',
-            borderRadius: '50%',
-            width: 36,
-            height: 36,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            color: 'white',
+            width: '100%',
+            maxWidth: resultType === 'group' || resultType === 'multiple' ? 680 : 580,
+            background: 'white',
+            borderRadius: 20,
+            boxShadow: '0 24px 80px oklch(18% 0.02 80 / 0.22), 0 4px 16px oklch(18% 0.02 80 / 0.1)',
+            overflow: 'hidden',
+            animation: 'scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both',
+            position: 'relative',
           }}
         >
-          <X size={18} />
-        </button>
-      </div>,
-      document.body
-    )}
-    <div
-      ref={dropZoneRef}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'oklch(18% 0.02 80 / 0.45)',
-        zIndex: 2000,
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'center',
-        padding: 'clamp(60px, 12vh, 140px) 16px 16px',
-        backdropFilter: 'blur(3px)',
-        animation: 'fadeIn 0.15s ease both',
-      }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: resultType === 'group' || resultType === 'multiple' ? 680 : 580,
-          background: 'white',
-          borderRadius: 20,
-          boxShadow: '0 24px 80px oklch(18% 0.02 80 / 0.22), 0 4px 16px oklch(18% 0.02 80 / 0.1)',
-          overflow: 'hidden',
-          animation: 'scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both',
-          position: 'relative',
-        }}
-      >
-        {dragging && (
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 10,
-            borderRadius: 20,
-            border: '2.5px dashed var(--forest)',
-            background: '#F9F5EC',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 10,
-            pointerEvents: 'none',
-          }}>
-            <Image size={28} style={{ color: 'var(--forest)' }} />
-            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font-body)' }}>Drop file to attach</span>
-            <span style={{ fontSize: 12, color: 'var(--ink-light)' }}>Image or PDF</span>
-          </div>
-        )}
-
-        {/* Header bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: '1px solid var(--cream-darker)' }}>
-          {mode === 'processing' ? (
-            <div style={{ width: 20, height: 20, border: '2px solid var(--forest)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.6s linear infinite', flexShrink: 0 }} />
-          ) : (
-            <Zap size={18} style={{ color: 'var(--forest)', flexShrink: 0 }} />
+          {dragging && (
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 10,
+              borderRadius: 20,
+              border: '2.5px dashed var(--forest)',
+              background: '#F9F5EC',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              pointerEvents: 'none',
+            }}>
+              <Image size={28} style={{ color: 'var(--forest)' }} />
+              <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font-body)' }}>Drop file to attach</span>
+              <span style={{ fontSize: 12, color: 'var(--ink-light)' }}>Image or PDF</span>
+            </div>
           )}
 
-          <input
-            ref={inputRef}
-            value={text}
-            onChange={(e) => { setText(e.target.value); setSelectedNavIndex(0); }}
-            onKeyDown={(e) => {
-              if (mode === 'input' && (navSuggestions.length > 0 || text.trim())) {
-                const isExpense = text.trim() && looksLikeExpense(text);
-                if (!isExpense) {
-                  const totalItems = navSuggestions.length + (text.trim() ? 1 : 0);
-                  if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    setSelectedNavIndex((i) => Math.min(i + 1, totalItems - 1));
-                    return;
-                  }
-                  if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    setSelectedNavIndex((i) => Math.max(i - 1, 0));
-                    return;
+          {/* Header bar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: '1px solid var(--cream-darker)' }}>
+            {mode === 'processing' ? (
+              <div style={{ width: 20, height: 20, border: '2px solid var(--forest)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.6s linear infinite', flexShrink: 0 }} />
+            ) : (
+              <Zap size={18} style={{ color: 'var(--forest)', flexShrink: 0 }} />
+            )}
+
+            <input
+              ref={inputRef}
+              value={text}
+              onChange={(e) => { setText(e.target.value); setSelectedNavIndex(0); }}
+              onKeyDown={(e) => {
+                if (mode === 'input' && (navSuggestions.length > 0 || text.trim())) {
+                  const isExpense = text.trim() && looksLikeExpense(text);
+                  if (!isExpense) {
+                    const totalItems = navSuggestions.length + (text.trim() ? 1 : 0);
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      setSelectedNavIndex((i) => Math.min(i + 1, totalItems - 1));
+                      return;
+                    }
+                    if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setSelectedNavIndex((i) => Math.max(i - 1, 0));
+                      return;
+                    }
                   }
                 }
+                if (e.key === 'Enter') {
+                  if (mode === 'input') {
+                    if (text.trim() && !looksLikeExpense(text)) {
+                      const isAddTx = selectedNavIndex === navSuggestions.length;
+                      if (isAddTx) { handleSubmit(); return; }
+                      const item = navSuggestions[selectedNavIndex];
+                      if (item) { navigate(item.path); onClose(); return; }
+                    }
+                    handleSubmit();
+                  } else if (mode === 'review') handleSubmit();
+                }
+              }}
+              placeholder={
+                mode === 'processing' ? 'Processing…' :
+                  mode === 'review' ? 'Edit text and press Enter to re-parse…' :
+                    'Type a transaction or navigate… (e.g. "coffee 4.50" or "salary 5000")'
               }
-              if (e.key === 'Enter') {
-                if (mode === 'input') {
-                  if (text.trim() && !looksLikeExpense(text)) {
-                    const isAddTx = selectedNavIndex === navSuggestions.length;
-                    if (isAddTx) { handleSubmit(); return; }
-                    const item = navSuggestions[selectedNavIndex];
-                    if (item) { navigate(item.path); onClose(); return; }
-                  }
-                  handleSubmit();
-                } else if (mode === 'review') handleSubmit();
-              }
-            }}
-            placeholder={
-              mode === 'processing' ? 'Processing…' :
-                mode === 'review' ? 'Edit text and press Enter to re-parse…' :
-                  'Type a transaction or navigate… (e.g. "coffee 4.50" or "salary 5000")'
-            }
-            disabled={mode === 'processing'}
-            style={{
-              flex: 1,
-              border: 'none',
-              outline: 'none',
-              fontSize: 15,
-              fontFamily: 'var(--font-body)',
-              color: mode === 'review' ? 'var(--ink-mid)' : 'var(--ink)',
-              background: 'transparent',
-            }}
-          />
+              disabled={mode === 'processing'}
+              style={{
+                flex: 1,
+                border: 'none',
+                outline: 'none',
+                fontSize: 15,
+                fontFamily: 'var(--font-body)',
+                color: mode === 'review' ? 'var(--ink-mid)' : 'var(--ink)',
+                background: 'transparent',
+              }}
+            />
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-            <button className="icon-btn" onClick={() => fileInputRef.current?.click()} title="Attach image or PDF">
-              <Paperclip size={16} />
-            </button>
-            <input ref={fileInputRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={handleImageSelect} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+              <button className="icon-btn" onClick={() => fileInputRef.current?.click()} title="Attach image or PDF">
+                <Paperclip size={16} />
+              </button>
+              <input ref={fileInputRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={handleImageSelect} />
 
-            {text.trim() || imageFile ? (
-              <button
-                className="icon-btn"
-                onClick={mode === 'input' ? handleSubmit : handleSubmit}
-                title="Send"
-                style={{ color: 'var(--ink)', background: 'var(--cream)' }}
-              >
-                <ArrowRight size={16} />
-              </button>
-            ) : (
-              <button
-                className="icon-btn"
-                onClick={recording ? stopRecording : startRecording}
-                title={recording ? 'Stop recording' : 'Record voice'}
-                style={recording ? { color: 'var(--rose)', background: 'var(--rose-light)' } : {}}
-              >
-                {recording ? <MicOff size={16} /> : <Mic size={16} />}
-              </button>
-            )}
+              {text.trim() || imageFile ? (
+                <button
+                  className="icon-btn"
+                  onClick={mode === 'input' ? handleSubmit : handleSubmit}
+                  title="Send"
+                  style={{ color: 'var(--ink)', background: 'var(--cream)' }}
+                >
+                  <ArrowRight size={16} />
+                </button>
+              ) : (
+                <button
+                  className="icon-btn"
+                  onClick={recording ? stopRecording : startRecording}
+                  title={recording ? 'Stop recording' : 'Record voice'}
+                  style={recording ? { color: 'var(--rose)', background: 'var(--rose-light)' } : {}}
+                >
+                  {recording ? <MicOff size={16} /> : <Mic size={16} />}
+                </button>
+              )}
+            </div>
           </div>
+
+          {/* File preview */}
+          {imageFile && (
+            <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8, background: 'var(--cream)' }}>
+              {imagePreview ? (
+                <img
+                  src={imagePreview}
+                  alt="Receipt"
+                  onClick={() => setImageEnlarged(true)}
+                  style={{ height: 48, width: 48, objectFit: 'cover', borderRadius: 6, cursor: 'zoom-in' }}
+                />
+              ) : (
+                <div style={{ height: 48, width: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--cream-darker)', borderRadius: 6, flexShrink: 0 }}>
+                  <FileText size={22} style={{ color: 'var(--ink-mid)' }} />
+                </div>
+              )}
+              <span style={{ fontSize: 13, color: 'var(--ink-mid)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {imageFile.name}
+              </span>
+              <button className="icon-btn" onClick={() => { setImageFile(null); setImagePreview(null); }} style={{ marginLeft: 'auto', flexShrink: 0 }}>
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
+          {/* Transcript badge */}
+          {transcript && mode === 'review' && (
+            <div style={{ padding: '6px 16px', background: 'oklch(96% 0.04 155)', borderBottom: '1px solid oklch(88% 0.06 155)', fontSize: 12, color: 'var(--forest)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Mic size={12} />
+              <span style={{ fontStyle: 'italic' }}>{transcript}</span>
+            </div>
+          )}
+
+          {/* Error */}
+          {error && (
+            <div style={{ padding: '8px 16px', background: 'var(--rose-light)', color: 'var(--rose)', fontSize: 13 }}>
+              {error}
+            </div>
+          )}
+
+          {/* Review: single */}
+          {mode === 'review' && resultType === 'single' && singleExpense && (
+            <SingleReview
+              expense={singleExpense}
+              onChange={setSingleExpense}
+              activeWalletCurrency={activeWallet?.currency}
+              onSave={handleSaveSingle}
+              saving={saving}
+            />
+          )}
+
+          {/* Review: multiple */}
+          {mode === 'review' && resultType === 'multiple' && (
+            <MultipleReview
+              expenses={multiExpenses}
+              onChange={setMultiExpenses}
+              activeWalletCurrency={activeWallet?.currency}
+              onSave={handleSaveMultiple}
+              saving={saving}
+            />
+          )}
+
+          {/* Review: recurring */}
+          {mode === 'review' && resultType === 'recurring' && recurringExpense && (
+            <RecurringReview
+              recurring={recurringExpense}
+              onChange={setRecurringExpense}
+              activeWalletCurrency={activeWallet?.currency}
+              onSave={handleSaveRecurring}
+              saving={saving}
+            />
+          )}
+
+          {/* Review: group */}
+          {mode === 'review' && resultType === 'group' && groupParent && (
+            <GroupReview
+              parent={groupParent}
+              items={groupItems}
+              onChangeParent={setGroupParent}
+              onChangeItems={setGroupItems}
+              activeWalletCurrency={activeWallet?.currency}
+              onSave={handleSaveGroup}
+              saving={saving}
+              error={error}
+            />
+          )}
+
+          {/* Navigation suggestions */}
+          {mode === 'input' && (
+            <div style={{ padding: '6px 8px 8px' }}>
+              {text.trim() && looksLikeExpense(text) ? (
+                <button
+                  onClick={handleSubmit}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    background: 'var(--forest)',
+                    color: 'var(--cream)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    fontFamily: 'var(--font-body)',
+                    fontWeight: 500,
+                  }}
+                >
+                  <Zap size={16} />
+                  <span>Parse "{text}" as transaction</span>
+                  <ArrowRight size={14} style={{ marginLeft: 'auto' }} />
+                </button>
+              ) : (
+                <>
+                  {navSuggestions.length > 0 && (
+                    <div style={{ padding: '4px 8px 2px', fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      {text ? 'Navigate to' : 'Quick navigation'}
+                    </div>
+                  )}
+                  {navSuggestions.map((item, i) => (
+                    <button
+                      key={item.path}
+                      onClick={() => { navigate(item.path); onClose(); }}
+                      onMouseEnter={() => setSelectedNavIndex(i)}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '8px 12px',
+                        borderRadius: 8,
+                        background: selectedNavIndex === i ? 'var(--cream)' : 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: 14,
+                        fontFamily: 'var(--font-body)',
+                        color: 'var(--ink-mid)',
+                        textAlign: 'left',
+                        transition: 'background 0.1s',
+                      }}
+                    >
+                      <item.icon size={15} style={{ color: 'var(--ink-faint)', flexShrink: 0 }} />
+                      {item.label}
+                      <ArrowRight size={12} style={{ marginLeft: 'auto', color: 'var(--ink-faint)' }} />
+                    </button>
+                  ))}
+                  {text.trim() && (
+                    <button
+                      onClick={handleSubmit}
+                      onMouseEnter={() => setSelectedNavIndex(navSuggestions.length)}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '8px 12px',
+                        borderRadius: 8,
+                        background: selectedNavIndex === navSuggestions.length ? 'var(--cream)' : 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: 14,
+                        fontFamily: 'var(--font-body)',
+                        color: 'var(--forest)',
+                        textAlign: 'left',
+                      }}
+                    >
+                      <Zap size={15} style={{ flexShrink: 0 }} />
+                      Add as transaction
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
         </div>
-
-        {/* File preview */}
-        {imageFile && (
-          <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8, background: 'var(--cream)' }}>
-            {imagePreview ? (
-              <img
-                src={imagePreview}
-                alt="Receipt"
-                onClick={() => setImageEnlarged(true)}
-                style={{ height: 48, width: 48, objectFit: 'cover', borderRadius: 6, cursor: 'zoom-in' }}
-              />
-            ) : (
-              <div style={{ height: 48, width: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--cream-darker)', borderRadius: 6, flexShrink: 0 }}>
-                <FileText size={22} style={{ color: 'var(--ink-mid)' }} />
-              </div>
-            )}
-            <span style={{ fontSize: 13, color: 'var(--ink-mid)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {imageFile.name}
-            </span>
-            <button className="icon-btn" onClick={() => { setImageFile(null); setImagePreview(null); }} style={{ marginLeft: 'auto', flexShrink: 0 }}>
-              <X size={14} />
-            </button>
-          </div>
-        )}
-
-        {/* Transcript badge */}
-        {transcript && mode === 'review' && (
-          <div style={{ padding: '6px 16px', background: 'oklch(96% 0.04 155)', borderBottom: '1px solid oklch(88% 0.06 155)', fontSize: 12, color: 'var(--forest)', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Mic size={12} />
-            <span style={{ fontStyle: 'italic' }}>{transcript}</span>
-          </div>
-        )}
-
-        {/* Error */}
-        {error && (
-          <div style={{ padding: '8px 16px', background: 'var(--rose-light)', color: 'var(--rose)', fontSize: 13 }}>
-            {error}
-          </div>
-        )}
-
-        {/* Review: single */}
-        {mode === 'review' && resultType === 'single' && singleExpense && (
-          <SingleReview
-            expense={singleExpense}
-            onChange={setSingleExpense}
-            activeWalletCurrency={activeWallet?.currency}
-            onSave={handleSaveSingle}
-            saving={saving}
-          />
-        )}
-
-        {/* Review: multiple */}
-        {mode === 'review' && resultType === 'multiple' && (
-          <MultipleReview
-            expenses={multiExpenses}
-            onChange={setMultiExpenses}
-            activeWalletCurrency={activeWallet?.currency}
-            onSave={handleSaveMultiple}
-            saving={saving}
-          />
-        )}
-
-        {/* Review: recurring */}
-        {mode === 'review' && resultType === 'recurring' && recurringExpense && (
-          <RecurringReview
-            recurring={recurringExpense}
-            onChange={setRecurringExpense}
-            activeWalletCurrency={activeWallet?.currency}
-            onSave={handleSaveRecurring}
-            saving={saving}
-          />
-        )}
-
-        {/* Review: group */}
-        {mode === 'review' && resultType === 'group' && groupParent && (
-          <GroupReview
-            parent={groupParent}
-            items={groupItems}
-            onChangeParent={setGroupParent}
-            onChangeItems={setGroupItems}
-            activeWalletCurrency={activeWallet?.currency}
-            onSave={handleSaveGroup}
-            saving={saving}
-            error={error}
-          />
-        )}
-
-        {/* Navigation suggestions */}
-        {mode === 'input' && (
-          <div style={{ padding: '6px 8px 8px' }}>
-            {text.trim() && looksLikeExpense(text) ? (
-              <button
-                onClick={handleSubmit}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '10px 12px',
-                  borderRadius: 10,
-                  background: 'var(--forest)',
-                  color: 'var(--cream)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: 14,
-                  fontFamily: 'var(--font-body)',
-                  fontWeight: 500,
-                }}
-              >
-                <Zap size={16} />
-                <span>Parse "{text}" as transaction</span>
-                <ArrowRight size={14} style={{ marginLeft: 'auto' }} />
-              </button>
-            ) : (
-              <>
-                {navSuggestions.length > 0 && (
-                  <div style={{ padding: '4px 8px 2px', fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    {text ? 'Navigate to' : 'Quick navigation'}
-                  </div>
-                )}
-                {navSuggestions.map((item, i) => (
-                  <button
-                    key={item.path}
-                    onClick={() => { navigate(item.path); onClose(); }}
-                    onMouseEnter={() => setSelectedNavIndex(i)}
-                    style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      padding: '8px 12px',
-                      borderRadius: 8,
-                      background: selectedNavIndex === i ? 'var(--cream)' : 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: 14,
-                      fontFamily: 'var(--font-body)',
-                      color: 'var(--ink-mid)',
-                      textAlign: 'left',
-                      transition: 'background 0.1s',
-                    }}
-                  >
-                    <item.icon size={15} style={{ color: 'var(--ink-faint)', flexShrink: 0 }} />
-                    {item.label}
-                    <ArrowRight size={12} style={{ marginLeft: 'auto', color: 'var(--ink-faint)' }} />
-                  </button>
-                ))}
-                {text.trim() && (
-                  <button
-                    onClick={handleSubmit}
-                    onMouseEnter={() => setSelectedNavIndex(navSuggestions.length)}
-                    style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      padding: '8px 12px',
-                      borderRadius: 8,
-                      background: selectedNavIndex === navSuggestions.length ? 'var(--cream)' : 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: 14,
-                      fontFamily: 'var(--font-body)',
-                      color: 'var(--forest)',
-                      textAlign: 'left',
-                    }}
-                  >
-                    <Zap size={15} style={{ flexShrink: 0 }} />
-                    Add as transaction
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-        )}
-
       </div>
-    </div>
     </>
   );
 }

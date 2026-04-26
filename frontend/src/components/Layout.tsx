@@ -156,7 +156,7 @@ export function Layout() {
 
         {/* Quick add button */}
         <button className="quick-add-btn" onClick={() => setCmdOpen(true)}>
-          <span>Add expense</span>
+          <span>Add transaction</span>
           <kbd className="kbd-hint">⌘ K</kbd>
         </button>
 
@@ -247,7 +247,7 @@ export function Layout() {
 
       {/* Mobile FAB */}
       {createPortal(
-        <button className="fab" onClick={() => setCmdOpen(true)} aria-label="Quick add expense">
+        <button className="fab" onClick={() => setCmdOpen(true)} aria-label="Quick add transaction">
           <Command size={22} />
         </button>,
         document.body,
