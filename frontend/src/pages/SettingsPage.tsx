@@ -319,6 +319,12 @@ function AIProviderTab({ user, refreshUser, toast }: { user: any; refreshUser: (
           {!fetchingModels && models.length === 0 && form.api_key && (
             <span className="input-hint" style={{ color: 'var(--rose)' }}>Could not fetch models — check your API key</span>
           )}
+          <span className="input-hint">
+            Need a free API key?{' '}
+            <a href="https://www.seria.moe/posts/share/free-llm" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--forest)' }}>
+              Learn how to get one for free
+            </a>
+          </span>
         </div>
 
         <div className="input-group">
@@ -334,26 +340,26 @@ function AIProviderTab({ user, refreshUser, toast }: { user: any; refreshUser: (
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
-            <input
-              type="checkbox"
-              checked={form.ocr_enabled}
-              onChange={(e) => setForm({ ...form, ocr_enabled: e.target.checked })}
-              style={{ width: 16, height: 16, accentColor: 'var(--forest)', cursor: 'pointer' }}
-            />
-            <span style={{ fontSize: 14, color: 'var(--ink)' }}>
-              Use OCR for image parsing
-            </span>
-          </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                checked={form.ocr_enabled}
+                onChange={(e) => setForm({ ...form, ocr_enabled: e.target.checked })}
+                style={{ width: 16, height: 16, accentColor: 'var(--forest)', cursor: 'pointer' }}
+              />
+              <span style={{ fontSize: 14, color: 'var(--ink)' }}>
+                Use OCR for image parsing
+              </span>
+            </label>
             <InfoTooltip>
               By turning this on, Keni will parse the provided image with OCR, then give the LLM the extracted text. This can save tokens by not using the LLM's vision model. However, OCR only works well against digital content like screenshots — results are often bad for real-life photos like receipts. Based on personal experience, Gemini has the best vision model.
             </InfoTooltip>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button className="btn btn-primary btn-md" onClick={handleSave} disabled={saving}>
-            {saving && <span className="btn-spinner" />}
-            {provider ? 'Update provider' : 'Save provider'}
-          </button>
+            <button className="btn btn-primary btn-md" onClick={handleSave} disabled={saving}>
+              {saving && <span className="btn-spinner" />}
+              {provider ? 'Update provider' : 'Save provider'}
+            </button>
           </div>
         </div>
       </div>
