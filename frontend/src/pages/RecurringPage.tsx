@@ -22,6 +22,7 @@ export function RecurringPage() {
 
   const [form, setForm] = useState({
     category_id: '',
+    type: 'expense' as 'expense' | 'income',
     amount: '',
     description: '',
     frequency: 'monthly',
@@ -45,13 +46,14 @@ export function RecurringPage() {
   useEffect(() => { load(); }, [activeWallet]);
 
   const openCreate = () => {
-    setForm({ category_id: categories[0]?.id ?? '', amount: '', description: '', frequency: 'monthly', next_due: new Date().toISOString().slice(0, 10) });
+    setForm({ category_id: categories[0]?.id ?? '', type: 'expense', amount: '', description: '', frequency: 'monthly', next_due: new Date().toISOString().slice(0, 10) });
     setShowCreate(true);
   };
 
   const openEdit = (r: RecurringTransactionResponse) => {
     setForm({
       category_id: r.category_id,
+      type: r.type,
       amount: String(r.amount),
       description: r.description ?? '',
       frequency: r.frequency,
@@ -66,6 +68,7 @@ export function RecurringPage() {
     try {
       const data = {
         category_id: form.category_id,
+        type: form.type,
         amount: Number(form.amount),
         description: form.description || undefined,
         frequency: form.frequency,
@@ -117,6 +120,13 @@ export function RecurringPage() {
 
   const RecurringForm = () => (
     <>
+      <div className="input-group">
+        <label className="input-label">Type</label>
+        <div className="tabs">
+          <button className={`tab ${form.type === 'expense' ? 'tab-active' : ''}`} onClick={() => setForm((f) => ({ ...f, type: 'expense' }))}>Expense</button>
+          <button className={`tab ${form.type === 'income' ? 'tab-active' : ''}`} onClick={() => setForm((f) => ({ ...f, type: 'income' }))}>Income</button>
+        </div>
+      </div>
       <div className="input-group">
         <label className="input-label">Category</label>
         <Select
@@ -217,8 +227,8 @@ export function RecurringPage() {
                 </div>
               </div>
 
-              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)', flexShrink: 0 }}>
-                {fmt(item.amount, activeWallet.currency)}
+              <div style={{ fontSize: 16, fontWeight: 600, color: item.type === 'income' ? 'var(--forest)' : 'var(--ink)', flexShrink: 0 }}>
+                {item.type === 'income' ? '+' : ''}{fmt(item.amount, activeWallet.currency)}
               </div>
 
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
