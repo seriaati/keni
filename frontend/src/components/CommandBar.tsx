@@ -1436,7 +1436,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
               placeholder={
                 mode === 'processing' ? 'Processing…' :
                   mode === 'review' ? 'Edit text and press Enter to re-parse…' :
-                    'Type a transaction or navigate… (e.g. "coffee 4.50" or "salary 5000")'
+                    'Type a transaction or navigate…'
               }
               disabled={mode === 'processing'}
               style={{
