@@ -306,3 +306,23 @@ h6 {
   background: var(--cream-dark);
   font-weight: 600;
 }
+/* Info tooltip */
+.info-tooltip-content {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  width: 260px;
+  background: var(--ink);
+  color: white;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  border-radius: 8px;
+  z-index: 100;
+  white-space: normal;
+}
+
+.info-tooltip-content a {
+  color: oklch(85% 0.12 155);
+}

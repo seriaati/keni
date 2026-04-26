@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Copy, Eye, EyeOff, Key, Plus, Trash2, User, Bot, Check } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Copy, Eye, EyeOff, Info, Key, Plus, Trash2, User, Bot, Check } from 'lucide-react';
 import { users as usersApi, aiProvider as aiProviderApi, tokens as tokensApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/Toast';
@@ -39,6 +39,39 @@ export function SettingsPage() {
       {activeTab === 'ai' && <AIProviderTab user={user} refreshUser={refreshUser} toast={toast} />}
       {activeTab === 'tokens' && <TokensTab toast={toast} />}
     </div>
+  );
+}
+
+function InfoTooltip({ children }: { children: React.ReactNode }) {
+  const [visible, setVisible] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!visible) return;
+    const handler = (e: MouseEvent | TouchEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setVisible(false);
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [visible]);
+
+  return (
+    <span
+      ref={ref}
+      style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}
+      onMouseEnter={() => setVisible(true)}
+      onMouseLeave={() => setVisible(false)}
+      onClick={(e) => { e.stopPropagation(); setVisible((v) => !v); }}
+    >
+      <Info size={13} style={{ color: 'var(--ink-faint)', cursor: 'help', flexShrink: 0, verticalAlign: 'middle' }} />
+      {visible && (
+        <span className="info-tooltip-content">{children}</span>
+      )}
+    </span>
   );
 }
 
@@ -299,7 +332,8 @@ function AIProviderTab({ user, refreshUser, toast }: { user: any; refreshUser: (
           />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
             <input
               type="checkbox"
@@ -310,14 +344,17 @@ function AIProviderTab({ user, refreshUser, toast }: { user: any; refreshUser: (
             <span style={{ fontSize: 14, color: 'var(--ink)' }}>
               Use OCR for image parsing
             </span>
-            <span style={{ fontSize: 12, color: 'var(--ink-faint)' }}>
-              (can save tokens)
-            </span>
           </label>
+            <InfoTooltip>
+              By turning this on, Keni will parse the provided image with OCR, then give the LLM the extracted text. This can save tokens by not using the LLM's vision model. However, OCR only works well against digital content like screenshots — results are often bad for real-life photos like receipts. Based on personal experience, Gemini has the best vision model.
+            </InfoTooltip>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button className="btn btn-primary btn-md" onClick={handleSave} disabled={saving}>
             {saving && <span className="btn-spinner" />}
             {provider ? 'Update provider' : 'Save provider'}
           </button>
+          </div>
         </div>
       </div>
 
