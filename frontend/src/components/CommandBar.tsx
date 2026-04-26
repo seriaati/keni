@@ -31,7 +31,7 @@ import { expenses as expensesApi, recurring as recurringApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
 import { useToast } from './ui/Toast';
 import type { AIExpenseResponse, AIParseResponse, AIRecurringResponse } from '../lib/types';
-import { fmt, FREQUENCIES } from '../lib/utils';
+import { fmt, fmtDate, FREQUENCIES } from '../lib/utils';
 import { DatePicker } from './ui/DatePicker';
 import { Select } from './ui/Select';
 
@@ -58,6 +58,7 @@ interface EditableExpense extends AIExpenseResponse {
   _editCategory: string;
   _editDescription: string;
   _editTags: string;
+  _editDate: string;
   _editing: boolean;
   _isNew?: boolean;
 }
@@ -82,6 +83,7 @@ function makeEditable(exp: AIExpenseResponse): EditableExpense {
     _editCategory: exp.category_name ?? '',
     _editDescription: exp.description ?? '',
     _editTags: exp.suggested_tags.map((t) => t.name).join(', '),
+    _editDate: exp.date ? exp.date.slice(0, 10) : new Date().toISOString().slice(0, 10),
     _editing: false,
   };
 }
@@ -98,6 +100,7 @@ function commitEditable(e: EditableExpense): EditableExpense {
     amount: isNaN(newAmount) ? e.amount : newAmount,
     category_name: e._editCategory.trim() || e.category_name,
     description: e._editDescription.trim() || null,
+    date: e._editDate || e.date,
     suggested_tags: newTags,
     _editing: false,
   };
@@ -163,6 +166,7 @@ function ExpenseCard({
       _editCategory: expense.category_name ?? '',
       _editDescription: expense.description ?? '',
       _editTags: expense.suggested_tags.map((t) => t.name).join(', '),
+      _editDate: expense.date ? expense.date.slice(0, 10) : new Date().toISOString().slice(0, 10),
       _editing: true,
     });
     setTimeout(() => amountRef.current?.focus(), 50);
@@ -253,6 +257,20 @@ function ExpenseCard({
             <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>{expense.category_name ?? 'Others'}</div>
           )}
         </div>
+      </div>
+
+      <div>
+        <div style={{ fontSize: 10, color: 'var(--ink-light)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</div>
+        {expense._editing ? (
+          <DatePicker
+            value={expense._editDate}
+            onChange={(v) => onChange({ ...expense, _editDate: v })}
+          />
+        ) : (
+          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)' }}>
+            {expense._editDate ? fmtDate(expense._editDate) : '—'}
+          </div>
+        )}
       </div>
 
       {(expense.description || expense._editing) && (
