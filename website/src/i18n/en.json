@@ -1,7 +1,7 @@
 {
   "site": {
     "title": "Keni | Money tracked without the friction",
-    "description": "A personal finance tracker built for people who want clarity without complexity. It removes the hassle of tracking your money, so you can focus on understanding it.",
+    "description": "Keni is a personal finance tracker built for people who want to record detailed transaction logs without spending much effort. It uses AI to take various kind of input (text, image, PDF, voice, etc.) and extract context about the transaction, then categorizes them for easier lookup in the future.",
     "appUrl": "https://app.keni.seria.moe"
   },
   "nav": {
