@@ -11,6 +11,7 @@ import {
   ArrowLeftRight,
   Bot,
   ChevronDown,
+  Copy,
   Download,
   LayoutDashboard,
   LogOut,
@@ -21,10 +22,12 @@ import {
   Zap,
   Command,
   PlusCircle,
+  Plug,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useWallet } from '../contexts/WalletContext';
 import { CommandBar } from './CommandBar';
+import { Modal } from './ui/Modal';
 import { getInitials } from '../lib/utils';
 import './layout.css';
 
@@ -47,6 +50,8 @@ export function Layout() {
   const [cmdOpen, setCmdOpen] = useState(false);
   const [walletMenuOpen, setWalletMenuOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [mcpOpen, setMcpOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [expenseAddedKey, setExpenseAddedKey] = useState(0);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(
     () => ((window as Window & { __pwaPrompt?: BeforeInstallPromptEvent }).__pwaPrompt ?? null)
@@ -98,6 +103,15 @@ export function Layout() {
     await installPrompt.prompt();
     const { outcome } = await installPrompt.userChoice;
     if (outcome === 'accepted') setInstallPrompt(null);
+  };
+
+  const mcpUrl = (import.meta.env.VITE_MCP_URL as string | undefined) ?? 'http://localhost:8000/mcp';
+
+  const handleCopyMcpUrl = () => {
+    void navigator.clipboard.writeText(mcpUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   };
 
   const handleLogout = () => {
@@ -198,6 +212,10 @@ export function Layout() {
               Install app
             </button>
           )}
+          <button className="nav-item" onClick={() => setMcpOpen(true)}>
+            <Plug size={16} />
+            MCP
+          </button>
           <a
             href="https://github.com/seriaati/keni"
             target="_blank"
@@ -279,6 +297,69 @@ export function Layout() {
       )}
 
       <CommandBar open={cmdOpen} onClose={() => setCmdOpen(false)} onExpenseAdded={handleExpenseAdded} />
+
+      <Modal open={mcpOpen} onClose={() => setMcpOpen(false)} title="MCP Integration" size="lg">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <p style={{ color: 'var(--ink-light)', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
+            Keni exposes a Model Context Protocol (MCP) server, letting AI assistants like Claude Desktop, Cursor, or any MCP-compatible client read and write your financial data. Authentication is handled via OAuth, no API tokens required.
+          </p>
+
+          <div>
+            <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Server URL</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--cream-dark, #f5f0e8)', borderRadius: '8px', padding: '10px 14px', fontFamily: 'monospace', fontSize: '13px', wordBreak: 'break-all' }}>
+              <span style={{ flex: 1, color: 'var(--ink)' }}>{mcpUrl}</span>
+              <button className="icon-btn" onClick={handleCopyMcpUrl} title="Copy URL" style={{ flexShrink: 0 }}>
+                {copied ? <span style={{ fontSize: '11px', color: 'var(--forest)' }}>Copied!</span> : <Copy size={14} />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>Setup Guide</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--forest)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, flexShrink: 0, marginTop: '1px' }}>1</div>
+                <div>
+                  <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: '14px' }}>Configure your MCP client</p>
+                  <p style={{ margin: '0 0 8px', fontSize: '13px', color: 'var(--ink-light)', lineHeight: '1.5' }}>
+                    Add the following to your client's MCP configuration (e.g. <code style={{ fontFamily: 'monospace', background: 'rgba(0,0,0,0.06)', padding: '1px 5px', borderRadius: '4px' }}>claude_desktop_config.json</code> or <code style={{ fontFamily: 'monospace', background: 'rgba(0,0,0,0.06)', padding: '1px 5px', borderRadius: '4px' }}>mcp.json</code>):
+                  </p>
+                  <pre style={{ margin: 0, background: 'var(--cream-dark, #f5f0e8)', borderRadius: '8px', padding: '12px', fontSize: '12px', fontFamily: 'monospace', lineHeight: '1.6', overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{`{
+  "mcpServers": {
+    "keni": {
+      "type": "http",
+      "url": "${mcpUrl}"
+    }
+  }
+}`}</pre>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--forest)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, flexShrink: 0, marginTop: '1px' }}>2</div>
+                <div>
+                  <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: '14px' }}>Authorize via OAuth</p>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--ink-light)', lineHeight: '1.5' }}>
+                    Restart your client. The first time it connects, it will open a browser window asking you to sign in and grant access (the OAuth flow). No API token needed.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--forest)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, flexShrink: 0, marginTop: '1px' }}>3</div>
+                <div>
+                  <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: '14px' }}>Start using it</p>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--ink-light)', lineHeight: '1.5' }}>
+                    Keni's tools will appear automatically. Ask your AI assistant to list expenses, add transactions, or check budgets.
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
