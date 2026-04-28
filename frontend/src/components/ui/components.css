@@ -251,7 +251,9 @@ textarea.input {
   width: 100%;
   max-width: 480px;
   max-height: 90dvh;
-  overflow-y: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -273,6 +275,9 @@ textarea.input {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .modal-footer {
