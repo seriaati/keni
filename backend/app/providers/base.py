@@ -138,6 +138,9 @@ and recurring). FIRST check the provided tags list for relevant matches. Then, f
 concrete purchase (a product, service, or activity) OR income source (e.g. for salary: \
 "monthly", "recurring"; for freelance: "project", "client"; for dividends: "investment"), \
 you may also suggest new descriptive short tags that are NOT in the provided list. \
+Tags must be MORE SPECIFIC than the category — never suggest a tag that duplicates or \
+restates the category name (e.g. if category is "Food", do not tag "food"; instead tag \
+the specific item like "burger", "sushi", "coffee"). \
 One transaction can only have 3 tags maximum, so if existing tags already match and the \
 maximum will be exceeded, don't suggest new ones. Return an empty array if no tags apply.
 - suggested_icon: only set this field when you are creating a NEW category (i.e. the \
