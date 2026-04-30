@@ -12,6 +12,7 @@ from mcp.server.auth.provider import (
     AccessToken,
     AuthorizationCode,
     OAuthAuthorizationServerProvider,
+    RefreshToken,
 )
 from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 from pydantic import AnyUrl
@@ -38,6 +39,12 @@ _TOKEN_TYPE_BEARER = "Bearer"  # noqa: S105
 
 class KeniAuthorizationCode(AuthorizationCode):
     db_id: uuid.UUID
+
+
+class KeniRefreshToken(RefreshToken):
+    user_id: uuid.UUID
+    pair_id: uuid.UUID
+    resource: str | None = None
 
 
 class KeniAccessToken(AccessToken):
@@ -225,7 +232,7 @@ class KeniOAuthProvider(OAuthAuthorizationServerProvider):
 
     async def load_refresh_token(
         self, client: OAuthClientInformationFull, refresh_token: str
-    ) -> OAuthTokenModel | None:
+    ) -> KeniRefreshToken | None:
         async for session in get_session():
             result = await session.exec(
                 select(OAuthTokenModel).where(
@@ -235,17 +242,28 @@ class KeniOAuthProvider(OAuthAuthorizationServerProvider):
                     OAuthTokenModel.revoked == False,  # noqa: E712
                 )
             )
-            return result.first()
+            db_token = result.first()
+            if db_token is None:
+                return None
+            return KeniRefreshToken(
+                token=refresh_token,
+                client_id=db_token.client_id,
+                scopes=db_token.scopes or [],
+                expires_at=int(db_token.expires_at.replace(tzinfo=UTC).timestamp()),
+                user_id=db_token.user_id,
+                pair_id=db_token.pair_id,
+                resource=db_token.resource,
+            )
         return None
 
     async def exchange_refresh_token(
         self,
         client: OAuthClientInformationFull,  # noqa: ARG002
-        refresh_token: OAuthTokenModel,
+        refresh_token: KeniRefreshToken,
         scopes: list[str],
     ) -> OAuthToken:
         now = datetime.now(UTC)
-        if refresh_token.expires_at.replace(tzinfo=UTC) < now:
+        if refresh_token.expires_at is not None and refresh_token.expires_at < now.timestamp():
             msg = "Refresh token expired"
             raise ValueError(msg)
 
