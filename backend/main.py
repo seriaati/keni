@@ -23,6 +23,7 @@ from app.routers import (
     recurring,
     tags,
     tokens,
+    transaction_links,
     transactions,
     users,
     wallets,
@@ -74,6 +75,7 @@ app.include_router(wallets.router)
 app.include_router(categories.router)
 app.include_router(tags.router)
 app.include_router(transactions.router)
+app.include_router(transaction_links.router)
 app.include_router(ai_provider.router)
 app.include_router(chat.router)
 app.include_router(recurring.router)

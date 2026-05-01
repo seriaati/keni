@@ -51,3 +51,20 @@ class TransactionTag(SQLModel, table=True):
         foreign_key="transactions.id", primary_key=True, ondelete="CASCADE"
     )
     tag_id: uuid.UUID = Field(foreign_key="tags.id", primary_key=True)
+
+
+class TransactionLink(SQLModel, table=True):
+    __tablename__: str = "transaction_links"
+
+    transaction_id_a: uuid.UUID = Field(
+        foreign_key="transactions.id", primary_key=True, ondelete="CASCADE"
+    )
+    transaction_id_b: uuid.UUID = Field(
+        foreign_key="transactions.id", primary_key=True, ondelete="CASCADE"
+    )
+    created_at: datetime = Field(
+        default=None,
+        sa_column=sa.Column(
+            sa.DateTime(timezone=True), server_default=text("NOW()"), nullable=False
+        ),
+    )

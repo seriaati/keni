@@ -60,6 +60,17 @@ class CategoryBrief(BaseModel):
     color: str | None
 
 
+class TransactionLinkBrief(BaseModel):
+    id: uuid.UUID
+    wallet_id: uuid.UUID
+    category: CategoryBrief
+    type: str
+    amount: float
+    description: str | None
+    date: datetime
+    tags: list[TagBrief]
+
+
 class TransactionResponse(BaseModel):
     id: uuid.UUID
     wallet_id: uuid.UUID
@@ -74,6 +85,7 @@ class TransactionResponse(BaseModel):
     updated_at: datetime
     group_id: uuid.UUID | None = None
     children: list[TransactionResponse] | None = None
+    linked_transactions: list[TransactionLinkBrief] = Field(default_factory=list)
 
 
 class TransactionListResponse(BaseModel):

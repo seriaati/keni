@@ -7,14 +7,14 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile, status
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.dependencies import get_current_user, get_db
 from app.models.category import Category
 from app.models.tag import Tag
-from app.models.transaction import Transaction, TransactionTag
+from app.models.transaction import Transaction, TransactionLink, TransactionTag
 from app.models.user import User
 from app.models.wallet import Wallet
 from app.schemas.ai_provider import (
@@ -30,6 +30,7 @@ from app.schemas.transaction import (
     TagBrief,
     TransactionCreate,
     TransactionGroupCreate,
+    TransactionLinkBrief,
     TransactionListResponse,
     TransactionResponse,
     TransactionSummary,
@@ -75,6 +76,34 @@ async def _get_transaction_or_404(
     return transaction
 
 
+async def _build_linked_brief(
+    transaction: Transaction, session: AsyncSession
+) -> TransactionLinkBrief:
+    cat_result = await session.exec(select(Category).where(Category.id == transaction.category_id))
+    cat = cat_result.first()
+    category_brief = (
+        CategoryBrief(id=cat.id, name=cat.name, icon=cat.icon, color=cat.color)
+        if cat
+        else CategoryBrief(id=transaction.category_id, name="Unknown", icon=None, color=None)
+    )
+    tag_result = await session.exec(
+        select(Tag)
+        .join(TransactionTag, col(Tag.id) == col(TransactionTag.tag_id))
+        .where(col(TransactionTag.transaction_id) == transaction.id)
+    )
+    tags = [TagBrief(id=t.id, name=t.name, color=t.color) for t in tag_result.all()]
+    return TransactionLinkBrief(
+        id=transaction.id,
+        wallet_id=transaction.wallet_id,
+        category=category_brief,
+        type=transaction.type,
+        amount=transaction.amount,
+        description=transaction.description,
+        date=transaction.date,
+        tags=tags,
+    )
+
+
 async def _build_transaction_response(
     transaction: Transaction, session: AsyncSession, include_children: bool = True
 ) -> TransactionResponse:
@@ -105,6 +134,19 @@ async def _build_transaction_response(
                 for c in child_transactions
             ]
 
+    linked_result = await session.exec(
+        select(Transaction).join(
+            TransactionLink,
+            or_(
+                (col(TransactionLink.transaction_id_a) == transaction.id)
+                & (col(TransactionLink.transaction_id_b) == col(Transaction.id)),
+                (col(TransactionLink.transaction_id_b) == transaction.id)
+                & (col(TransactionLink.transaction_id_a) == col(Transaction.id)),
+            ),
+        )
+    )
+    linked_transactions = [await _build_linked_brief(lt, session) for lt in linked_result.all()]
+
     return TransactionResponse(
         id=transaction.id,
         wallet_id=transaction.wallet_id,
@@ -119,6 +161,7 @@ async def _build_transaction_response(
         updated_at=transaction.updated_at,
         group_id=transaction.group_id,
         children=children,
+        linked_transactions=linked_transactions,
     )
 
 
