@@ -65,6 +65,14 @@ export function Layout() {
   );
   const navigate = useNavigate();
   const location = useLocation();
+
+  const switchWallet = useCallback((w: (typeof wallets)[number]) => {
+    setActiveWallet(w);
+    if (/^\/wallets\/[^/]+(\/|$)/.test(location.pathname)) {
+      navigate(`/wallets/${w.id}`);
+    }
+  }, [setActiveWallet, navigate, location.pathname]);
+
   const walletSelectorRef = useRef<HTMLDivElement>(null);
   const mobileWalletRef = useRef<HTMLDivElement>(null);
 
@@ -175,7 +183,7 @@ export function Layout() {
                   <button
                     key={w.id}
                     className={`wallet-option ${w.id === activeWallet?.id ? 'wallet-option-active' : ''}`}
-                    onClick={(e) => { e.stopPropagation(); setActiveWallet(w); setWalletMenuOpen(false); }}
+                    onClick={(e) => { e.stopPropagation(); switchWallet(w); setWalletMenuOpen(false); }}
                   >
                     <div className="wallet-dot" style={{ background: w.is_default ? 'var(--forest)' : 'var(--sand-dark)' }} />
                     <span>{w.name}</span>
@@ -306,7 +314,7 @@ export function Layout() {
                     <button
                       key={w.id}
                       className={`wallet-option ${w.id === activeWallet?.id ? 'wallet-option-active' : ''}`}
-                      onClick={(e) => { e.stopPropagation(); setActiveWallet(w); setMobileWalletMenuOpen(false); }}
+                      onClick={(e) => { e.stopPropagation(); switchWallet(w); setMobileWalletMenuOpen(false); }}
                     >
                       <div className="wallet-dot" style={{ background: w.is_default ? 'var(--forest)' : 'var(--sand-dark)' }} />
                       <span>{w.name}</span>
