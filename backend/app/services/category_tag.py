@@ -17,7 +17,6 @@ async def find_or_create_category(
     user_id: uuid.UUID,
     name: str,
     session: AsyncSession,
-    category_type: str = "expense",
     icon: str | None = None,
 ) -> Category:
     result = await session.exec(select(Category).where(Category.user_id == user_id))
@@ -25,7 +24,7 @@ async def find_or_create_category(
         if cat.name.lower() == name.lower():
             return cat
 
-    category = Category(user_id=user_id, name=name, type=category_type, icon=icon)
+    category = Category(user_id=user_id, name=name, icon=icon)
     session.add(category)
     await session.flush()
     await session.refresh(category)

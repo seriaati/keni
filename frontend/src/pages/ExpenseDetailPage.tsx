@@ -422,7 +422,7 @@ export function ExpenseDetailPage() {
 
   const handleCreateAndSelectCategory = async (name: string) => {
     try {
-      const newCat = await categoriesApi.create({ name, type: 'expense' });
+      const newCat = await categoriesApi.create({ name });
       setCategories((prev) => [...prev, newCat]);
       setForm((f) => ({ ...f, category_id: newCat.id }));
     } catch (e) {

@@ -11,7 +11,6 @@ type FormState = {
   name: string;
   icon: string;
   color: string | null;
-  type: 'expense' | 'income';
 };
 
 function CategoryForm({
@@ -38,13 +37,6 @@ function CategoryForm({
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           autoFocus
         />
-      </div>
-      <div className="input-group">
-        <label className="input-label">Type</label>
-        <div className="tabs">
-          <button className={`tab ${form.type === 'expense' ? 'tab-active' : ''}`} onClick={() => setForm({ ...form, type: 'expense' })}>Expense</button>
-          <button className={`tab ${form.type === 'income' ? 'tab-active' : ''}`} onClick={() => setForm({ ...form, type: 'income' })}>Income</button>
-        </div>
       </div>
       <div className="input-group">
         <label className="input-label">Icon</label>
@@ -134,7 +126,6 @@ export function CategoriesPage() {
     name: '',
     icon: '',
     color: null,
-    type: 'expense',
   });
 
   const load = async () => {
@@ -151,13 +142,13 @@ export function CategoriesPage() {
   useEffect(() => { load(); }, []);
 
   const openCreate = () => {
-    setForm({ name: '', icon: '', color: null, type: 'expense' });
+    setForm({ name: '', icon: '', color: null });
     setIconSearch('');
     setShowCreate(true);
   };
 
   const openEdit = (c: CategoryResponse) => {
-    setForm({ name: c.name, icon: c.icon ?? '', color: c.color ?? null, type: c.type });
+    setForm({ name: c.name, icon: c.icon ?? '', color: c.color ?? null });
     setIconSearch('');
     setEditCat(c);
   };
@@ -174,7 +165,7 @@ export function CategoriesPage() {
     if (!form.name.trim()) return;
     setSaving(true);
     try {
-      const data = { name: form.name, icon: form.icon || null, color: form.color ?? undefined, type: form.type };
+      const data = { name: form.name, icon: form.icon || null, color: form.color ?? undefined };
       if (editCat) {
         await categoriesApi.update(editCat.id, data);
         toast('Category updated', 'success');
@@ -207,9 +198,6 @@ export function CategoriesPage() {
     }
   };
 
-  const expense = categories.filter((c) => c.type === 'expense');
-  const income = categories.filter((c) => c.type === 'income');
-
   return (
     <div className="animate-fade-in">
       <div className="page-header">
@@ -230,29 +218,12 @@ export function CategoriesPage() {
         </div>
       ) : (
         <>
-          {expense.length > 0 && (
-            <section style={{ marginBottom: 28 }}>
-              <h2 style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-light)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
-                Expense categories
-              </h2>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
-                {expense.map((cat) => (
-                  <CategoryCard key={cat.id} cat={cat} onEdit={openEdit} onDelete={setDeleteCat} />
-                ))}
-              </div>
-            </section>
-          )}
-          {income.length > 0 && (
-            <section>
-              <h2 style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-light)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
-                Income categories
-              </h2>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
-                {income.map((cat) => (
-                  <CategoryCard key={cat.id} cat={cat} onEdit={openEdit} onDelete={setDeleteCat} />
-                ))}
-              </div>
-            </section>
+          {categories.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
+              {categories.map((cat) => (
+                <CategoryCard key={cat.id} cat={cat} onEdit={openEdit} onDelete={setDeleteCat} />
+              ))}
+            </div>
           )}
           {categories.length === 0 && (
             <div className="empty-state">

@@ -36,7 +36,6 @@ export interface CategoryResponse {
   name: string;
   icon: string | null;
   color: string | null;
-  type: 'expense' | 'income';
   is_system: boolean;
   created_at: string;
 }

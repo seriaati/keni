@@ -159,7 +159,6 @@ async def _create_single_transaction(
             user_id=user_id,
             name=body.category_name,
             session=session,
-            category_type=body.type,
             icon=body.category_icon,
         )
         resolved_category_id = category.id

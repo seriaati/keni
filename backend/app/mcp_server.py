@@ -163,7 +163,6 @@ async def list_categories() -> list[dict[str, Any]]:
                 "name": c.name,
                 "icon": c.icon,
                 "color": c.color,
-                "type": c.type,
                 "is_system": c.is_system,
             }
             for c in result.all()
@@ -541,7 +540,6 @@ async def _insert_transaction(  # noqa: C901, PLR0911, PLR0912
                 user_id=user_id,
                 name=params.category_name,
                 session=session,
-                category_type=params.type,
                 icon=params.category_icon,
             )
             resolved_category_id = cat.id

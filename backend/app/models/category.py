@@ -17,7 +17,6 @@ class Category(SQLModel, table=True):
     name: str = Field(max_length=100)
     icon: str | None = Field(default=None, max_length=50)
     color: str | None = Field(default=None, max_length=20)
-    type: str = Field(default="expense", max_length=10)
     is_system: bool = Field(default=False)
     created_at: datetime = Field(
         default=None,

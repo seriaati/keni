@@ -26,7 +26,6 @@ def _category_to_response(cat: Category) -> CategoryResponse:
         name=cat.name,
         icon=cat.icon,
         color=cat.color,
-        type=cat.type,
         is_system=cat.is_system,
         created_at=cat.created_at,
     )
@@ -98,9 +97,6 @@ async def update_category(
         cat.icon = body.icon
     if "color" in body.model_fields_set:
         cat.color = body.color
-    if "type" in body.model_fields_set and body.type is not None:
-        cat.type = body.type
-
     session.add(cat)
     await session.commit()
     await session.refresh(cat)

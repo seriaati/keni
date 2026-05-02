@@ -96,7 +96,6 @@ async def create_recurring(
             user_id=current_user.id,
             name=body.category_name,
             session=session,
-            category_type=body.type,
         )
         resolved_category_id = category.id
 

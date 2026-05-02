@@ -214,9 +214,9 @@ export const expenses = {
 
 export const categories = {
   list: () => request<CategoryResponse[]>('/categories'),
-  create: (data: { name: string; icon?: string | null; color?: string; type: 'expense' | 'income' }) =>
+  create: (data: { name: string; icon?: string | null; color?: string }) =>
     request<CategoryResponse>('/categories', { method: 'POST', body: JSON.stringify(data) }),
-  update: (id: string, data: { name?: string; icon?: string | null; color?: string; type?: 'expense' | 'income' }) =>
+  update: (id: string, data: { name?: string; icon?: string | null; color?: string }) =>
     request<CategoryResponse>(`/categories/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   delete: (id: string) => request<void>(`/categories/${id}`, { method: 'DELETE' }),
 };
