@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
-import { AlertTriangle, ArrowRight, Layers, Wallet } from 'lucide-react';
+import { AlertTriangle, ArrowRight, ChevronDown, Layers, Wallet } from 'lucide-react';
 import { PieChart, Pie, Sector, ResponsiveContainer, Tooltip } from 'recharts';
 import { expenses as expensesApi, budgets as budgetsApi, categories as categoriesApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
 import { useAuth } from '../contexts/AuthContext';
 import type { BudgetResponse, CategoryResponse, TransactionResponse, TransactionSummary } from '../lib/types';
-import { fmt, fmtRelative, startOfMonth, endOfMonth, startOfWeek } from '../lib/utils';
+import { fmt, fmtRelative, startOfMonth, endOfMonth, startOfWeek, getPeriodDateRange, PERIOD_LABELS } from '../lib/utils';
+import type { DashboardPeriod } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
 import type { LayoutOutletContext } from '../components/Layout';
 
@@ -25,28 +26,44 @@ export function DashboardPage() {
   const { activeWallet } = useWallet();
   const { expenseAddedKey } = useOutletContext<LayoutOutletContext>();
   const navigate = useNavigate();
-  const [summary, setSummary] = useState<TransactionSummary | null>(null);
+  const [monthlySummary, setMonthlySummary] = useState<TransactionSummary | null>(null);
+  const [spendingSummary, setSpendingSummary] = useState<TransactionSummary | null>(null);
+  const [incomeSummary, setIncomeSummary] = useState<TransactionSummary | null>(null);
   const [weekSummary, setWeekSummary] = useState<TransactionSummary | null>(null);
   const [recent, setRecent] = useState<TransactionResponse[]>([]);
   const [budgets, setBudgets] = useState<BudgetResponse[]>([]);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [spendingLoading, setSpendingLoading] = useState(false);
+  const [incomeLoading, setIncomeLoading] = useState(false);
+  const [spendingPeriod, setSpendingPeriod] = useState<DashboardPeriod>('this_month');
+  const [incomePeriod, setIncomePeriod] = useState<DashboardPeriod>('this_month');
+  const [spendingPeriodOpen, setSpendingPeriodOpen] = useState(false);
+  const [incomePeriodOpen, setIncomePeriodOpen] = useState(false);
+  const spendingPeriodRef = useRef<HTMLDivElement>(null);
+  const incomePeriodRef = useRef<HTMLDivElement>(null);
+  const spendingChartRef = useRef<HTMLDivElement>(null);
+  const incomeChartRef = useRef<HTMLDivElement>(null);
   const [categoryExpanded, setCategoryExpanded] = useState(false);
   const [incomeCategoryExpanded, setIncomeCategoryExpanded] = useState(false);
 
+  // Full reload: wallet change or new transaction added
   useEffect(() => {
     if (!activeWallet) return;
     setLoading(true);
-
     Promise.all([
       expensesApi.summary(activeWallet.id, { start_date: startOfMonth(), end_date: endOfMonth() }),
+      expensesApi.summary(activeWallet.id, getPeriodDateRange(spendingPeriod)),
+      expensesApi.summary(activeWallet.id, getPeriodDateRange(incomePeriod)),
       expensesApi.summary(activeWallet.id, { start_date: startOfWeek() }),
       expensesApi.list(activeWallet.id, { page: 1, page_size: 8, sort_by: 'date', sort_order: 'desc' }),
       budgetsApi.list(),
       categoriesApi.list(),
     ])
-      .then(([monthSum, weekSum, recentList, budgetList, categoryList]) => {
-        setSummary(monthSum);
+      .then(([monthSum, spendSum, incomeSum, weekSum, recentList, budgetList, categoryList]) => {
+        setMonthlySummary(monthSum);
+        setSpendingSummary(spendSum);
+        setIncomeSummary(incomeSum);
         setWeekSummary(weekSum);
         setRecent(recentList.items);
         setBudgets(budgetList);
@@ -54,7 +71,49 @@ export function DashboardPage() {
       })
       .catch(() => { })
       .finally(() => setLoading(false));
-  }, [activeWallet, expenseAddedKey]);
+  }, [activeWallet, expenseAddedKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Spending chart reload on period change (skip mount)
+  const spendingMountedRef = useRef(false);
+  useEffect(() => {
+    if (!spendingMountedRef.current) { spendingMountedRef.current = true; return; }
+    if (!activeWallet) return;
+    setSpendingLoading(true);
+    expensesApi.summary(activeWallet.id, getPeriodDateRange(spendingPeriod))
+      .then(setSpendingSummary)
+      .catch(() => { })
+      .finally(() => setSpendingLoading(false));
+  }, [spendingPeriod]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Income chart reload on period change (skip mount)
+  const incomeMountedRef = useRef(false);
+  useEffect(() => {
+    if (!incomeMountedRef.current) { incomeMountedRef.current = true; return; }
+    if (!activeWallet) return;
+    setIncomeLoading(true);
+    expensesApi.summary(activeWallet.id, getPeriodDateRange(incomePeriod))
+      .then(setIncomeSummary)
+      .catch(() => { })
+      .finally(() => setIncomeLoading(false));
+  }, [incomePeriod]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Apply opacity directly to DOM to avoid React re-render interrupting CSS transition
+  useEffect(() => {
+    if (spendingChartRef.current) spendingChartRef.current.style.opacity = spendingLoading ? '0.4' : '1';
+  }, [spendingLoading]);
+  useEffect(() => {
+    if (incomeChartRef.current) incomeChartRef.current.style.opacity = incomeLoading ? '0.4' : '1';
+  }, [incomeLoading]);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (spendingPeriodRef.current && !spendingPeriodRef.current.contains(e.target as Node)) setSpendingPeriodOpen(false);
+      if (incomePeriodRef.current && !incomePeriodRef.current.contains(e.target as Node)) setIncomePeriodOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -160,8 +219,8 @@ export function DashboardPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
         <SummaryCard
           label="This month"
-          value={loading ? null : fmt(summary?.total_amount ?? 0, activeWallet.currency)}
-          sub={`${summary?.expense_count ?? 0} transactions`}
+          value={loading ? null : fmt(monthlySummary?.total_amount ?? 0, activeWallet.currency)}
+          sub={`${monthlySummary?.expense_count ?? 0} transactions`}
           accent="var(--forest)"
           loading={loading}
         />
@@ -175,7 +234,7 @@ export function DashboardPage() {
         <SummaryCard
           label="Daily average"
           value={loading ? null : fmt(
-            summary ? summary.total_amount / Math.max(new Date().getDate(), 1) : 0,
+            monthlySummary ? monthlySummary.total_amount / Math.max(new Date().getDate(), 1) : 0,
             activeWallet.currency,
           )}
           sub="this month"
@@ -327,12 +386,37 @@ export function DashboardPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Spending by category */}
           <div>
-            <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 14 }}>Spending by category</h2>
+            <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>Spending by category</h2>
+            <div ref={spendingPeriodRef} style={{ position: 'relative', display: 'inline-block', marginBottom: 14 }}>
+              <button
+                onClick={() => setSpendingPeriodOpen((v) => !v)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12, color: 'var(--ink-faint)', fontFamily: 'inherit' }}
+              >
+                {PERIOD_LABELS[spendingPeriod]}
+                <ChevronDown size={11} style={{ transition: 'transform 0.15s', transform: spendingPeriodOpen ? 'rotate(180deg)' : 'none' }} />
+              </button>
+              {spendingPeriodOpen && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, background: 'white', border: '1px solid var(--cream-darker)', borderRadius: 8, boxShadow: '0 4px 12px oklch(0% 0 0 / 0.08)', zIndex: 50, minWidth: 140, overflow: 'hidden' }}>
+                  {(['this_month', 'last_month', 'last_3_months', 'this_year'] as DashboardPeriod[]).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => { setSpendingPeriod(p); setSpendingPeriodOpen(false); }}
+                      style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: p === spendingPeriod ? 'var(--cream)' : 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: p === spendingPeriod ? 'var(--forest)' : 'var(--ink)', fontFamily: 'inherit', fontWeight: p === spendingPeriod ? 500 : 400 }}
+                      onMouseEnter={(e) => { if (p !== spendingPeriod) e.currentTarget.style.background = 'var(--cream)'; }}
+                      onMouseLeave={(e) => { if (p !== spendingPeriod) e.currentTarget.style.background = 'none'; }}
+                    >
+                      {PERIOD_LABELS[p]}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div ref={spendingChartRef} style={{ transition: 'opacity 0.2s ease' }}>
             {loading ? (
               <div className="skeleton" style={{ height: 220, borderRadius: 12 }} />
-            ) : summary && summary.by_category.length > 0 ? (
+            ) : spendingSummary && spendingSummary.by_category.length > 0 ? (
               (() => {
-                const sorted = [...summary.by_category].sort((a, b) => b.total - a.total);
+                const sorted = [...spendingSummary.by_category].sort((a, b) => b.total - a.total);
                 const total = sorted.reduce((s, c) => s + c.total, 0);
                 const displayed = categoryExpanded ? sorted : sorted.slice(0, 3);
                 return (
@@ -400,17 +484,47 @@ export function DashboardPage() {
                 <p className="empty-state-desc">No data yet this month.</p>
               </div>
             )}
+            </div>
           </div>
 
           {/* Income by category */}
-          {(loading || (summary && summary.income_by_category.length > 0)) && (
+          {(loading || incomeSummary) && (
             <div>
-              <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 14 }}>Income by category</h2>
+              <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>Income by category</h2>
+              <div ref={incomePeriodRef} style={{ position: 'relative', display: 'inline-block', marginBottom: 14 }}>
+                <button
+                  onClick={() => setIncomePeriodOpen((v) => !v)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12, color: 'var(--ink-faint)', fontFamily: 'inherit' }}
+                >
+                  {PERIOD_LABELS[incomePeriod]}
+                  <ChevronDown size={11} style={{ transition: 'transform 0.15s', transform: incomePeriodOpen ? 'rotate(180deg)' : 'none' }} />
+                </button>
+                {incomePeriodOpen && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, background: 'white', border: '1px solid var(--cream-darker)', borderRadius: 8, boxShadow: '0 4px 12px oklch(0% 0 0 / 0.08)', zIndex: 50, minWidth: 140, overflow: 'hidden' }}>
+                    {(['this_month', 'last_month', 'last_3_months', 'this_year'] as DashboardPeriod[]).map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => { setIncomePeriod(p); setIncomePeriodOpen(false); }}
+                        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: p === incomePeriod ? 'var(--cream)' : 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: p === incomePeriod ? 'var(--forest)' : 'var(--ink)', fontFamily: 'inherit', fontWeight: p === incomePeriod ? 500 : 400 }}
+                        onMouseEnter={(e) => { if (p !== incomePeriod) e.currentTarget.style.background = 'var(--cream)'; }}
+                        onMouseLeave={(e) => { if (p !== incomePeriod) e.currentTarget.style.background = 'none'; }}
+                      >
+                        {PERIOD_LABELS[p]}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div ref={incomeChartRef} style={{ transition: 'opacity 0.2s ease' }}>
               {loading ? (
                 <div className="skeleton" style={{ height: 220, borderRadius: 12 }} />
+              ) : incomeSummary && incomeSummary.income_by_category.length === 0 ? (
+                <div className="empty-state" style={{ padding: '32px 16px', background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)' }}>
+                  <p className="empty-state-desc">No data yet this month.</p>
+                </div>
               ) : (
                 (() => {
-                  const sorted = [...summary!.income_by_category].sort((a, b) => b.total - a.total);
+                  const sorted = [...incomeSummary!.income_by_category].sort((a, b) => b.total - a.total);
                   const total = sorted.reduce((s, c) => s + c.total, 0);
                   const displayed = incomeCategoryExpanded ? sorted : sorted.slice(0, 3);
                   return (
@@ -473,6 +587,7 @@ export function DashboardPage() {
                   );
                 })()
               )}
+              </div>
             </div>
           )}
         </div>

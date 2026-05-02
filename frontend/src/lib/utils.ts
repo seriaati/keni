@@ -50,6 +50,57 @@ export function startOfWeek(): string {
   return d.toISOString();
 }
 
+export type DashboardPeriod = 'this_month' | 'last_month' | 'last_3_months' | 'this_year';
+
+export const PERIOD_LABELS: Record<DashboardPeriod, string> = {
+  this_month: 'This month',
+  last_month: 'Last month',
+  last_3_months: 'Last 3 months',
+  this_year: 'This year',
+};
+
+export function getPeriodDateRange(period: DashboardPeriod): { start_date: string; end_date: string } {
+  const now = new Date();
+  let start: Date;
+  let end: Date;
+  switch (period) {
+    case 'this_month':
+      start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      break;
+    case 'last_month':
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+      end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+      break;
+    case 'last_3_months':
+      start = new Date(now.getFullYear(), now.getMonth() - 2, 1, 0, 0, 0, 0);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      break;
+    case 'this_year':
+      start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+      end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+      break;
+  }
+  return { start_date: start.toISOString(), end_date: end.toISOString() };
+}
+
+export function getPeriodDays(period: DashboardPeriod): number {
+  const now = new Date();
+  switch (period) {
+    case 'this_month':
+      return now.getDate();
+    case 'last_month':
+      return new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+    case 'last_3_months': {
+      const s = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+      const e = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      return Math.round((e.getTime() - s.getTime()) / 86_400_000);
+    }
+    case 'this_year':
+      return Math.round((now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / 86_400_000) + 1;
+  }
+}
+
 export function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(' ');
 }
