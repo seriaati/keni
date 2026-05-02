@@ -70,7 +70,6 @@ async def create_category(
         name=body.name,
         icon=body.icon,
         color=body.color,
-        type=body.type,
         is_system=False,
     )
     session.add(cat)
