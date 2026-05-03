@@ -11,6 +11,8 @@ import type { CategoryResponse, TransactionLinkBrief, TransactionResponse, TagRe
 import { LinkedTransactionsPicker } from '../components/LinkedTransactionsPicker';
 import { fmt, fmtDate } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
+import { useAuth } from '../contexts/AuthContext';
+import { getExchangeRate } from '../lib/fx';
 
 interface DropdownPos {
   top: number;
@@ -326,7 +328,9 @@ export function ExpenseDetailPage() {
   const { walletId, expenseId } = useParams<{ walletId: string; expenseId: string }>();
   const navigate = useNavigate();
   const toast = useToast();
+  const { user } = useAuth();
   const [currency, setCurrency] = useState('USD');
+  const [fxRate, setFxRate] = useState<number | null>(null);
 
   const [expense, setExpense] = useState<TransactionResponse | null>(null);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
@@ -347,6 +351,15 @@ export function ExpenseDetailPage() {
     date: '',
     tag_ids: [] as string[],
   });
+
+  useEffect(() => {
+    const globalCurrency = user?.global_currency;
+    if (!globalCurrency || !currency || globalCurrency === currency) {
+      setFxRate(null);
+      return;
+    }
+    getExchangeRate(currency, globalCurrency).then(setFxRate);
+  }, [currency, user?.global_currency]);
 
   useEffect(() => {
     if (!walletId || !expenseId) return;
@@ -576,8 +589,15 @@ export function ExpenseDetailPage() {
               style={{ fontSize: 24, fontFamily: 'var(--font-display)', height: 'auto', padding: '4px 8px' }}
             />
           ) : (
-            <div style={{ fontSize: 32, fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>
-              {fmt(expense.amount, currency)}
+            <div>
+              <div style={{ fontSize: 32, fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>
+                {fmt(expense.amount, currency)}
+              </div>
+              {fxRate != null && user?.global_currency && (
+                <div style={{ fontSize: 14, color: 'var(--ink-mid)', marginTop: 4 }}>
+                  ≈ {fmt(expense.amount * fxRate, user.global_currency)}
+                </div>
+              )}
             </div>
           )}
         </div>
