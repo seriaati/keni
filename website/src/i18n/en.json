@@ -52,7 +52,7 @@
     "commandBar": {
       "tag": "AI-powered",
       "title": "⌘ K to log anything",
-      "body": "One command bar to record income, spending, recurring bills, grouped expenses, or multiple transactions at once. Using AI, Keni infers context, categorizes with high detail, and fills in the blanks.",
+      "body": "One command bar to record income, spending, recurring bills, grouped expenses, or multiple transactions at once.",
       "list": [
         "AI infers context and categorizes automatically",
         "High-detail categorization with tags",
