@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Pencil, Trash2, Pause, Play, RefreshCw } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
 import { recurring as recurringApi, categories as categoriesApi } from '../lib/api';
@@ -9,9 +10,10 @@ import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
 import { DatePicker } from '../components/ui/DatePicker';
 import type { CategoryResponse, RecurringTransactionResponse } from '../lib/types';
-import { fmt, fmtDate, FREQUENCIES } from '../lib/utils';
+import { fmt, fmtDate, getFrequencies } from '../lib/utils';
 
 export function RecurringPage() {
+  const { t } = useTranslation();
   const { activeWallet } = useWallet();
   const toast = useToast();
   const { expenseAddedKey } = useOutletContext<LayoutOutletContext>();
@@ -40,7 +42,7 @@ export function RecurringPage() {
       setItems(r);
       setCategories(c);
     } catch {
-      toast('Failed to load', 'error');
+      toast(t('recurring.toastLoadFailed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -79,11 +81,11 @@ export function RecurringPage() {
       };
       if (editItem) {
         await recurringApi.update(activeWallet.id, editItem.id, data);
-        toast('Updated', 'success');
+        toast(t('recurring.toastUpdated'), 'success');
         setEditItem(null);
       } else {
         await recurringApi.create(activeWallet.id, data);
-        toast('Created', 'success');
+        toast(t('recurring.toastCreated'), 'success');
         setShowCreate(false);
       }
       await load();
@@ -100,7 +102,7 @@ export function RecurringPage() {
       await recurringApi.update(activeWallet.id, r.id, { is_active: !r.is_active });
       await load();
     } catch {
-      toast('Failed to update', 'error');
+      toast(t('recurring.toastUpdateFailed'), 'error');
     }
   };
 
@@ -109,7 +111,7 @@ export function RecurringPage() {
     setSaving(true);
     try {
       await recurringApi.delete(activeWallet.id, deleteItem.id);
-      toast('Deleted', 'success');
+      toast(t('recurring.toastDeleted'), 'success');
       setDeleteItem(null);
       await load();
     } catch (e) {
@@ -124,14 +126,14 @@ export function RecurringPage() {
   const RecurringForm = () => (
     <>
       <div className="input-group">
-        <label className="input-label">Type</label>
+        <label className="input-label">{t('recurring.fieldType')}</label>
         <div className="tabs">
-          <button className={`tab ${form.type === 'expense' ? 'tab-active' : ''}`} onClick={() => setForm((f) => ({ ...f, type: 'expense' }))}>Expense</button>
-          <button className={`tab ${form.type === 'income' ? 'tab-active' : ''}`} onClick={() => setForm((f) => ({ ...f, type: 'income' }))}>Income</button>
+          <button className={`tab ${form.type === 'expense' ? 'tab-active' : ''}`} onClick={() => setForm((f) => ({ ...f, type: 'expense' }))}>{t('recurring.fieldTypeExpense')}</button>
+          <button className={`tab ${form.type === 'income' ? 'tab-active' : ''}`} onClick={() => setForm((f) => ({ ...f, type: 'income' }))}>{t('recurring.fieldTypeIncome')}</button>
         </div>
       </div>
       <div className="input-group">
-        <label className="input-label">Category</label>
+        <label className="input-label">{t('recurring.fieldCategory')}</label>
         <Select
           value={form.category_id}
           onChange={(v) => setForm({ ...form, category_id: v })}
@@ -139,23 +141,23 @@ export function RecurringPage() {
         />
       </div>
       <div className="input-group">
-        <label className="input-label">Amount</label>
+        <label className="input-label">{t('recurring.fieldAmount')}</label>
         <input className="input" type="number" step="0.01" placeholder="0.00" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
       </div>
       <div className="input-group">
-        <label className="input-label">Description</label>
-        <input className="input" placeholder="e.g. Netflix subscription" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+        <label className="input-label">{t('recurring.fieldDescription')}</label>
+        <input className="input" placeholder={t('recurring.fieldDescriptionPlaceholder')} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
       </div>
       <div className="input-group">
-        <label className="input-label">Frequency</label>
+        <label className="input-label">{t('recurring.fieldFrequency')}</label>
         <Select
           value={form.frequency}
           onChange={(v) => setForm({ ...form, frequency: v })}
-          options={FREQUENCIES}
+          options={getFrequencies()}
         />
       </div>
       <div className="input-group">
-        <label className="input-label">Next due date</label>
+        <label className="input-label">{t('recurring.fieldNextDue')}</label>
         <DatePicker
           value={form.next_due}
           onChange={(v) => setForm({ ...form, next_due: v })}
@@ -168,18 +170,18 @@ export function RecurringPage() {
     <div className="animate-fade-in">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Recurring</h1>
-          <p className="page-subtitle">Subscriptions and repeating transactions</p>
+          <h1 className="page-title">{t('recurring.title')}</h1>
+          <p className="page-subtitle">{t('recurring.subtitle')}</p>
         </div>
         <div className="page-actions">
           <button className="btn btn-primary btn-md" onClick={openCreate} disabled={!activeWallet}>
-            <Plus size={16} /> New recurring
+            <Plus size={16} /> {t('recurring.new')}
           </button>
         </div>
       </div>
 
       {!activeWallet ? (
-        <p style={{ color: 'var(--ink-light)', fontSize: 14 }}>Select a wallet to manage recurring transactions.</p>
+        <p style={{ color: 'var(--ink-light)', fontSize: 14 }}>{t('recurring.noWalletSelected')}</p>
       ) : loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[...Array(4)].map((_, i) => <div key={i} className="skeleton" style={{ height: 72, borderRadius: 12 }} />)}
@@ -187,10 +189,10 @@ export function RecurringPage() {
       ) : items.length === 0 ? (
         <div className="empty-state">
           <RefreshCw size={48} className="empty-state-icon" />
-          <p className="empty-state-title">No recurring transactions</p>
-          <p className="empty-state-desc">Add subscriptions, rent, salary, or any repeating transaction to track them automatically.</p>
+          <p className="empty-state-title">{t('recurring.emptyTitle')}</p>
+          <p className="empty-state-desc">{t('recurring.emptyDesc')}</p>
           <button className="btn btn-primary btn-md" onClick={openCreate} style={{ marginTop: 8 }}>
-            <Plus size={16} /> Add recurring
+            <Plus size={16} /> {t('recurring.new')}
           </button>
         </div>
       ) : (
@@ -225,8 +227,8 @@ export function RecurringPage() {
                   {item.description ?? getCategoryName(item.category_id)}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>
-                  {getCategoryName(item.category_id)} · {FREQUENCIES.find((f) => f.value === item.frequency)?.label ?? item.frequency}
-                  {' · '}Next: {fmtDate(item.next_due)}
+                  {getCategoryName(item.category_id)} · {getFrequencies().find((f) => f.value === item.frequency)?.label ?? item.frequency}
+                  {' · '}{t('recurring.labelNext')} {fmtDate(item.next_due)}
                 </div>
               </div>
 
@@ -238,7 +240,7 @@ export function RecurringPage() {
                 <button
                   className="icon-btn"
                   onClick={() => handleToggle(item)}
-                  title={item.is_active ? 'Pause' : 'Resume'}
+                  title={item.is_active ? t('recurring.titlePause') : t('recurring.titleResume')}
                   style={{ color: item.is_active ? 'var(--amber)' : 'var(--forest)' }}
                 >
                   {item.is_active ? <Pause size={14} /> : <Play size={14} />}
@@ -254,13 +256,13 @@ export function RecurringPage() {
       <Modal
         open={showCreate || !!editItem}
         onClose={() => { setShowCreate(false); setEditItem(null); }}
-        title={editItem ? 'Edit recurring' : 'New recurring transaction'}
+        title={editItem ? t('recurring.title') : t('recurring.new')}
         footer={
           <>
-            <button className="btn btn-secondary btn-md" onClick={() => { setShowCreate(false); setEditItem(null); }}>Cancel</button>
+            <button className="btn btn-secondary btn-md" onClick={() => { setShowCreate(false); setEditItem(null); }}>{t('common.cancel')}</button>
             <button className="btn btn-primary btn-md" onClick={handleSave} disabled={saving || !form.amount || !form.category_id}>
               {saving && <span className="btn-spinner" />}
-              {editItem ? 'Save' : 'Create'}
+              {editItem ? t('common.save') : t('common.create')}
             </button>
           </>
         }
@@ -271,18 +273,18 @@ export function RecurringPage() {
       <Modal
         open={!!deleteItem}
         onClose={() => setDeleteItem(null)}
-        title="Delete recurring transaction"
+        title={t('recurring.deleteTitle')}
         footer={
           <>
-            <button className="btn btn-secondary btn-md" onClick={() => setDeleteItem(null)}>Cancel</button>
+            <button className="btn btn-secondary btn-md" onClick={() => setDeleteItem(null)}>{t('common.cancel')}</button>
             <button className="btn btn-danger btn-md" onClick={handleDelete} disabled={saving}>
-              {saving && <span className="btn-spinner" />} Delete
+              {saving && <span className="btn-spinner" />} {t('common.delete')}
             </button>
           </>
         }
       >
         <p style={{ fontSize: 14, color: 'var(--ink-mid)' }}>
-          Delete <strong>{deleteItem?.description ?? 'this recurring transaction'}</strong>? Future transactions won't be created automatically.
+          {deleteItem?.description ? <><strong>{deleteItem.description}</strong> — </> : null}{t('recurring.deleteConfirm')}
         </p>
       </Modal>
     </div>

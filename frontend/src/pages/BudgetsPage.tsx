@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle, Plus, Pencil, Trash2, TrendingUp } from 'lucide-react';
 import { budgets as budgetsApi, categories as categoriesApi, wallets as walletsApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
@@ -8,6 +9,7 @@ import type { BudgetResponse, CategoryResponse, WalletResponse } from '../lib/ty
 import { fmt } from '../lib/utils';
 
 export function BudgetsPage() {
+  const { t } = useTranslation();
   const toast = useToast();
   const [budgets, setBudgets] = useState<BudgetResponse[]>([]);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
@@ -33,7 +35,7 @@ export function BudgetsPage() {
       setCategories(c);
       setWallets(w);
     } catch {
-      toast('Failed to load budgets', 'error');
+      toast(t('budgets.toastLoadFailed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -68,11 +70,11 @@ export function BudgetsPage() {
       };
       if (editBudget) {
         await budgetsApi.update(editBudget.id, data);
-        toast('Budget updated', 'success');
+        toast(t('budgets.toastUpdated'), 'success');
         setEditBudget(null);
       } else {
         await budgetsApi.create(data);
-        toast('Budget created', 'success');
+        toast(t('budgets.toastCreated'), 'success');
         setShowCreate(false);
       }
       await load();
@@ -88,7 +90,7 @@ export function BudgetsPage() {
     setSaving(true);
     try {
       await budgetsApi.delete(deleteBudget.id);
-      toast('Budget deleted', 'success');
+      toast(t('budgets.toastDeleted'), 'success');
       setDeleteBudget(null);
       await load();
     } catch (e) {
@@ -107,7 +109,7 @@ export function BudgetsPage() {
   const BudgetForm = () => (
     <>
       <div className="input-group">
-        <label className="input-label">Budget amount</label>
+        <label className="input-label">{t('budgets.fieldAmount')}</label>
         <input
           className="input"
           type="number"
@@ -119,27 +121,27 @@ export function BudgetsPage() {
         />
       </div>
       <div className="input-group">
-        <label className="input-label">Period</label>
+        <label className="input-label">{t('budgets.fieldPeriod')}</label>
         <Select
           value={form.period}
           onChange={(v) => setForm({ ...form, period: v as 'weekly' | 'monthly' })}
-          options={[{ value: 'weekly', label: 'Weekly' }, { value: 'monthly', label: 'Monthly' }]}
+          options={[{ value: 'weekly', label: t('budgets.periodWeekly') }, { value: 'monthly', label: t('budgets.periodMonthly') }]}
         />
       </div>
       <div className="input-group">
-        <label className="input-label">Category (optional)</label>
+        <label className="input-label">{t('budgets.fieldCategory')}</label>
         <Select
           value={form.category_id}
           onChange={(v) => setForm({ ...form, category_id: v })}
-          options={[{ value: '', label: 'All categories' }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
+          options={[{ value: '', label: t('budgets.allCategories') }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
         />
       </div>
       <div className="input-group">
-        <label className="input-label">Wallet (optional)</label>
+        <label className="input-label">{t('budgets.fieldWallet')}</label>
         <Select
           value={form.wallet_id}
           onChange={(v) => setForm({ ...form, wallet_id: v })}
-          options={[{ value: '', label: 'All wallets' }, ...wallets.map((w) => ({ value: w.id, label: w.name }))]}
+          options={[{ value: '', label: t('budgets.allWallets') }, ...wallets.map((w) => ({ value: w.id, label: w.name }))]}
         />
       </div>
     </>
@@ -149,12 +151,12 @@ export function BudgetsPage() {
     <div className="animate-fade-in">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Budgets</h1>
-          <p className="page-subtitle">Set spending limits and track your progress</p>
+          <h1 className="page-title">{t('budgets.title')}</h1>
+          <p className="page-subtitle">{t('budgets.subtitle')}</p>
         </div>
         <div className="page-actions">
           <button className="btn btn-primary btn-md" onClick={openCreate}>
-            <Plus size={16} /> New budget
+            <Plus size={16} /> {t('budgets.new')}
           </button>
         </div>
       </div>
@@ -166,10 +168,10 @@ export function BudgetsPage() {
       ) : budgets.length === 0 ? (
         <div className="empty-state">
           <TrendingUp size={48} className="empty-state-icon" />
-          <p className="empty-state-title">No budgets yet</p>
-          <p className="empty-state-desc">Create a budget to track your spending limits and stay on track.</p>
+          <p className="empty-state-title">{t('budgets.emptyTitle')}</p>
+          <p className="empty-state-desc">{t('budgets.emptyDesc')}</p>
           <button className="btn btn-primary btn-md" onClick={openCreate} style={{ marginTop: 8 }}>
-            <Plus size={16} /> Create budget
+            <Plus size={16} /> {t('budgets.createBudget')}
           </button>
         </div>
       ) : (
@@ -200,17 +202,17 @@ export function BudgetsPage() {
                       </span>
                       {b.is_over_budget && (
                         <span className="badge badge-red">
-                          <AlertTriangle size={10} /> Over budget
+                          <AlertTriangle size={10} /> {t('budgets.badgeOver')}
                         </span>
                       )}
                       {isWarning && (
                         <span className="badge badge-amber">
-                          <AlertTriangle size={10} /> Near limit
+                          <AlertTriangle size={10} /> {t('budgets.badgeNear')}
                         </span>
                       )}
                     </div>
                     <span style={{ fontSize: 12, color: 'var(--ink-faint)' }}>
-                      {b.period === 'monthly' ? 'Monthly' : 'Weekly'}
+                      {b.period === 'monthly' ? t('budgets.periodMonthly') : t('budgets.periodWeekly')}
                       {getWalletName(b.wallet_id) ? ` · ${getWalletName(b.wallet_id)}` : ''}
                     </span>
                   </div>
@@ -223,10 +225,10 @@ export function BudgetsPage() {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                     <span style={{ fontSize: 13, color: 'var(--ink-mid)' }}>
-                      {fmt(b.spent)} spent
+                      {t('budgets.spent', { amount: fmt(b.spent) })}
                     </span>
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
-                      {fmt(b.amount)} limit
+                      {t('budgets.limit', { amount: fmt(b.amount) })}
                     </span>
                   </div>
                   <div className="progress-bar">
@@ -237,12 +239,12 @@ export function BudgetsPage() {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
                     <span style={{ fontSize: 12, color: barColor, fontWeight: 500 }}>
-                      {b.percentage_used.toFixed(0)}% used
+                      {t('budgets.pctUsed', { pct: b.percentage_used.toFixed(0) })}
                     </span>
                     <span style={{ fontSize: 12, color: b.is_over_budget ? 'var(--rose)' : 'var(--ink-faint)' }}>
                       {b.is_over_budget
-                        ? `${fmt(Math.abs(b.remaining))} over`
-                        : `${fmt(b.remaining)} remaining`}
+                        ? t('budgets.over', { amount: fmt(Math.abs(b.remaining)) })
+                        : t('budgets.remaining', { amount: fmt(b.remaining) })}
                     </span>
                   </div>
                 </div>
@@ -255,13 +257,13 @@ export function BudgetsPage() {
       <Modal
         open={showCreate || !!editBudget}
         onClose={() => { setShowCreate(false); setEditBudget(null); }}
-        title={editBudget ? 'Edit budget' : 'New budget'}
+        title={editBudget ? t('budgets.modalEditTitle') : t('budgets.modalCreateTitle')}
         footer={
           <>
-            <button className="btn btn-secondary btn-md" onClick={() => { setShowCreate(false); setEditBudget(null); }}>Cancel</button>
+            <button className="btn btn-secondary btn-md" onClick={() => { setShowCreate(false); setEditBudget(null); }}>{t('common.cancel')}</button>
             <button className="btn btn-primary btn-md" onClick={handleSave} disabled={saving || !form.amount}>
               {saving && <span className="btn-spinner" />}
-              {editBudget ? 'Save changes' : 'Create budget'}
+              {editBudget ? t('budgets.saveChanges') : t('budgets.createBudget')}
             </button>
           </>
         }
@@ -272,18 +274,18 @@ export function BudgetsPage() {
       <Modal
         open={!!deleteBudget}
         onClose={() => setDeleteBudget(null)}
-        title="Delete budget"
+        title={t('budgets.deleteTitle')}
         footer={
           <>
-            <button className="btn btn-secondary btn-md" onClick={() => setDeleteBudget(null)}>Cancel</button>
+            <button className="btn btn-secondary btn-md" onClick={() => setDeleteBudget(null)}>{t('common.cancel')}</button>
             <button className="btn btn-danger btn-md" onClick={handleDelete} disabled={saving}>
-              {saving && <span className="btn-spinner" />} Delete
+              {saving && <span className="btn-spinner" />} {t('common.delete')}
             </button>
           </>
         }
       >
         <p style={{ fontSize: 14, color: 'var(--ink-mid)' }}>
-          Delete this budget? Your expense data won't be affected.
+          {t('budgets.deleteConfirm')}
         </p>
       </Modal>
     </div>

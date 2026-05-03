@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Pencil, Trash2, Tag, Search } from 'lucide-react';
 import { categories as categoriesApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
@@ -26,25 +27,26 @@ function CategoryForm({
   setIconSearch: (v: string) => void;
   filteredIcons: typeof CATEGORY_ICONS;
 }) {
+  const { t } = useTranslation();
   return (
     <>
       <div className="input-group">
-        <label className="input-label">Name</label>
+        <label className="input-label">{t('categories.fieldName')}</label>
         <input
           className="input"
-          placeholder="e.g. Food & Dining"
+          placeholder={t('categories.fieldNamePlaceholder')}
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           autoFocus
         />
       </div>
       <div className="input-group">
-        <label className="input-label">Icon</label>
+        <label className="input-label">{t('categories.fieldIcon')}</label>
         <div style={{ position: 'relative', marginBottom: 8 }}>
           <Search size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-faint)', pointerEvents: 'none' }} />
           <input
             className="input"
-            placeholder="Search icons…"
+            placeholder={t('categories.iconSearchPlaceholder')}
             value={iconSearch}
             onChange={(e) => setIconSearch(e.target.value)}
             style={{ paddingLeft: 28, height: 32, fontSize: 13 }}
@@ -100,12 +102,12 @@ function CategoryForm({
             );
           })}
           {filteredIcons.length === 0 && (
-            <span style={{ fontSize: 13, color: 'var(--ink-faint)', padding: '8px 2px' }}>No icons found</span>
+            <span style={{ fontSize: 13, color: 'var(--ink-faint)', padding: '8px 2px' }}>{t('categories.noIcons')}</span>
           )}
         </div>
       </div>
       <div className="input-group">
-        <label className="input-label">Color</label>
+        <label className="input-label">{t('categories.fieldColor')}</label>
         <ColorPicker value={form.color} onChange={(color) => setForm({ ...form, color })} />
       </div>
     </>
@@ -113,6 +115,7 @@ function CategoryForm({
 }
 
 export function CategoriesPage() {
+  const { t } = useTranslation();
   const toast = useToast();
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -133,7 +136,7 @@ export function CategoriesPage() {
     try {
       setCategories(await categoriesApi.list());
     } catch {
-      toast('Failed to load', 'error');
+      toast(t('categories.toastLoadFailed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -168,11 +171,11 @@ export function CategoriesPage() {
       const data = { name: form.name, icon: form.icon || null, color: form.color ?? undefined };
       if (editCat) {
         await categoriesApi.update(editCat.id, data);
-        toast('Category updated', 'success');
+        toast(t('categories.toastUpdated'), 'success');
         setEditCat(null);
       } else {
         await categoriesApi.create(data);
-        toast('Category created', 'success');
+        toast(t('categories.toastCreated'), 'success');
         setShowCreate(false);
       }
       await load();
@@ -188,7 +191,7 @@ export function CategoriesPage() {
     setSaving(true);
     try {
       await categoriesApi.delete(deleteCat.id);
-      toast('Category deleted — expenses moved to Others', 'success');
+      toast(t('categories.toastDeleted'), 'success');
       setDeleteCat(null);
       await load();
     } catch (e) {
@@ -202,12 +205,12 @@ export function CategoriesPage() {
     <div className="animate-fade-in">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Categories</h1>
-          <p className="page-subtitle">Organize your expenses with custom categories</p>
+          <h1 className="page-title">{t('categories.title')}</h1>
+          <p className="page-subtitle">{t('categories.subtitle')}</p>
         </div>
         <div className="page-actions">
           <button className="btn btn-primary btn-md" onClick={openCreate}>
-            <Plus size={16} /> New category
+            <Plus size={16} /> {t('categories.new')}
           </button>
         </div>
       </div>
@@ -228,8 +231,8 @@ export function CategoriesPage() {
           {categories.length === 0 && (
             <div className="empty-state">
               <Tag size={48} className="empty-state-icon" />
-              <p className="empty-state-title">No categories yet</p>
-              <p className="empty-state-desc">Create categories to organize your expenses.</p>
+              <p className="empty-state-title">{t('categories.emptyTitle')}</p>
+              <p className="empty-state-desc">{t('categories.emptyDesc')}</p>
             </div>
           )}
         </>
@@ -238,13 +241,13 @@ export function CategoriesPage() {
       <Modal
         open={showCreate || !!editCat}
         onClose={() => { setShowCreate(false); setEditCat(null); }}
-        title={editCat ? 'Edit category' : 'New category'}
+        title={editCat ? t('categories.modalEditTitle') : t('categories.modalCreateTitle')}
         footer={
           <>
-            <button className="btn btn-secondary btn-md" onClick={() => { setShowCreate(false); setEditCat(null); }}>Cancel</button>
+            <button className="btn btn-secondary btn-md" onClick={() => { setShowCreate(false); setEditCat(null); }}>{t('common.cancel')}</button>
             <button className="btn btn-primary btn-md" onClick={handleSave} disabled={saving || !form.name.trim()}>
               {saving && <span className="btn-spinner" />}
-              {editCat ? 'Save' : 'Create'}
+              {editCat ? t('common.save') : t('common.create')}
             </button>
           </>
         }
@@ -261,19 +264,19 @@ export function CategoriesPage() {
       <Modal
         open={!!deleteCat}
         onClose={() => setDeleteCat(null)}
-        title="Delete category"
+        title={t('categories.deleteTitle')}
         footer={
           <>
-            <button className="btn btn-secondary btn-md" onClick={() => setDeleteCat(null)}>Cancel</button>
+            <button className="btn btn-secondary btn-md" onClick={() => setDeleteCat(null)}>{t('common.cancel')}</button>
             <button className="btn btn-danger btn-md" onClick={handleDelete} disabled={saving}>
-              {saving && <span className="btn-spinner" />} Delete
+              {saving && <span className="btn-spinner" />} {t('common.delete')}
             </button>
           </>
         }
       >
-        <p style={{ fontSize: 14, color: 'var(--ink-mid)' }}>
-          Delete <strong>{deleteCat?.name}</strong>? Expenses in this category will be moved to <strong>Others</strong>.
-        </p>
+        <p style={{ fontSize: 14, color: 'var(--ink-mid)' }}
+          dangerouslySetInnerHTML={{ __html: t('categories.deleteConfirm', { name: deleteCat?.name ?? '' }) }}
+        />
       </Modal>
     </div>
   );
@@ -288,6 +291,7 @@ function CategoryCard({
   onEdit: (c: CategoryResponse) => void;
   onDelete: (c: CategoryResponse) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -315,7 +319,7 @@ function CategoryCard({
         {cat.name}
       </span>
       {cat.is_system ? (
-        <span style={{ fontSize: 11, color: 'var(--ink-faint)', fontStyle: 'italic' }}>system</span>
+        <span style={{ fontSize: 11, color: 'var(--ink-faint)', fontStyle: 'italic' }}>{t('common.system')}</span>
       ) : (
         <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
           <button className="icon-btn" onClick={() => onEdit(cat)} style={{ width: 26, height: 26 }}><Pencil size={12} /></button>

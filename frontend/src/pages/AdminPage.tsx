@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Shield, Users } from 'lucide-react';
 import { admin as adminApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 
 export function AdminPage() {
+  const { t } = useTranslation();
   const toast = useToast();
   const [signupsEnabled, setSignupsEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -12,16 +14,16 @@ export function AdminPage() {
   useEffect(() => {
     adminApi.getSettings()
       .then((s) => setSignupsEnabled(s.signups_enabled))
-      .catch(() => toast('Failed to load settings', 'error'))
+      .catch(() => toast(t('admin.toastLoadFailed'), 'error'))
       .finally(() => setLoading(false));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleToggle = async () => {
     setSaving(true);
     try {
       const updated = await adminApi.updateSettings({ signups_enabled: !signupsEnabled });
       setSignupsEnabled(updated.signups_enabled);
-      toast(`Signups ${updated.signups_enabled ? 'enabled' : 'disabled'}`, 'success');
+      toast(updated.signups_enabled ? t('admin.toastSignupsEnabled') : t('admin.toastSignupsDisabled'), 'success');
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed', 'error');
     } finally {
@@ -34,9 +36,9 @@ export function AdminPage() {
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
           <Shield size={20} style={{ color: 'var(--forest)' }} />
-          <h1 className="page-title" style={{ margin: 0 }}>Admin Settings</h1>
+          <h1 className="page-title" style={{ margin: 0 }}>{t('admin.title')}</h1>
         </div>
-        <p className="page-subtitle">Instance-level configuration for your Keni server</p>
+        <p className="page-subtitle">{t('admin.subtitle')}</p>
       </div>
 
       {loading ? (
@@ -58,12 +60,10 @@ export function AdminPage() {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 2 }}>
-                New user signups
+                {t('admin.signupsTitle')}
               </div>
               <div style={{ fontSize: 13, color: 'var(--ink-light)' }}>
-                {signupsEnabled
-                  ? 'Anyone can create a new account on this instance.'
-                  : 'New signups are disabled. Only existing users can log in.'}
+                {signupsEnabled ? t('admin.signupsEnabledDesc') : t('admin.signupsDisabledDesc')}
               </div>
             </div>
             <button
@@ -97,7 +97,7 @@ export function AdminPage() {
 
           <div style={{ padding: '12px 24px 16px', borderTop: '1px solid var(--cream)', background: 'var(--cream)' }}>
             <p style={{ fontSize: 12, color: 'var(--ink-faint)' }}>
-              Tip: Disable signups once your household is set up to prevent unauthorized access.
+              {t('admin.tip')}
             </p>
           </div>
         </div>

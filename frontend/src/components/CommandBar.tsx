@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -1009,6 +1010,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
   const chunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { t } = useTranslation();
   const { activeWallet } = useWallet();
   const navigate = useNavigate();
   const toast = useToast();
@@ -1116,7 +1118,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
         tag_names: exp.suggested_tags.map((t) => t.name),
         ai_context: exp.ai_context ?? undefined,
       });
-      toast('Transaction saved!', 'success');
+      toast(t('commandBar.toastSaved'), 'success');
       onExpenseAdded?.();
       onClose();
     } catch (e) {
@@ -1143,7 +1145,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
           ai_context: exp.ai_context ?? undefined,
         }),
       ));
-      toast(`${committed.length} transactions saved!`, 'success');
+      toast(t('commandBar.toastMultiSaved', { count: committed.length }), 'success');
       onExpenseAdded?.();
       onClose();
     } catch (e) {
@@ -1171,7 +1173,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
         next_due: new Date(recurringExpense._editNextDue).toISOString(),
         tag_names: tags,
       });
-      toast('Recurring transaction saved!', 'success');
+      toast(t('commandBar.toastRecurringSaved'), 'success');
       onExpenseAdded?.();
       onClose();
     } catch (e) {
@@ -1213,7 +1215,7 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
           tag_ids: [],
         })),
       });
-      toast('Group transaction saved!', 'success');
+      toast(t('commandBar.toastGroupSaved'), 'success');
       onExpenseAdded?.();
       onClose();
     } catch (e) {

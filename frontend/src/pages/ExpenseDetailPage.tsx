@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, CornerUpLeft, Bot, Layers, Pencil, Trash2, Check, X, Plus, Search } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -325,6 +326,7 @@ function TagPicker({ selectedIds, allTags, onAdd, onRemove, onCreateAndAdd }: Ta
 }
 
 export function ExpenseDetailPage() {
+  const { t } = useTranslation();
   const { walletId, expenseId } = useParams<{ walletId: string; expenseId: string }>();
   const navigate = useNavigate();
   const toast = useToast();
@@ -382,7 +384,7 @@ export function ExpenseDetailPage() {
         date: exp.date.slice(0, 10),
         tag_ids: exp.tags.map((t) => t.id),
       });
-    }).catch(() => toast('Failed to load expense', 'error'))
+    }).catch(() => toast(t('expenseDetail.toastLoadFailed'), 'error'))
       .finally(() => setLoading(false));
   }, [walletId, expenseId, toast]);
 
@@ -407,7 +409,7 @@ export function ExpenseDetailPage() {
       ]);
       setExpense({ ...updated, linked_transactions: pendingLinks });
       setEditing(false);
-      toast('Transaction updated', 'success');
+      toast(t('expenseDetail.toastUpdated'), 'success');
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed to save', 'error');
     } finally {
@@ -421,7 +423,7 @@ export function ExpenseDetailPage() {
     setDeleting(true);
     try {
       await expensesApi.delete(walletId, expenseId);
-      toast('Transaction deleted', 'success');
+      toast(t('expenseDetail.toastDeleted'), 'success');
       navigate(`/wallets/${walletId}`);
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed to delete', 'error');
@@ -483,7 +485,7 @@ export function ExpenseDetailPage() {
     );
   }
 
-  if (!expense) return <p style={{ color: 'var(--ink-light)' }}>Transaction not found.</p>;
+  if (!expense) return <p style={{ color: 'var(--ink-light)' }}>{t('expenseDetail.notFound')}</p>;
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: 560 }}>
@@ -492,30 +494,30 @@ export function ExpenseDetailPage() {
         onClick={() => navigate(`/wallets/${walletId}`)}
         style={{ marginBottom: 20, paddingLeft: 4 }}
       >
-        <ArrowLeft size={15} /> Back to wallet
+        <ArrowLeft size={15} /> {t('expenseDetail.backToWallet')}
       </button>
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
-        <h1 className="page-title">Transaction detail</h1>
+        <h1 className="page-title">{t('expenseDetail.title')}</h1>
         <div style={{ display: 'flex', gap: 6 }}>
           {!editing ? (
             <>
               <button className="btn btn-secondary btn-sm" onClick={() => { setPendingLinks(expense.linked_transactions); setEditing(true); }}>
-                <Pencil size={13} /> Edit
+                <Pencil size={13} /> {t('expenseDetail.btnEdit')}
               </button>
               <button className="btn btn-danger btn-sm" onClick={() => setConfirmDelete(true)} disabled={deleting}>
                 {deleting ? <span className="btn-spinner" /> : <Trash2 size={13} />}
-                Delete
+                {t('expenseDetail.btnDelete')}
               </button>
             </>
           ) : (
             <>
               <button className="btn btn-secondary btn-sm" onClick={() => setEditing(false)}>
-                <X size={13} /> Cancel
+                <X size={13} /> {t('expenseDetail.btnCancel')}
               </button>
               <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
                 {saving ? <span className="btn-spinner" /> : <Check size={13} />}
-                Save
+                {t('expenseDetail.btnSave')}
               </button>
             </>
           )}
@@ -525,23 +527,23 @@ export function ExpenseDetailPage() {
       <Modal
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
-        title="Delete transaction"
+        title={t('expenseDetail.deleteTitle')}
         size="sm"
         footer={
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <button className="btn btn-secondary btn-sm" onClick={() => setConfirmDelete(false)}>
-              Cancel
+              {t('common.cancel')}
             </button>
             <button className="btn btn-danger btn-sm" onClick={handleDelete}>
-              <Trash2 size={13} /> Delete
+              <Trash2 size={13} /> {t('common.delete')}
             </button>
           </div>
         }
       >
         <p style={{ fontSize: 14, color: 'var(--ink-mid)', margin: 0 }}>
           {expense.children && expense.children.length > 0
-            ? <>This is a group transaction with <strong>{expense.children.length} sub-transaction{expense.children.length !== 1 ? 's' : ''}</strong>. Deleting it will also delete all sub-transactions. This action cannot be undone.</>
-            : 'Are you sure you want to delete this transaction? This action cannot be undone.'
+            ? <span dangerouslySetInnerHTML={{ __html: t('expenseDetail.deleteGroupConfirm', { count: expense.children.length, plural: expense.children.length !== 1 ? 's' : '' }) }} />
+            : t('expenseDetail.deleteConfirm')
           }
         </p>
       </Modal>
@@ -572,13 +574,13 @@ export function ExpenseDetailPage() {
             }}
           >
             <CornerUpLeft size={14} />
-            Go back to parent expense
+            {t('expenseDetail.goBackToParent')}
           </Link>
         )}
 
         {/* Amount */}
         <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px' }}>
-          <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Amount</div>
+          <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('expenseDetail.sectionAmount')}</div>
           {editing ? (
             <input
               className="input"
@@ -605,7 +607,7 @@ export function ExpenseDetailPage() {
         {/* Category & Date */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
-            <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Category</div>
+            <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('expenseDetail.sectionCategory')}</div>
             {editing ? (
               <CategorySelect
                 value={form.category_id}
@@ -634,7 +636,7 @@ export function ExpenseDetailPage() {
           </div>
 
           <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
-            <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Date</div>
+            <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('expenseDetail.sectionDate')}</div>
             {editing ? (
               <DatePicker
                 value={form.date}
@@ -655,25 +657,25 @@ export function ExpenseDetailPage() {
 
         {/* Description */}
         <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
-          <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Description</div>
+          <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('expenseDetail.sectionDescription')}</div>
           {editing ? (
             <textarea
               className="input"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Add a description…"
+              placeholder={t('expenseDetail.descriptionPlaceholder')}
               rows={2}
             />
           ) : (
             <p style={{ fontSize: 14, color: expense.description ? 'var(--ink)' : 'var(--ink-faint)', fontStyle: expense.description ? 'normal' : 'italic' }}>
-              {expense.description ?? 'No description'}
+              {expense.description ?? t('expenseDetail.noDescription')}
             </p>
           )}
         </div>
 
         {/* Tags */}
         <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
-          <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Tags</div>
+          <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>{t('expenseDetail.sectionTags')}</div>
           {editing ? (
             <TagPicker
               selectedIds={form.tag_ids}
@@ -698,7 +700,7 @@ export function ExpenseDetailPage() {
               ))}
             </div>
           ) : (
-            <p style={{ fontSize: 13, color: 'var(--ink-faint)', fontStyle: 'italic' }}>No tags</p>
+            <p style={{ fontSize: 13, color: 'var(--ink-faint)', fontStyle: 'italic' }}>{t('expenseDetail.noTags')}</p>
           )}
         </div>
 
@@ -707,7 +709,7 @@ export function ExpenseDetailPage() {
           <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
               <Layers size={13} style={{ color: 'var(--ink-faint)' }} />
-              <span style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Sub-transactions</span>
+              <span style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{t('expenseDetail.sectionSubTransactions')}</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {expense.children.map((child, i) => (
@@ -736,7 +738,7 @@ export function ExpenseDetailPage() {
               ))}
             </div>
             <div style={{ borderTop: '1px solid var(--cream-darker)', marginTop: 8, paddingTop: 10, display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--ink-light)' }}>
-              <span>{expense.children.length} item{expense.children.length !== 1 ? 's' : ''}</span>
+              <span>{t('expenseDetail.itemsCount', { count: expense.children.length, plural: expense.children.length !== 1 ? 's' : '' })}</span>
               <span style={{ fontWeight: 600 }}>{fmt(expense.children.reduce((s, c) => s + c.amount, 0), currency)}</span>
             </div>
           </div>
@@ -746,18 +748,18 @@ export function ExpenseDetailPage() {
         {(expense.linked_transactions.length > 0 || editing) && (
           <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Linked transactions</div>
+              <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('expenseDetail.sectionLinked')}</div>
               {editing && (
                 <button
                   onClick={() => setShowLinkPicker(true)}
                   style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--forest)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 6 }}
                 >
-                  <Plus size={12} /> Add link
+                  <Plus size={12} /> {t('expenseDetail.addLink')}
                 </button>
               )}
             </div>
             {(editing ? pendingLinks : expense.linked_transactions).length === 0 ? (
-              <p style={{ fontSize: 13, color: 'var(--ink-faint)', fontStyle: 'italic', margin: 0 }}>No linked transactions</p>
+              <p style={{ fontSize: 13, color: 'var(--ink-faint)', fontStyle: 'italic', margin: 0 }}>{t('expenseDetail.noLinkedTransactions')}</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {(editing ? pendingLinks : expense.linked_transactions).map((linked, i) => {
@@ -804,7 +806,7 @@ export function ExpenseDetailPage() {
           <div style={{ background: 'oklch(96% 0.04 155)', borderRadius: 14, border: '1px solid oklch(88% 0.06 155)', padding: '16px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
               <Bot size={14} style={{ color: 'var(--forest)' }} />
-              <span style={{ fontSize: 11, color: 'var(--forest)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>AI context</span>
+              <span style={{ fontSize: 11, color: 'var(--forest)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{t('expenseDetail.sectionAiContext')}</span>
             </div>
             <p style={{ fontSize: 13, color: 'var(--forest)', lineHeight: 1.6 }}>{expense.ai_context}</p>
           </div>
@@ -812,8 +814,8 @@ export function ExpenseDetailPage() {
 
         {/* Metadata */}
         <div style={{ fontSize: 12, color: 'var(--ink-faint)', padding: '4px 2px', display: 'flex', gap: 16 }}>
-          <span>Created {fmtDate(expense.created_at)}</span>
-          {expense.updated_at !== expense.created_at && <span>Updated {fmtDate(expense.updated_at)}</span>}
+          <span>{t('expenseDetail.metaCreated', { date: fmtDate(expense.created_at) })}</span>
+          {expense.updated_at !== expense.created_at && <span>{t('expenseDetail.metaUpdated', { date: fmtDate(expense.updated_at) })}</span>}
         </div>
       </div>
     </div>

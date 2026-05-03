@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Bot, Send, User } from 'lucide-react';
 import { marked } from 'marked';
 import { chat as chatApi } from '../lib/api';
@@ -19,6 +20,7 @@ const SUGGESTIONS = [
 ];
 
 export function ChatPage() {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,7 +47,7 @@ export function ChatPage() {
       );
     } catch (e) {
       setMessages((prev) => prev.filter((m) => m.id !== loadingMsg.id));
-      toast(e instanceof Error ? e.message : 'Failed to get response', 'error');
+      toast(e instanceof Error ? e.message : t('chat.toastError'), 'error');
     } finally {
       setLoading(false);
     }
@@ -61,8 +63,8 @@ export function ChatPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100dvh - var(--header-height) - 80px)', maxWidth: 720, margin: '0 auto' }}>
       <div style={{ marginBottom: 20 }}>
-        <h1 className="page-title">Chat with Keni</h1>
-        <p className="page-subtitle">Ask questions about your spending in plain language</p>
+        <h1 className="page-title">{t('chat.title')}</h1>
+        <p className="page-subtitle">{t('chat.subtitle')}</p>
       </div>
 
       {/* Messages */}

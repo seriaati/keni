@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Plus, Pencil, Trash2, ArrowRight } from 'lucide-react';
 import { wallets as walletsApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
@@ -10,6 +11,7 @@ import type { WalletResponse } from '../lib/types';
 import { CURRENCIES } from '../lib/utils';
 
 export function WalletsPage() {
+  const { t } = useTranslation();
   const { wallets, refresh, setActiveWallet } = useWallet();
   const toast = useToast();
   const [showCreate, setShowCreate] = useState(false);
@@ -34,11 +36,11 @@ export function WalletsPage() {
     try {
       if (editWallet) {
         await walletsApi.update(editWallet.id, form);
-        toast('Wallet updated', 'success');
+        toast(t('wallets.toastUpdated'), 'success');
         setEditWallet(null);
       } else {
         await walletsApi.create(form);
-        toast('Wallet created', 'success');
+        toast(t('wallets.toastCreated'), 'success');
         setShowCreate(false);
       }
       await refresh();
@@ -54,7 +56,7 @@ export function WalletsPage() {
     setSaving(true);
     try {
       await walletsApi.delete(deleteWallet.id);
-      toast('Wallet deleted', 'success');
+      toast(t('wallets.toastDeleted'), 'success');
       setDeleteWallet(null);
       await refresh();
     } catch (e) {
@@ -68,12 +70,12 @@ export function WalletsPage() {
     <div className="animate-fade-in">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Wallets</h1>
-          <p className="page-subtitle">Manage your wallets and currencies</p>
+          <h1 className="page-title">{t('wallets.title')}</h1>
+          <p className="page-subtitle">{t('wallets.subtitle')}</p>
         </div>
         <div className="page-actions">
           <button className="btn btn-primary btn-md" onClick={openCreate}>
-            <Plus size={16} /> New wallet
+            <Plus size={16} /> {t('wallets.new')}
           </button>
         </div>
       </div>
@@ -119,7 +121,7 @@ export function WalletsPage() {
                 style={{ flex: 1, justifyContent: 'center' }}
                 onClick={() => setActiveWallet(w)}
               >
-                View transactions <ArrowRight size={13} />
+                {t('wallets.viewTransactions')} <ArrowRight size={13} />
               </Link>
             </div>
           </div>
@@ -130,34 +132,34 @@ export function WalletsPage() {
       <Modal
         open={showCreate || !!editWallet}
         onClose={() => { setShowCreate(false); setEditWallet(null); }}
-        title={editWallet ? 'Edit wallet' : 'New wallet'}
+        title={editWallet ? t('wallets.modalEditTitle') : t('wallets.modalCreateTitle')}
         footer={
           <>
-            <button className="btn btn-secondary btn-md" onClick={() => { setShowCreate(false); setEditWallet(null); }}>Cancel</button>
+            <button className="btn btn-secondary btn-md" onClick={() => { setShowCreate(false); setEditWallet(null); }}>{t('common.cancel')}</button>
             <button className="btn btn-primary btn-md" onClick={handleSave} disabled={saving || !form.name.trim()}>
               {saving && <span className="btn-spinner" />}
-              {editWallet ? 'Save changes' : 'Create wallet'}
+              {editWallet ? t('wallets.saveChanges') : t('wallets.createWallet')}
             </button>
           </>
         }
       >
         <div className="input-group">
-          <label className="input-label">Wallet name</label>
+          <label className="input-label">{t('wallets.fieldName')}</label>
           <input
             className="input"
-            placeholder="e.g. Main Wallet"
+            placeholder={t('wallets.fieldNamePlaceholder')}
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             autoFocus
           />
         </div>
         <div className="input-group">
-          <label className="input-label">Currency</label>
+          <label className="input-label">{t('wallets.fieldCurrency')}</label>
           <SearchableSelect
             value={form.currency}
             onChange={(v) => setForm({ ...form, currency: v })}
             options={CURRENCIES.map((c) => ({ value: c, label: c }))}
-            searchPlaceholder="Search currency…"
+            searchPlaceholder={t('wallets.currencySearchPlaceholder')}
           />
         </div>
       </Modal>
@@ -166,20 +168,20 @@ export function WalletsPage() {
       <Modal
         open={!!deleteWallet}
         onClose={() => setDeleteWallet(null)}
-        title="Delete wallet"
+        title={t('wallets.deleteTitle')}
         footer={
           <>
-            <button className="btn btn-secondary btn-md" onClick={() => setDeleteWallet(null)}>Cancel</button>
+            <button className="btn btn-secondary btn-md" onClick={() => setDeleteWallet(null)}>{t('common.cancel')}</button>
             <button className="btn btn-danger btn-md" onClick={handleDelete} disabled={saving}>
               {saving && <span className="btn-spinner" />}
-              Delete
+              {t('common.delete')}
             </button>
           </>
         }
       >
-        <p style={{ fontSize: 14, color: 'var(--ink-mid)' }}>
-          Are you sure you want to delete <strong>{deleteWallet?.name}</strong>? This will also delete all transactions in this wallet.
-        </p>
+        <p style={{ fontSize: 14, color: 'var(--ink-mid)' }}
+          dangerouslySetInnerHTML={{ __html: t('wallets.deleteConfirm', { name: deleteWallet?.name ?? '' }) }}
+        />
       </Modal>
     </div>
   );

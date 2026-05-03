@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -32,12 +33,12 @@ import { Modal } from './ui/Modal';
 import { getInitials } from '../lib/utils';
 import './layout.css';
 
-const NAV_AFTER_TRANSACTIONS = [
-  { to: '/budgets', icon: Zap, label: 'Budgets' },
-  { to: '/recurring', icon: RefreshCw, label: 'Recurring' },
-  { to: '/categories', icon: Tag, label: 'Categories' },
-  { to: '/tags', icon: Tags, label: 'Tags' },
-  { to: '/chat', icon: Bot, label: 'Chat' },
+const NAV_AFTER_TRANSACTIONS_CONFIG = [
+  { to: '/budgets', icon: Zap, key: 'budgets' as const },
+  { to: '/recurring', icon: RefreshCw, key: 'recurring' as const },
+  { to: '/categories', icon: Tag, key: 'categories' as const },
+  { to: '/tags', icon: Tags, key: 'tags' as const },
+  { to: '/chat', icon: Bot, key: 'chat' as const },
 ];
 
 export interface LayoutOutletContext {
@@ -46,6 +47,7 @@ export interface LayoutOutletContext {
 }
 
 export function Layout() {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const { wallets, activeWallet, setActiveWallet } = useWallet();
   const [cmdOpen, setCmdOpen] = useState(false);
@@ -172,7 +174,7 @@ export function Layout() {
             <div className="wallet-selector-inner">
               <div className="wallet-dot" style={{ background: activeWallet ? 'var(--forest)' : 'var(--sand)' }} />
               <div className="wallet-info">
-                <span className="wallet-name">{activeWallet?.name ?? 'No wallet'}</span>
+                <span className="wallet-name">{activeWallet?.name ?? t('common.noWallet')}</span>
                 <span className="wallet-currency">{activeWallet?.currency ?? ''}</span>
               </div>
               <ChevronDown size={14} style={{ color: 'var(--ink-faint)', transition: 'transform 0.2s', transform: walletMenuOpen ? 'rotate(180deg)' : 'none' }} />
@@ -195,7 +197,7 @@ export function Layout() {
                   onClick={(e) => { e.stopPropagation(); navigate('/wallets'); setWalletMenuOpen(false); }}
                 >
                   <PlusCircle size={13} style={{ color: 'var(--ink-faint)' }} />
-                  <span style={{ color: 'var(--ink-light)' }}>Manage wallets</span>
+                  <span style={{ color: 'var(--ink-light)' }}>{t('common.manageWallets')}</span>
                 </button>
               </div>
             )}
@@ -204,7 +206,7 @@ export function Layout() {
 
         {/* Quick add button */}
         <button className="quick-add-btn" onClick={() => setCmdOpen(true)}>
-          <span>Add transaction</span>
+          <span>{t('nav.addTransaction')}</span>
           <kbd className="kbd-hint">⌘ K</kbd>
         </button>
 
@@ -216,23 +218,23 @@ export function Layout() {
             className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}
           >
             <LayoutDashboard size={16} />
-            Dashboard
+            {t('nav.dashboard')}
           </NavLink>
           <NavLink
             to={activeWallet ? `/wallets/${activeWallet.id}` : '/wallets'}
             className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}
           >
             <ArrowLeftRight size={16} />
-            Transactions
+            {t('nav.transactions')}
           </NavLink>
-          {NAV_AFTER_TRANSACTIONS.map(({ to, icon: Icon, label }) => (
+          {NAV_AFTER_TRANSACTIONS_CONFIG.map(({ to, icon: Icon, key }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}
             >
               <Icon size={16} />
-              {label}
+              {t(`nav.${key}`)}
             </NavLink>
           ))}
         </nav>
@@ -242,12 +244,12 @@ export function Layout() {
           {installPrompt && (
             <button className="nav-item pwa-install-btn" onClick={() => void handleInstall()}>
               <Download size={16} />
-              Install app
+              {t('nav.installApp')}
             </button>
           )}
           <button className="nav-item" onClick={() => setMcpOpen(true)}>
             <Plug size={16} />
-            MCP
+            {t('nav.mcp')}
           </button>
           <a
             href="https://github.com/seriaati/keni"
@@ -265,7 +267,7 @@ export function Layout() {
             className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}
           >
             <Settings size={16} />
-            Settings
+            {t('nav.settings')}
           </NavLink>
           {user?.is_admin && (
             <NavLink
@@ -273,7 +275,7 @@ export function Layout() {
               className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}
             >
               <Settings size={16} />
-              Admin
+              {t('nav.admin')}
             </NavLink>
           )}
           <div className="user-row">
@@ -282,9 +284,9 @@ export function Layout() {
             </div>
             <div className="user-info">
               <span className="user-name">{user?.display_name ?? user?.username}</span>
-              {user?.is_admin && <span className="user-role">Admin</span>}
+              {user?.is_admin && <span className="user-role">{t('nav.userRole')}</span>}
             </div>
-            <button className="icon-btn" onClick={handleLogout} title="Sign out">
+            <button className="icon-btn" onClick={handleLogout} title={t('nav.signOut')}>
               <LogOut size={14} />
             </button>
           </div>
@@ -306,7 +308,7 @@ export function Layout() {
               onClick={() => setMobileWalletMenuOpen(!mobileWalletMenuOpen)}
             >
               <div className="wallet-dot" style={{ background: activeWallet ? 'var(--forest)' : 'var(--sand)' }} />
-              <span className="mobile-wallet-chip-name">{activeWallet?.name ?? 'No wallet'}</span>
+              <span className="mobile-wallet-chip-name">{activeWallet?.name ?? t('common.noWallet')}</span>
               <ChevronDown size={11} style={{ color: 'var(--ink-faint)', transform: mobileWalletMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
               {mobileWalletMenuOpen && (
                 <div className="wallet-dropdown mobile-wallet-dropdown">
@@ -326,7 +328,7 @@ export function Layout() {
                     onClick={(e) => { e.stopPropagation(); navigate('/wallets'); setMobileWalletMenuOpen(false); }}
                   >
                     <PlusCircle size={13} style={{ color: 'var(--ink-faint)' }} />
-                    <span style={{ color: 'var(--ink-light)' }}>Manage wallets</span>
+                    <span style={{ color: 'var(--ink-light)' }}>{t('common.manageWallets')}</span>
                   </button>
                 </div>
               )}
@@ -348,14 +350,14 @@ export function Layout() {
             className={({ isActive }) => `tab-btn ${isActive ? 'tab-btn-active' : ''}`}
           >
             <LayoutDashboard size={22} />
-            <span>Dashboard</span>
+            <span>{t('nav.dashboard')}</span>
           </NavLink>
           <NavLink
             to={activeWallet ? `/wallets/${activeWallet.id}` : '/wallets'}
             className={({ isActive }) => `tab-btn ${isActive ? 'tab-btn-active' : ''}`}
           >
             <ArrowLeftRight size={22} />
-            <span>Transactions</span>
+            <span>{t('nav.transactions')}</span>
           </NavLink>
           <button
             className="tab-btn tab-btn-add"
@@ -371,14 +373,14 @@ export function Layout() {
             className={({ isActive }) => `tab-btn ${isActive ? 'tab-btn-active' : ''}`}
           >
             <Bot size={22} />
-            <span>Chat</span>
+            <span>{t('nav.chat')}</span>
           </NavLink>
           <button
             className={`tab-btn ${moreOpen || isMoreActive ? 'tab-btn-active' : ''}`}
             onClick={() => setMoreOpen(!moreOpen)}
           >
             <MoreHorizontal size={22} />
-            <span>More</span>
+            <span>{t('nav.more')}</span>
           </button>
         </nav>,
         document.body
@@ -392,36 +394,36 @@ export function Layout() {
             <nav className="more-nav">
               <NavLink to="/budgets" className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}>
                 <Zap size={16} />
-                Budgets
+                {t('nav.budgets')}
               </NavLink>
               <NavLink to="/recurring" className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}>
                 <RefreshCw size={16} />
-                Recurring
+                {t('nav.recurring')}
               </NavLink>
               <NavLink to="/categories" className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}>
                 <Tag size={16} />
-                Categories
+                {t('nav.categories')}
               </NavLink>
               <NavLink to="/tags" className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}>
                 <Tags size={16} />
-                Tags
+                {t('nav.tags')}
               </NavLink>
             </nav>
             <div className="more-divider" />
             <div className="more-nav">
               <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}>
                 <Settings size={16} />
-                Settings
+                {t('nav.settings')}
               </NavLink>
               {user?.is_admin && (
                 <NavLink to="/admin" className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}>
                   <Settings size={16} />
-                  Admin
+                  {t('nav.admin')}
                 </NavLink>
               )}
               <button className="nav-item" onClick={() => { closeMore(); setMcpOpen(true); }}>
                 <Plug size={16} />
-                MCP
+                {t('nav.mcp')}
               </button>
               <a
                 href="https://github.com/seriaati/keni"
@@ -440,7 +442,7 @@ export function Layout() {
                   onClick={() => { void handleInstall(); closeMore(); }}
                 >
                   <Download size={16} />
-                  Install app
+                  {t('nav.installApp')}
                 </button>
               )}
             </div>
@@ -452,9 +454,9 @@ export function Layout() {
                 </div>
                 <div className="user-info">
                   <span className="user-name">{user?.display_name ?? user?.username}</span>
-                  {user?.is_admin && <span className="user-role">Admin</span>}
+                  {user?.is_admin && <span className="user-role">{t('nav.userRole')}</span>}
                 </div>
-                <button className="icon-btn" onClick={handleLogout} title="Sign out">
+                <button className="icon-btn" onClick={handleLogout} title={t('nav.signOut')}>
                   <LogOut size={14} />
                 </button>
               </div>
@@ -466,30 +468,30 @@ export function Layout() {
 
       <CommandBar open={cmdOpen} onClose={() => setCmdOpen(false)} onExpenseAdded={handleExpenseAdded} />
 
-      <Modal open={mcpOpen} onClose={() => setMcpOpen(false)} title="MCP Integration" size="lg">
+      <Modal open={mcpOpen} onClose={() => setMcpOpen(false)} title={t('mcp.title')} size="lg">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <p style={{ color: 'var(--ink-light)', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
-            Keni exposes a Model Context Protocol (MCP) server, letting AI assistants like Claude Desktop, Cursor, or any MCP-compatible client read and write your financial data. Authentication is handled via OAuth, no API tokens required.
+            {t('mcp.description')}
           </p>
 
           <div>
-            <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Server URL</p>
+            <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>{t('mcp.serverUrlLabel')}</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--cream-dark, #f5f0e8)', borderRadius: '8px', padding: '10px 14px', fontFamily: 'monospace', fontSize: '13px', wordBreak: 'break-all' }}>
               <span style={{ flex: 1, color: 'var(--ink)' }}>{mcpUrl}</span>
-              <button className="icon-btn" onClick={handleCopyMcpUrl} title="Copy URL" style={{ flexShrink: 0 }}>
-                {copied ? <span style={{ fontSize: '11px', color: 'var(--forest)' }}>Copied!</span> : <Copy size={14} />}
+              <button className="icon-btn" onClick={handleCopyMcpUrl} title={t('mcp.copyUrl')} style={{ flexShrink: 0 }}>
+                {copied ? <span style={{ fontSize: '11px', color: 'var(--forest)' }}>{t('mcp.copiedUrl')}</span> : <Copy size={14} />}
               </button>
             </div>
           </div>
 
           <div>
-            <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>Setup Guide</p>
+            <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>{t('mcp.setupGuideLabel')}</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
               <div style={{ display: 'flex', gap: '12px' }}>
                 <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--forest)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, flexShrink: 0, marginTop: '1px' }}>1</div>
                 <div>
-                  <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: '14px' }}>Configure your MCP client</p>
+                  <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: '14px' }}>{t('mcp.step1Title')}</p>
                   <p style={{ margin: '0 0 8px', fontSize: '13px', color: 'var(--ink-light)', lineHeight: '1.5' }}>
                     Add the following to your client's MCP configuration (e.g. <code style={{ fontFamily: 'monospace', background: 'rgba(0,0,0,0.06)', padding: '1px 5px', borderRadius: '4px' }}>claude_desktop_config.json</code> or <code style={{ fontFamily: 'monospace', background: 'rgba(0,0,0,0.06)', padding: '1px 5px', borderRadius: '4px' }}>mcp.json</code>):
                   </p>
@@ -507,9 +509,9 @@ export function Layout() {
               <div style={{ display: 'flex', gap: '12px' }}>
                 <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--forest)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, flexShrink: 0, marginTop: '1px' }}>2</div>
                 <div>
-                  <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: '14px' }}>Authorize via OAuth</p>
+                  <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: '14px' }}>{t('mcp.step2Title')}</p>
                   <p style={{ margin: 0, fontSize: '13px', color: 'var(--ink-light)', lineHeight: '1.5' }}>
-                    Restart your client. The first time it connects, it will open a browser window asking you to sign in and grant access (the OAuth flow). No API token needed.
+                    {t('mcp.step2Desc')}
                   </p>
                 </div>
               </div>
@@ -517,9 +519,9 @@ export function Layout() {
               <div style={{ display: 'flex', gap: '12px' }}>
                 <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--forest)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, flexShrink: 0, marginTop: '1px' }}>3</div>
                 <div>
-                  <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: '14px' }}>Start using it</p>
+                  <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: '14px' }}>{t('mcp.step3Title')}</p>
                   <p style={{ margin: 0, fontSize: '13px', color: 'var(--ink-light)', lineHeight: '1.5' }}>
-                    Keni's tools will appear automatically. Ask your AI assistant to list expenses, add transactions, or check budgets.
+                    {t('mcp.step3Desc')}
                   </p>
                 </div>
               </div>

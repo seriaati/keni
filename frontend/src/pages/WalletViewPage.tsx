@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useParams, useSearchParams, useOutletContext } from 'react-router-dom';
 import { ArrowLeftRight, Download, Filter, Layers, Search, SortAsc, SortDesc, X } from 'lucide-react';
 import { expenses as expensesApi, categories as categoriesApi, wallets as walletsApi, tags as tagsApi } from '../lib/api';
@@ -24,6 +25,7 @@ function useIsMobile(breakpoint = 640) {
 }
 
 export function WalletViewPage() {
+  const { t } = useTranslation();
   const { walletId } = useParams<{ walletId: string }>();
   const [searchParams] = useSearchParams();
   const toast = useToast();
@@ -88,7 +90,7 @@ export function WalletViewPage() {
       setAllTags(tagList);
       setData(list);
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'Failed to load', 'error');
+      toast(e instanceof Error ? e.message : t('walletView.toastLoadFailed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -118,7 +120,7 @@ export function WalletViewPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      toast('Export failed', 'error');
+      toast(t('walletView.toastExportFailed'), 'error');
     }
   };
 
@@ -136,7 +138,7 @@ export function WalletViewPage() {
     <div className="animate-fade-in">
       <div className="page-header">
         <div>
-          <h1 className="page-title">{wallet?.name ?? 'Wallet'}</h1>
+          <h1 className="page-title">{wallet?.name ?? t('walletView.titleFallback')}</h1>
           <p className="page-subtitle">
             {wallet ? `${fmt(wallet.balance, wallet.currency)} balance · ${fmt(wallet.total_income, wallet.currency)} income · ${fmt(wallet.total_expenses, wallet.currency)} expenses` : ''}
           </p>
@@ -158,7 +160,7 @@ export function WalletViewPage() {
           <input
             className="input"
             style={{ paddingLeft: 32 }}
-            placeholder="Search transactions…"
+            placeholder={t('walletView.searchPlaceholder')}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
@@ -167,8 +169,8 @@ export function WalletViewPage() {
         <Select
           value={categoryId}
           onChange={(v) => { setCategoryId(v); setPage(1); }}
-          options={[{ value: '', label: 'All categories' }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
-          placeholder="All categories"
+          options={[{ value: '', label: t('walletView.filterAllCategories') }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
+          placeholder={t('walletView.filterAllCategories')}
         />
 
         <button
@@ -177,7 +179,7 @@ export function WalletViewPage() {
           style={showFilters ? { background: 'var(--cream-darker)' } : {}}
         >
           <Filter size={14} />
-          Filters
+          {t('walletView.filterFilters')}
           {hasFilters && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--forest)', marginLeft: 2 }} />}
         </button>
 
@@ -204,32 +206,32 @@ export function WalletViewPage() {
           animation: 'slideDown 0.2s ease both',
         }}>
           <div className="input-group">
-            <label className="input-label">From date</label>
+            <label className="input-label">{t('walletView.filterFromDate')}</label>
             <DatePicker value={startDate} onChange={(v) => { setStartDate(v); setPage(1); }} />
           </div>
           <div className="input-group">
-            <label className="input-label">To date</label>
+            <label className="input-label">{t('walletView.filterToDate')}</label>
             <DatePicker value={endDate} onChange={(v) => { setEndDate(v); setPage(1); }} />
           </div>
           <div className="input-group">
-            <label className="input-label">Min amount</label>
+            <label className="input-label">{t('walletView.filterMinAmount')}</label>
             <input className="input" type="number" placeholder="0" value={minAmount} onChange={(e) => { setMinAmount(e.target.value); setPage(1); }} />
           </div>
           <div className="input-group">
-            <label className="input-label">Max amount</label>
+            <label className="input-label">{t('walletView.filterMaxAmount')}</label>
             <input className="input" type="number" placeholder="∞" value={maxAmount} onChange={(e) => { setMaxAmount(e.target.value); setPage(1); }} />
           </div>
           <div className="input-group">
-            <label className="input-label">Sort by</label>
+            <label className="input-label">{t('walletView.filterSortBy')}</label>
             <Select
               value={sortBy}
               onChange={setSortBy}
-              options={[{ value: 'date', label: 'Date' }, { value: 'amount', label: 'Amount' }]}
+              options={[{ value: 'date', label: t('walletView.filterSortDate') }, { value: 'amount', label: t('walletView.filterSortAmount') }]}
             />
           </div>
           {allTags.length > 0 && (
             <div className="input-group" style={{ gridColumn: '1 / -1' }}>
-              <label className="input-label">Tags</label>
+              <label className="input-label">{t('walletView.filterTags')}</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {allTags.map((tag) => {
                   const active = selectedTagIds.includes(tag.id);
@@ -266,7 +268,7 @@ export function WalletViewPage() {
                 className="btn btn-ghost btn-md"
                 onClick={() => { setSearch(''); setCategoryId(''); setSelectedTagIds([]); setStartDate(''); setEndDate(''); setMinAmount(''); setMaxAmount(''); setPage(1); }}
               >
-                <X size={14} /> Clear all
+                <X size={14} /> {t('walletView.filterClearAll')}
               </button>
             </div>
           )}
@@ -282,9 +284,9 @@ export function WalletViewPage() {
         </div>
       ) : !data || data.items.length === 0 ? (
         <div className="empty-state">
-          <p className="empty-state-title">No transactions found</p>
+          <p className="empty-state-title">{t('walletView.noTransactionsTitle')}</p>
           <p className="empty-state-desc">
-            {hasFilters ? 'Try adjusting your filters.' : 'Press ⌘K to add your first transaction.'}
+            {hasFilters ? t('walletView.noTransactionsDescFiltered') : t('walletView.noTransactionsDescEmpty')}
           </p>
         </div>
       ) : (
@@ -326,23 +328,23 @@ export function WalletViewPage() {
                 disabled={page === 1}
                 onClick={() => setPage(page - 1)}
               >
-                Previous
+                {t('walletView.paginationPrev')}
               </button>
               <span style={{ fontSize: 13, color: 'var(--ink-light)' }}>
-                Page {page} of {totalPages}
+                {t('walletView.paginationPage', { page, total: totalPages })}
               </span>
               <button
                 className="btn btn-secondary btn-sm"
                 disabled={page === totalPages}
                 onClick={() => setPage(page + 1)}
               >
-                Next
+                {t('walletView.paginationNext')}
               </button>
             </div>
           )}
 
           <p style={{ fontSize: 12, color: 'var(--ink-faint)', textAlign: 'center', marginTop: 12 }}>
-            Showing {data.items.length} of {data.total} transactions
+            {t('walletView.showingCount', { shown: data.items.length, total: data.total })}
           </p>
         </>
       )}

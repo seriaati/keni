@@ -1,5 +1,11 @@
+import i18n from './i18n';
+
+function locale(): string {
+  return i18n.language ?? 'en';
+}
+
 export function fmt(amount: number, currency = 'USD'): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat(locale(), {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
@@ -9,12 +15,12 @@ export function fmt(amount: number, currency = 'USD'): string {
 
 export function fmtDate(date: string | Date): string {
   const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString(locale(), { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export function fmtDateShort(date: string | Date): string {
   const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return d.toLocaleDateString(locale(), { month: 'short', day: 'numeric' });
 }
 
 export function fmtRelative(date: string | Date): string {
@@ -22,9 +28,10 @@ export function fmtRelative(date: string | Date): string {
   const now = new Date();
   const diff = now.getTime() - d.getTime();
   const days = Math.floor(diff / 86400000);
-  if (days === 0) return 'Today';
-  if (days === 1) return 'Yesterday';
-  if (days < 7) return `${days} days ago`;
+  const t = i18n.t.bind(i18n);
+  if (days === 0) return t('utils.today');
+  if (days === 1) return t('utils.yesterday');
+  if (days < 7) return t('utils.daysAgo', { count: days });
   return fmtDate(d);
 }
 
@@ -51,6 +58,16 @@ export function startOfWeek(): string {
 }
 
 export type DashboardPeriod = 'this_month' | 'last_month' | 'last_3_months' | 'this_year';
+
+export function getPeriodLabel(period: DashboardPeriod): string {
+  const map: Record<DashboardPeriod, string> = {
+    this_month: 'utils.periodThisMonth',
+    last_month: 'utils.periodLastMonth',
+    last_3_months: 'utils.periodLast3Months',
+    this_year: 'utils.periodThisYear',
+  };
+  return i18n.t(map[period]);
+}
 
 export const PERIOD_LABELS: Record<DashboardPeriod, string> = {
   this_month: 'This month',
@@ -132,6 +149,16 @@ export const FREQUENCIES = [
   { value: 'monthly', label: 'Monthly' },
   { value: 'yearly', label: 'Yearly' },
 ];
+
+export function getFrequencies(): { value: string; label: string }[] {
+  return [
+    { value: 'daily', label: i18n.t('utils.freqDaily') },
+    { value: 'weekly', label: i18n.t('utils.freqWeekly') },
+    { value: 'biweekly', label: i18n.t('utils.freqBiweekly') },
+    { value: 'monthly', label: i18n.t('utils.freqMonthly') },
+    { value: 'yearly', label: i18n.t('utils.freqYearly') },
+  ];
+}
 
 export const AI_PROVIDERS = [
   { value: 'anthropic', label: 'Anthropic' },

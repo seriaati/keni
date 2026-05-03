@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '../components/ui/Toast';
 import { users } from '../lib/api';
 import type { UserResponse } from '../lib/types';
@@ -14,6 +15,7 @@ function getAccessToken(): string | null {
 type Mode = 'loading' | 'logged-in' | 'login-required' | 'denied' | 'error';
 
 export function OAuthAuthorizePage() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const state = searchParams.get('state') ?? '';
   const clientName = searchParams.get('client_name') ?? 'An application';
@@ -60,12 +62,12 @@ export function OAuthAuthorizePage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail ?? 'Authorization failed');
+        throw new Error(data.detail ?? t('oauth.authFailed'));
       }
       const { redirect_uri } = await res.json();
       window.location.href = redirect_uri;
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Authorization failed', 'error');
+      toast(err instanceof Error ? err.message : t('oauth.authFailed'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -82,19 +84,19 @@ export function OAuthAuthorizePage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail ?? 'Invalid credentials');
+        throw new Error(data.detail ?? t('oauth.invalidCredentials'));
       }
       const { redirect_uri } = await res.json();
       window.location.href = redirect_uri;
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Authorization failed', 'error');
+      toast(err instanceof Error ? err.message : t('oauth.authFailed'), 'error');
     } finally {
       setSubmitting(false);
     }
   };
 
   const scopeLabels: Record<string, string> = {
-    user: 'Access your wallets, transactions, and categories',
+    user: t('oauth.scopeUser'),
   };
   const scopes = scopesRaw.split(' ').filter(Boolean);
 
@@ -137,11 +139,14 @@ export function OAuthAuthorizePage() {
             marginBottom: 20,
             fontStyle: 'italic',
           }}>
-            Secure<br />authorization.
+            {t('oauth.tagline').split('\n').map((line, i) => (
+              <span key={i}>{line}{i === 0 && <br />}</span>
+            ))}
           </p>
           <p style={{ fontSize: 14, color: 'oklch(90% 0.04 155)', lineHeight: 1.6 }}>
-            Grant access to a connected application<br />
-            using your Keni account.
+            {t('oauth.taglineDesc').split('\n').map((line, i) => (
+              <span key={i}>{line}{i === 0 && <br />}</span>
+            ))}
           </p>
         </div>
 
@@ -152,7 +157,7 @@ export function OAuthAuthorizePage() {
             borderRadius: 10,
             border: '1px solid oklch(60% 0.08 155 / 0.3)',
           }}>
-            <p style={{ fontSize: 12, color: 'oklch(80% 0.04 155)', marginBottom: 8 }}>Requesting access</p>
+            <p style={{ fontSize: 12, color: 'oklch(80% 0.04 155)', marginBottom: 8 }}>{t('oauth.requestingAccess')}</p>
             <p style={{ fontSize: 15, color: 'var(--cream)', fontWeight: 600 }}>{clientName}</p>
           </div>
         </div>
@@ -168,16 +173,16 @@ export function OAuthAuthorizePage() {
       }}>
         <div style={{ width: '100%', maxWidth: 380, animation: 'fadeIn 0.3s ease both' }}>
           {mode === 'loading' && (
-            <p style={{ color: 'var(--ink-light)', fontSize: 14 }}>Loading…</p>
+            <p style={{ color: 'var(--ink-light)', fontSize: 14 }}>{t('oauth.loading')}</p>
           )}
 
           {mode === 'error' && (
             <>
               <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, color: 'var(--ink)', marginBottom: 8, fontStyle: 'italic' }}>
-                Invalid request
+                {t('oauth.errorTitle')}
               </h1>
               <p style={{ fontSize: 14, color: 'var(--ink-light)' }}>
-                This authorization link is invalid or has expired.
+                {t('oauth.errorDesc')}
               </p>
             </>
           )}
@@ -185,7 +190,7 @@ export function OAuthAuthorizePage() {
           {mode === 'denied' && (
             <>
               <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, color: 'var(--ink)', marginBottom: 8, fontStyle: 'italic' }}>
-                Access denied
+                {t('oauth.deniedTitle')}
               </h1>
               <p style={{ fontSize: 14, color: 'var(--ink-light)' }}>
                 You denied access to <strong>{clientName}</strong>. You can close this window.
@@ -210,7 +215,7 @@ export function OAuthAuthorizePage() {
                 marginBottom: 24,
               }}>
                 <p style={{ fontSize: 12, color: 'var(--ink-faint)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Permissions requested
+                  {t('oauth.permissionsRequested')}
                 </p>
                 {scopes.map((s) => (
                   <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -230,7 +235,7 @@ export function OAuthAuthorizePage() {
                   style={{ width: '100%' }}
                 >
                   {submitting && <span className="btn-spinner" />}
-                  Authorize
+                  {t('oauth.authorize')}
                 </button>
                 <button
                   className="btn btn-lg"
@@ -238,7 +243,7 @@ export function OAuthAuthorizePage() {
                   disabled={submitting}
                   style={{ width: '100%' }}
                 >
-                  Deny
+                  {t('oauth.deny')}
                 </button>
               </div>
 
@@ -247,7 +252,7 @@ export function OAuthAuthorizePage() {
                   onClick={() => { setCurrentUser(null); setMode('login-required'); }}
                   style={{ fontSize: 13, color: 'var(--ink-faint)', background: 'none', border: 'none', cursor: 'pointer' }}
                 >
-                  Not you? Sign in with a different account
+                  {t('oauth.notYou')}
                 </button>
               </div>
             </>
@@ -256,7 +261,7 @@ export function OAuthAuthorizePage() {
           {mode === 'login-required' && (
             <>
               <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, color: 'var(--ink)', marginBottom: 6, fontStyle: 'italic' }}>
-                Sign in to authorize
+                {t('oauth.signInTitle')}
               </h1>
               <p style={{ fontSize: 14, color: 'var(--ink-light)', marginBottom: 24 }}>
                 <strong style={{ color: 'var(--ink)' }}>{clientName}</strong> is requesting access to your Keni account.
@@ -270,7 +275,7 @@ export function OAuthAuthorizePage() {
                 marginBottom: 24,
               }}>
                 <p style={{ fontSize: 12, color: 'var(--ink-faint)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Permissions requested
+                  {t('oauth.permissionsRequested')}
                 </p>
                 {scopes.map((s) => (
                   <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -284,7 +289,7 @@ export function OAuthAuthorizePage() {
 
               <form onSubmit={handleApproveWithCredentials} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div className="input-group">
-                  <label className="input-label">Username</label>
+                  <label className="input-label">{t('login.usernameLabel')}</label>
                   <input
                     className="input"
                     type="text"
@@ -298,7 +303,7 @@ export function OAuthAuthorizePage() {
                 </div>
 
                 <div className="input-group">
-                  <label className="input-label">Password</label>
+                  <label className="input-label">{t('login.passwordLabel')}</label>
                   <input
                     className="input"
                     type="password"
@@ -318,7 +323,7 @@ export function OAuthAuthorizePage() {
                     style={{ width: '100%' }}
                   >
                     {submitting && <span className="btn-spinner" />}
-                    Sign in &amp; authorize
+                    {t('oauth.signInAuthorize')}
                   </button>
                   <button
                     type="button"
@@ -327,7 +332,7 @@ export function OAuthAuthorizePage() {
                     disabled={submitting}
                     style={{ width: '100%' }}
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                 </div>
               </form>

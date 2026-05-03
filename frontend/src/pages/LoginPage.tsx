@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/Toast';
 import logoSrc from '../assets/logo-white.svg';
 
 export function LoginPage() {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -25,7 +27,7 @@ export function LoginPage() {
       }
       navigate('/');
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Something went wrong', 'error');
+      toast(err instanceof Error ? err.message : t('login.errorGeneric'), 'error');
     } finally {
       setLoading(false);
     }
@@ -72,20 +74,23 @@ export function LoginPage() {
             marginBottom: 20,
             fontStyle: 'italic',
           }}>
-            Money tracked<br />without the friction.
+            {t('login.tagline').split('\n').map((line, i, arr) => (
+              <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
+            ))}
           </p>
           <p style={{ fontSize: 14, color: 'oklch(90% 0.04 155)', lineHeight: 1.6 }}>
-            Type "coffee 4.50", snap a receipt, or just ask -<br />
-            Keni understands. Record any transaction in seconds.
+            {t('login.taglineDesc').split('\n').map((line, i, arr) => (
+              <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
+            ))}
           </p>
         </div>
 
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {[
-            'AI command bar to log anything in seconds',
-            'Receipt & invoice scanning',
-            'Chat with your data in plain language',
-            'Multiple wallets & currencies',
+            t('login.featureAi'),
+            t('login.featureReceipt'),
+            t('login.featureChat'),
+            t('login.featureWallets'),
           ].map((feat) => (
             <div key={feat} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--amber-light)', flexShrink: 0 }} />
@@ -111,22 +116,22 @@ export function LoginPage() {
             marginBottom: 6,
             fontStyle: 'italic',
           }}>
-            {mode === 'login' ? 'Welcome back' : 'Create account'}
+            {mode === 'login' ? t('login.titleLogin') : t('login.titleSignup')}
           </h1>
           <p style={{ fontSize: 14, color: 'var(--ink-light)', marginBottom: 32 }}>
             {mode === 'login'
-              ? 'Sign in to your Keni instance'
-              : 'Set up your personal finance tracker'}
+              ? t('login.subtitleLogin')
+              : t('login.subtitleSignup')}
           </p>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {mode === 'signup' && (
               <div className="input-group">
-                <label className="input-label">Display name (optional)</label>
+                <label className="input-label">{t('login.displayNameLabel')}</label>
                 <input
                   className="input"
                   type="text"
-                  placeholder="Your name"
+                  placeholder={t('login.displayNamePlaceholder')}
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   autoComplete="name"
@@ -135,7 +140,7 @@ export function LoginPage() {
             )}
 
             <div className="input-group">
-              <label className="input-label">Username</label>
+              <label className="input-label">{t('login.usernameLabel')}</label>
               <input
                 className="input"
                 type="text"
@@ -149,7 +154,7 @@ export function LoginPage() {
             </div>
 
             <div className="input-group">
-              <label className="input-label">Password</label>
+              <label className="input-label">{t('login.passwordLabel')}</label>
               <input
                 className="input"
                 type="password"
@@ -168,29 +173,29 @@ export function LoginPage() {
               style={{ marginTop: 4, width: '100%' }}
             >
               {loading && <span className="btn-spinner" />}
-              {mode === 'login' ? 'Sign in' : 'Create account'}
+              {mode === 'login' ? t('login.submitLogin') : t('login.submitSignup')}
             </button>
           </form>
 
           <div style={{ marginTop: 24, textAlign: 'center', fontSize: 14, color: 'var(--ink-light)' }}>
             {mode === 'login' ? (
               <>
-                Don't have an account?{' '}
+                {t('login.noAccount')}{' '}
                 <button
                   onClick={() => setMode('signup')}
                   style={{ color: 'var(--forest)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit' }}
                 >
-                  Sign up
+                  {t('login.signUp')}
                 </button>
               </>
             ) : (
               <>
-                Already have an account?{' '}
+                {t('login.haveAccount')}{' '}
                 <button
                   onClick={() => setMode('login')}
                   style={{ color: 'var(--forest)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit' }}
                 >
-                  Sign in
+                  {t('login.signIn')}
                 </button>
               </>
             )}

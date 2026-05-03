@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ArrowRight, ChevronDown, Layers, Wallet } from 'lucide-react';
 import { PieChart, Pie, Sector, ResponsiveContainer, Tooltip } from 'recharts';
 import { expenses as expensesApi, budgets as budgetsApi, categories as categoriesApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
 import { useAuth } from '../contexts/AuthContext';
 import type { BudgetResponse, CategoryResponse, TransactionResponse, TransactionSummary } from '../lib/types';
-import { fmt, fmtRelative, startOfMonth, endOfMonth, startOfWeek, getPeriodDateRange, PERIOD_LABELS } from '../lib/utils';
+import { fmt, fmtRelative, startOfMonth, endOfMonth, startOfWeek, getPeriodDateRange, getPeriodLabel } from '../lib/utils';
 import type { DashboardPeriod } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
 import type { LayoutOutletContext } from '../components/Layout';
@@ -22,6 +23,7 @@ const FALLBACK_COLORS = [
 ];
 
 export function DashboardPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { activeWallet } = useWallet();
   const { expenseAddedKey } = useOutletContext<LayoutOutletContext>();
@@ -117,9 +119,9 @@ export function DashboardPage() {
 
   const greeting = () => {
     const h = new Date().getHours();
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (h < 12) return t('dashboard.greetingMorning');
+    if (h < 17) return t('dashboard.greetingAfternoon');
+    return t('dashboard.greetingEvening');
   };
 
   const name = user?.display_name ?? user?.username ?? '';
@@ -128,10 +130,10 @@ export function DashboardPage() {
     return (
       <div className="empty-state" style={{ marginTop: 60 }}>
         <Wallet size={48} className="empty-state-icon" />
-        <p className="empty-state-title">No wallet yet</p>
-        <p className="empty-state-desc">Create a wallet to start tracking your expenses.</p>
+        <p className="empty-state-title">{t('dashboard.noWalletTitle')}</p>
+        <p className="empty-state-desc">{t('dashboard.noWalletDesc')}</p>
         <Link to="/wallets" className="btn btn-primary btn-md" style={{ marginTop: 8 }}>
-          Create wallet
+          {t('dashboard.noWalletCta')}
         </Link>
       </div>
     );
@@ -165,14 +167,18 @@ export function DashboardPage() {
           <AlertTriangle size={18} style={{ color: 'var(--rose)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--rose)', marginBottom: 2 }}>
-              {overBudget.length === 1 ? '1 budget exceeded' : `${overBudget.length} budgets exceeded`}
+              {t('dashboard.budgetExceeded', { count: overBudget.length })}
             </div>
             <div style={{ fontSize: 13, color: 'var(--ink-mid)' }}>
-              {overBudget.map((b) => getCategoryName(b.category_id) ?? 'Overall').join(', ')} {overBudget.length === 1 ? 'is' : 'are'} over the spending limit this {overBudget[0].period}.
+              {t('dashboard.budgetOverLimit', {
+                names: overBudget.map((b) => getCategoryName(b.category_id) ?? t('common.overall')).join(', '),
+                verb: overBudget.length === 1 ? t('dashboard.verbIs') : t('dashboard.verbAre'),
+                period: overBudget[0].period,
+              })}
             </div>
           </div>
           <Link to="/budgets" style={{ fontSize: 13, color: 'var(--rose)', fontWeight: 500, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-            Review <ArrowRight size={13} />
+            {t('common.review')} <ArrowRight size={13} />
           </Link>
         </div>
       )}
@@ -193,14 +199,17 @@ export function DashboardPage() {
           <AlertTriangle size={18} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'oklch(52% 0.14 65)', marginBottom: 2 }}>
-              {nearLimit.length === 1 ? '1 budget near limit' : `${nearLimit.length} budgets near limit`}
+              {t('dashboard.budgetNear', { count: nearLimit.length })}
             </div>
             <div style={{ fontSize: 13, color: 'var(--ink-mid)' }}>
-              {nearLimit.map((b) => getCategoryName(b.category_id) ?? 'Overall').join(', ')} {nearLimit.length === 1 ? 'is' : 'are'} above 80% of the spending limit.
+              {t('dashboard.budgetNearLimit', {
+                names: nearLimit.map((b) => getCategoryName(b.category_id) ?? t('common.overall')).join(', '),
+                verb: nearLimit.length === 1 ? t('dashboard.verbIs') : t('dashboard.verbAre'),
+              })}
             </div>
           </div>
           <Link to="/budgets" style={{ fontSize: 13, color: 'oklch(52% 0.14 65)', fontWeight: 500, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-            Review <ArrowRight size={13} />
+            {t('common.review')} <ArrowRight size={13} />
           </Link>
         </div>
       )}
@@ -211,33 +220,33 @@ export function DashboardPage() {
           {greeting()}{name ? `, ${name}` : ''}.
         </h1>
         <p style={{ fontSize: 14, color: 'var(--ink-light)', marginTop: 4 }}>
-          Here's your spending overview for {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.
+          {t('dashboard.overviewSubtitle', { month: new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) })}
         </p>
       </div>
 
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
         <SummaryCard
-          label="This month"
+          label={t('dashboard.cardThisMonth')}
           value={loading ? null : fmt(monthlySummary?.total_amount ?? 0, activeWallet.currency)}
-          sub={`${monthlySummary?.expense_count ?? 0} transactions`}
+          sub={t('dashboard.transactionsCount', { count: monthlySummary?.expense_count ?? 0 })}
           accent="var(--forest)"
           loading={loading}
         />
         <SummaryCard
-          label="This week"
+          label={t('dashboard.cardThisWeek')}
           value={loading ? null : fmt(weekSummary?.total_amount ?? 0, activeWallet.currency)}
-          sub={`${weekSummary?.expense_count ?? 0} transactions`}
+          sub={t('dashboard.transactionsCount', { count: weekSummary?.expense_count ?? 0 })}
           accent="var(--amber)"
           loading={loading}
         />
         <SummaryCard
-          label="Daily average"
+          label={t('dashboard.cardDailyAvg')}
           value={loading ? null : fmt(
             monthlySummary ? monthlySummary.total_amount / Math.max(new Date().getDate(), 1) : 0,
             activeWallet.currency,
           )}
-          sub="this month"
+          sub={t('dashboard.cardThisMonthSub')}
           accent="var(--sky)"
           loading={loading}
         />
@@ -247,9 +256,9 @@ export function DashboardPage() {
       {(loading || budgets.length > 0) && (
         <div style={{ marginBottom: 28 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>Budgets</h2>
+            <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{t('dashboard.budgetsTitle')}</h2>
             <Link to="/budgets" style={{ fontSize: 13, color: 'var(--forest)', display: 'flex', alignItems: 'center', gap: 4 }}>
-              Manage <ArrowRight size={13} />
+              {t('dashboard.budgetsManage')} <ArrowRight size={13} />
             </Link>
           </div>
           {loading ? (
@@ -279,7 +288,7 @@ export function DashboardPage() {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
-                        {getCategoryName(b.category_id) ?? 'Overall'}
+                        {getCategoryName(b.category_id) ?? t('common.overall')}
                       </span>
                       <span style={{ fontSize: 12, color: barColor, fontWeight: 500 }}>
                         {b.percentage_used.toFixed(0)}%
@@ -290,10 +299,10 @@ export function DashboardPage() {
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: 11, color: 'var(--ink-faint)' }}>
-                        {fmt(b.spent)} spent
+                        {t('dashboard.budgetSpent', { amount: fmt(b.spent) })}
                       </span>
                       <span style={{ fontSize: 11, color: b.is_over_budget ? 'var(--rose)' : 'var(--ink-faint)' }}>
-                        {b.is_over_budget ? `${fmt(Math.abs(b.remaining))} over` : `${fmt(b.remaining)} left`}
+                        {b.is_over_budget ? t('dashboard.budgetOver', { amount: fmt(Math.abs(b.remaining)) }) : t('dashboard.budgetLeft', { amount: fmt(b.remaining) })}
                       </span>
                     </div>
                   </Link>
@@ -308,12 +317,12 @@ export function DashboardPage() {
         {/* Recent expenses */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>Recent transactions</h2>
+            <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{t('dashboard.recentTitle')}</h2>
             <Link
               to={`/wallets/${activeWallet.id}`}
               style={{ fontSize: 13, color: 'var(--forest)', display: 'flex', alignItems: 'center', gap: 4 }}
             >
-              View all <ArrowRight size={13} />
+              {t('dashboard.recentViewAll')} <ArrowRight size={13} />
             </Link>
           </div>
 
@@ -325,8 +334,8 @@ export function DashboardPage() {
             </div>
           ) : recent.length === 0 ? (
             <div className="empty-state" style={{ padding: '32px 16px' }}>
-              <p className="empty-state-title">No transactions yet</p>
-              <p className="empty-state-desc">Press ⌘K to add your first transaction.</p>
+              <p className="empty-state-title">{t('dashboard.recentEmptyTitle')}</p>
+              <p className="empty-state-desc">{t('dashboard.recentEmptyDesc')}</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -365,7 +374,7 @@ export function DashboardPage() {
                           <span>·</span>
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                             <Layers size={11} />
-                            {expense.children.length} items
+                            {t('dashboard.itemsCount', { count: expense.children.length })}
                           </span>
                         </>
                       )}
@@ -386,13 +395,13 @@ export function DashboardPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Spending by category */}
           <div>
-            <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>Spending by category</h2>
+            <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>{t('dashboard.spendingTitle')}</h2>
             <div ref={spendingPeriodRef} style={{ position: 'relative', display: 'inline-block', marginBottom: 14 }}>
               <button
                 onClick={() => setSpendingPeriodOpen((v) => !v)}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12, color: 'var(--ink-faint)', fontFamily: 'inherit' }}
               >
-                {PERIOD_LABELS[spendingPeriod]}
+                {getPeriodLabel(spendingPeriod)}
                 <ChevronDown size={11} style={{ transition: 'transform 0.15s', transform: spendingPeriodOpen ? 'rotate(180deg)' : 'none' }} />
               </button>
               {spendingPeriodOpen && (
@@ -405,7 +414,7 @@ export function DashboardPage() {
                       onMouseEnter={(e) => { if (p !== spendingPeriod) e.currentTarget.style.background = 'var(--cream)'; }}
                       onMouseLeave={(e) => { if (p !== spendingPeriod) e.currentTarget.style.background = 'none'; }}
                     >
-                      {PERIOD_LABELS[p]}
+                      {getPeriodLabel(p)}
                     </button>
                   ))}
                 </div>
@@ -472,7 +481,7 @@ export function DashboardPage() {
                           onClick={() => setCategoryExpanded((v) => !v)}
                           style={{ alignSelf: 'flex-start', marginTop: 2, fontSize: 12, color: 'var(--forest)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontWeight: 500 }}
                         >
-                          {categoryExpanded ? 'Show less' : `+${sorted.length - 3} more`}
+                          {categoryExpanded ? t('dashboard.showLess') : t('dashboard.showMore', { count: sorted.length - 3 })}
                         </button>
                       )}
                     </div>
@@ -481,7 +490,7 @@ export function DashboardPage() {
               })()
             ) : (
               <div className="empty-state" style={{ padding: '32px 16px', background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)' }}>
-                <p className="empty-state-desc">No data yet this month.</p>
+                <p className="empty-state-desc">{t('dashboard.noData')}</p>
               </div>
             )}
             </div>
@@ -490,13 +499,13 @@ export function DashboardPage() {
           {/* Income by category */}
           {(loading || incomeSummary) && (
             <div>
-              <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>Income by category</h2>
+              <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>{t('dashboard.incomeTitle')}</h2>
               <div ref={incomePeriodRef} style={{ position: 'relative', display: 'inline-block', marginBottom: 14 }}>
                 <button
                   onClick={() => setIncomePeriodOpen((v) => !v)}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12, color: 'var(--ink-faint)', fontFamily: 'inherit' }}
                 >
-                  {PERIOD_LABELS[incomePeriod]}
+                  {getPeriodLabel(incomePeriod)}
                   <ChevronDown size={11} style={{ transition: 'transform 0.15s', transform: incomePeriodOpen ? 'rotate(180deg)' : 'none' }} />
                 </button>
                 {incomePeriodOpen && (
@@ -509,7 +518,7 @@ export function DashboardPage() {
                         onMouseEnter={(e) => { if (p !== incomePeriod) e.currentTarget.style.background = 'var(--cream)'; }}
                         onMouseLeave={(e) => { if (p !== incomePeriod) e.currentTarget.style.background = 'none'; }}
                       >
-                        {PERIOD_LABELS[p]}
+                        {getPeriodLabel(p)}
                       </button>
                     ))}
                   </div>
@@ -520,7 +529,7 @@ export function DashboardPage() {
                 <div className="skeleton" style={{ height: 220, borderRadius: 12 }} />
               ) : incomeSummary && incomeSummary.income_by_category.length === 0 ? (
                 <div className="empty-state" style={{ padding: '32px 16px', background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)' }}>
-                  <p className="empty-state-desc">No data yet this month.</p>
+                  <p className="empty-state-desc">{t('dashboard.noData')}</p>
                 </div>
               ) : (
                 (() => {
@@ -579,7 +588,7 @@ export function DashboardPage() {
                             onClick={() => setIncomeCategoryExpanded((v) => !v)}
                             style={{ alignSelf: 'flex-start', marginTop: 2, fontSize: 12, color: 'var(--forest)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontWeight: 500 }}
                           >
-                            {incomeCategoryExpanded ? 'Show less' : `+${sorted.length - 3} more`}
+                            {incomeCategoryExpanded ? t('dashboard.showLess') : t('dashboard.showMore', { count: sorted.length - 3 })}
                           </button>
                         )}
                       </div>

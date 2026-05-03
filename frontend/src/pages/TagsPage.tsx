@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Pencil, Trash2, Tags } from 'lucide-react';
 import { tags as tagsApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
@@ -7,6 +8,7 @@ import { ColorPicker } from '../components/ui/ColorPicker';
 import type { TagResponse } from '../lib/types';
 
 export function TagsPage() {
+  const { t } = useTranslation();
   const toast = useToast();
   const [tagList, setTagList] = useState<TagResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +23,7 @@ export function TagsPage() {
     try {
       setTagList(await tagsApi.list());
     } catch {
-      toast('Failed to load', 'error');
+      toast(t('tags.toastLoadFailed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -46,11 +48,11 @@ export function TagsPage() {
     try {
       if (editTag) {
         await tagsApi.update(editTag.id, payload);
-        toast('Tag updated', 'success');
+        toast(t('tags.toastUpdated'), 'success');
         setEditTag(null);
       } else {
         await tagsApi.create(payload);
-        toast('Tag created', 'success');
+        toast(t('tags.toastCreated'), 'success');
         setShowCreate(false);
       }
       await load();
@@ -66,7 +68,7 @@ export function TagsPage() {
     setSaving(true);
     try {
       await tagsApi.delete(deleteTag.id);
-      toast('Tag deleted', 'success');
+      toast(t('tags.toastDeleted'), 'success');
       setDeleteTag(null);
       await load();
     } catch (e) {
@@ -79,17 +81,17 @@ export function TagsPage() {
   const TagForm = () => (
     <>
       <div className="input-group">
-        <label className="input-label">Tag name</label>
+        <label className="input-label">{t('tags.fieldName')}</label>
         <input
           className="input"
-          placeholder="e.g. work lunch"
+          placeholder={t('tags.fieldNamePlaceholder')}
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           autoFocus
         />
       </div>
       <div className="input-group">
-        <label className="input-label">Color</label>
+        <label className="input-label">{t('tags.fieldColor')}</label>
         <ColorPicker value={form.color} onChange={(color) => setForm({ ...form, color })} />
       </div>
     </>
@@ -99,12 +101,12 @@ export function TagsPage() {
     <div className="animate-fade-in">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Tags</h1>
-          <p className="page-subtitle">Free-form labels for cross-cutting organization</p>
+          <h1 className="page-title">{t('tags.title')}</h1>
+          <p className="page-subtitle">{t('tags.subtitle')}</p>
         </div>
         <div className="page-actions">
           <button className="btn btn-primary btn-md" onClick={openCreate}>
-            <Plus size={16} /> New tag
+            <Plus size={16} /> {t('tags.new')}
           </button>
         </div>
       </div>
@@ -116,10 +118,10 @@ export function TagsPage() {
       ) : tagList.length === 0 ? (
         <div className="empty-state">
           <Tags size={48} className="empty-state-icon" />
-          <p className="empty-state-title">No tags yet</p>
-          <p className="empty-state-desc">Tags let you label expenses across categories — like "work lunch" or "date night".</p>
+          <p className="empty-state-title">{t('tags.emptyTitle')}</p>
+          <p className="empty-state-desc">{t('tags.emptyDesc')}</p>
           <button className="btn btn-primary btn-md" onClick={openCreate} style={{ marginTop: 8 }}>
-            <Plus size={16} /> Create tag
+            <Plus size={16} /> {t('common.create')}
           </button>
         </div>
       ) : (
@@ -162,13 +164,13 @@ export function TagsPage() {
       <Modal
         open={showCreate || !!editTag}
         onClose={() => { setShowCreate(false); setEditTag(null); }}
-        title={editTag ? 'Edit tag' : 'New tag'}
+        title={editTag ? t('tags.modalEditTitle') : t('tags.modalCreateTitle')}
         footer={
           <>
-            <button className="btn btn-secondary btn-md" onClick={() => { setShowCreate(false); setEditTag(null); }}>Cancel</button>
+            <button className="btn btn-secondary btn-md" onClick={() => { setShowCreate(false); setEditTag(null); }}>{t('common.cancel')}</button>
             <button className="btn btn-primary btn-md" onClick={handleSave} disabled={saving || !form.name.trim()}>
               {saving && <span className="btn-spinner" />}
-              {editTag ? 'Save' : 'Create'}
+              {editTag ? t('common.save') : t('common.create')}
             </button>
           </>
         }
@@ -179,19 +181,19 @@ export function TagsPage() {
       <Modal
         open={!!deleteTag}
         onClose={() => setDeleteTag(null)}
-        title="Delete tag"
+        title={t('tags.deleteTitle')}
         footer={
           <>
-            <button className="btn btn-secondary btn-md" onClick={() => setDeleteTag(null)}>Cancel</button>
+            <button className="btn btn-secondary btn-md" onClick={() => setDeleteTag(null)}>{t('common.cancel')}</button>
             <button className="btn btn-danger btn-md" onClick={handleDelete} disabled={saving}>
-              {saving && <span className="btn-spinner" />} Delete
+              {saving && <span className="btn-spinner" />} {t('common.delete')}
             </button>
           </>
         }
       >
-        <p style={{ fontSize: 14, color: 'var(--ink-mid)' }}>
-          Delete the tag <strong>{deleteTag?.name}</strong>? It will be removed from all expenses.
-        </p>
+        <p style={{ fontSize: 14, color: 'var(--ink-mid)' }}
+          dangerouslySetInnerHTML={{ __html: t('tags.deleteConfirm', { name: deleteTag?.name ?? '' }) }}
+        />
       </Modal>
     </div>
   );
