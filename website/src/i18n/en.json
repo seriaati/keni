@@ -69,8 +69,7 @@
     },
     "receipt": {
       "title": "Receipt & invoice scanning",
-      "body": "Upload a photo of a paper receipt or a PDF e-invoice. The AI reads the total, line items, merchant, and date, then records it for you.",
-      "detail": "Photos · PDF e-invoices"
+      "body": "Upload a photo of a paper receipt or a PDF e-invoice. The AI reads the total, line items, merchant, and date, then records it for you."
     },
     "chat": {
       "title": "Chat with your data",
@@ -80,18 +79,15 @@
     },
     "models": {
       "title": "Model agnostic",
-      "body": "Bring your own API key. Keni works with OpenAI, OpenRouter, Anthropic, and Google Gemini.",
-      "detail": "OpenAI · Anthropic · Google Gemini · OpenRouter"
+      "body": "Bring your own API key. Keni works with OpenAI, OpenRouter, Anthropic, and Google Gemini."
     },
     "voice": {
       "title": "Voice input",
-      "body": "Tap the mic and speak your expense. Audio is processed locally, nothing leaves your server.",
-      "detail": "Local audio processing · No data sent to third parties"
+      "body": "Tap the mic and speak your expense. Audio is processed locally, nothing leaves your server."
     },
     "wallets": {
       "title": "Multiple wallets",
-      "body": "Separate personal, business, travel, or shared expenses across wallets. Each wallet has its own currency, history, and analytics - perfect for people living across borders.",
-      "detail": "Multi-currency · Per-wallet analytics"
+      "body": "Separate personal, business, travel, or shared expenses across wallets. Each wallet has its own currency, history, and analytics - perfect for people living across borders."
     },
     "categories": {
       "title": "Categories & tags",
@@ -103,8 +99,7 @@
     },
     "mcp": {
       "title": "MCP & API",
-      "body": "Connect Keni to your favorite AI agents via MCP, or integrate with third-party tools using your personal API key.",
-      "detail": "MCP server · REST API · Bring your own agents"
+      "body": "Connect Keni to your favorite AI agents via MCP, or integrate with third-party tools using your personal API key."
     },
     "budgets": {
       "title": "Budgets",
