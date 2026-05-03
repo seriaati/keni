@@ -5,14 +5,14 @@ const f = t.features;
 
 <section class="features" id="features">
   <div class="features-inner">
-
     <div class="section-header reveal">
-      <h2 class="section-title">{f.sectionTitle}<br /><em>{f.sectionTitleEm}</em></h2>
+      <h2 class="section-title">
+        {f.sectionTitle}<br /><em>{f.sectionTitleEm}</em>
+      </h2>
       <p class="section-sub">{f.sectionSub}</p>
     </div>
 
     <div class="grid reveal-stagger">
-
       <!-- 1. Command bar — wide (top left, spans 2 cols) -->
       <div class="card card--wide reveal">
         <div class="card-text">
@@ -25,12 +25,29 @@ const f = t.features;
         </div>
         <div class="card-demo">
           <div class="demo-input">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--forest)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--forest)"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              ><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
+              ></polygon></svg
+            >
             <span>{f.commandBar.demoInput}</span>
           </div>
           <div class="demo-fields">
-            <div class="demo-field"><span class="demo-label">{f.commandBar.demoLabelAmount}</span><strong>{f.commandBar.demoAmount}</strong></div>
-            <div class="demo-field"><span class="demo-label">{f.commandBar.demoLabelCategory}</span><strong>{f.commandBar.demoCategory}</strong></div>
+            <div class="demo-field">
+              <span class="demo-label">{f.commandBar.demoLabelAmount}</span
+              ><strong>{f.commandBar.demoAmount}</strong>
+            </div>
+            <div class="demo-field">
+              <span class="demo-label">{f.commandBar.demoLabelCategory}</span
+              ><strong>{f.commandBar.demoCategory}</strong>
+            </div>
             <div class="demo-field">
               <span class="demo-label">{f.commandBar.demoLabelTags}</span>
               <span class="chip">{f.commandBar.demoTagDinner}</span>
@@ -43,9 +60,18 @@ const f = t.features;
       <!-- 2. Receipt scanning -->
       <div class="card reveal">
         <div class="icon-wrap" style="background: oklch(92% 0.06 230);">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="oklch(42% 0.1 230)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2"/>
-            <path d="M3 9h18M9 21V9"/>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="oklch(42% 0.1 230)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+            <path d="M3 9h18M9 21V9"></path>
           </svg>
         </div>
         <h3>{f.receipt.title}</h3>
@@ -56,8 +82,19 @@ const f = t.features;
       <!-- 3. AI Chat -->
       <div class="card reveal" id="ai">
         <div class="icon-wrap" style="background: oklch(92% 0.06 300);">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="oklch(42% 0.12 300)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="oklch(42% 0.12 300)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+            ></path>
           </svg>
         </div>
         <h3>{f.chat.title}</h3>
@@ -71,12 +108,21 @@ const f = t.features;
       <!-- 4. Multiple wallets -->
       <div class="card reveal">
         <div class="icon-wrap" style="background: oklch(92% 0.04 80);">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="oklch(35% 0.02 80)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 12V22H4V12"/>
-            <path d="M22 7H2v5h20V7z"/>
-            <path d="M12 22V7"/>
-            <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
-            <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="oklch(35% 0.02 80)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M20 12V22H4V12"></path>
+            <path d="M22 7H2v5h20V7z"></path>
+            <path d="M12 22V7"></path>
+            <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
+            <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
           </svg>
         </div>
         <h3>{f.wallets.title}</h3>
@@ -87,29 +133,66 @@ const f = t.features;
       <!-- 5. Categories & Tags -->
       <div class="card reveal">
         <div class="icon-wrap" style="background: oklch(92% 0.06 280);">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="oklch(42% 0.1 280)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-            <line x1="7" y1="7" x2="7.01" y2="7"/>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="oklch(42% 0.1 280)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"
+            ></path>
+            <line x1="7" y1="7" x2="7.01" y2="7"></line>
           </svg>
         </div>
         <h3>{f.categories.title}</h3>
         <p>{f.categories.body}</p>
         <div class="tag-row">
-          <span class="tag-pill" style="background: oklch(92% 0.06 155); color: oklch(32% 0.08 155);">{f.categories.pillDining}</span>
-          <span class="tag-pill" style="background: oklch(92% 0.06 230); color: oklch(32% 0.08 230);">{f.categories.pillTravel}</span>
-          <span class="tag-pill" style="background: oklch(92% 0.06 65); color: oklch(42% 0.1 65);">{f.categories.pillGroceries}</span>
-          <span class="tag-pill" style="background: oklch(92% 0.04 80); color: oklch(35% 0.02 80);">{f.categories.pillWork}</span>
+          <span
+            class="tag-pill"
+            style="background: oklch(92% 0.06 155); color: oklch(32% 0.08 155);"
+            >{f.categories.pillDining}</span
+          >
+          <span
+            class="tag-pill"
+            style="background: oklch(92% 0.06 230); color: oklch(32% 0.08 230);"
+            >{f.categories.pillTravel}</span
+          >
+          <span
+            class="tag-pill"
+            style="background: oklch(92% 0.06 65); color: oklch(42% 0.1 65);"
+            >{f.categories.pillGroceries}</span
+          >
+          <span
+            class="tag-pill"
+            style="background: oklch(92% 0.04 80); color: oklch(35% 0.02 80);"
+            >{f.categories.pillWork}</span
+          >
         </div>
       </div>
 
       <!-- 6. Voice -->
       <div class="card reveal">
         <div class="icon-wrap" style="background: oklch(92% 0.04 20);">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="oklch(52% 0.14 20)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-            <line x1="12" y1="19" x2="12" y2="23"/>
-            <line x1="8" y1="23" x2="16" y2="23"/>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="oklch(52% 0.14 20)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"
+            ></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
           </svg>
         </div>
         <h3>{f.voice.title}</h3>
@@ -120,22 +203,41 @@ const f = t.features;
       <!-- 7. Model agnostic -->
       <div class="card reveal">
         <div class="icon-wrap" style="background: oklch(92% 0.06 65);">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="oklch(42% 0.14 65)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="oklch(42% 0.14 65)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="3"></circle>
+            <path
+              d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"
+            ></path>
           </svg>
         </div>
         <h3>{f.models.title}</h3>
         <p>{f.models.body}</p>
-        <span class="detail">{f.models.detail}</span>
       </div>
 
       <!-- 8. MCP & API -->
       <div class="card reveal">
         <div class="icon-wrap" style="background: oklch(92% 0.04 155);">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="oklch(38% 0.09 155)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="16 18 22 12 16 6"/>
-            <polyline points="8 6 2 12 8 18"/>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="oklch(38% 0.09 155)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="16 18 22 12 16 6"></polyline>
+            <polyline points="8 6 2 12 8 18"></polyline>
           </svg>
         </div>
         <h3>{f.mcp.title}</h3>
@@ -146,9 +248,18 @@ const f = t.features;
       <!-- 9. Budgets -->
       <div class="card reveal">
         <div class="icon-wrap" style="background: oklch(92% 0.06 65);">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="oklch(42% 0.14 65)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="1" x2="12" y2="23"/>
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="oklch(42% 0.14 65)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="12" y1="1" x2="12" y2="23"></line>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
           </svg>
         </div>
         <h3>{f.budgets.title}</h3>
@@ -156,17 +267,38 @@ const f = t.features;
         <div class="budget-bars">
           <div class="brow">
             <span>{f.budgets.barDining}</span>
-            <div class="btrack"><div class="bfill bfill--animate" data-width="82" style="background: var(--amber);"></div></div>
+            <div class="btrack">
+              <div
+                class="bfill bfill--animate"
+                data-width="82"
+                style="background: var(--amber);"
+              >
+              </div>
+            </div>
             <span class="bpct" style="color: var(--amber);">82%</span>
           </div>
           <div class="brow">
             <span>{f.budgets.barTransport}</span>
-            <div class="btrack"><div class="bfill bfill--animate" data-width="45" style="background: var(--forest);"></div></div>
+            <div class="btrack">
+              <div
+                class="bfill bfill--animate"
+                data-width="45"
+                style="background: var(--forest);"
+              >
+              </div>
+            </div>
             <span class="bpct" style="color: var(--forest-light);">45%</span>
           </div>
           <div class="brow">
             <span>{f.budgets.barShopping}</span>
-            <div class="btrack"><div class="bfill bfill--animate" data-width="100" style="background: var(--rose);"></div></div>
+            <div class="btrack">
+              <div
+                class="bfill bfill--animate"
+                data-width="100"
+                style="background: var(--rose);"
+              >
+              </div>
+            </div>
             <span class="bpct" style="color: var(--rose);">112%</span>
           </div>
         </div>
@@ -199,29 +331,75 @@ const f = t.features;
           </div>
           <div class="dp-chart">
             <svg class="donut-svg" viewBox="0 0 100 100" width="88" height="88">
-              <circle cx="50" cy="50" r="36" fill="none" stroke="var(--cream-darker)" stroke-width="14"/>
-              <circle class="donut-seg donut-seg--1" cx="50" cy="50" r="36" fill="none" stroke="var(--forest)" stroke-width="14"
-                stroke-dasharray="84 226" stroke-dashoffset="0" transform="rotate(-90 50 50)"/>
-              <circle class="donut-seg donut-seg--2" cx="50" cy="50" r="36" fill="none" stroke="var(--amber)" stroke-width="14"
-                stroke-dasharray="43 226" stroke-dashoffset="-84" transform="rotate(-90 50 50)"/>
-              <circle class="donut-seg donut-seg--3" cx="50" cy="50" r="36" fill="none" stroke="var(--sky)" stroke-width="14"
-                stroke-dasharray="16 226" stroke-dashoffset="-127" transform="rotate(-90 50 50)"/>
+              <circle
+                cx="50"
+                cy="50"
+                r="36"
+                fill="none"
+                stroke="var(--cream-darker)"
+                stroke-width="14"></circle>
+              <circle
+                class="donut-seg donut-seg--1"
+                cx="50"
+                cy="50"
+                r="36"
+                fill="none"
+                stroke="var(--forest)"
+                stroke-width="14"
+                stroke-dasharray="84 226"
+                stroke-dashoffset="0"
+                transform="rotate(-90 50 50)"></circle>
+              <circle
+                class="donut-seg donut-seg--2"
+                cx="50"
+                cy="50"
+                r="36"
+                fill="none"
+                stroke="var(--amber)"
+                stroke-width="14"
+                stroke-dasharray="43 226"
+                stroke-dashoffset="-84"
+                transform="rotate(-90 50 50)"></circle>
+              <circle
+                class="donut-seg donut-seg--3"
+                cx="50"
+                cy="50"
+                r="36"
+                fill="none"
+                stroke="var(--sky)"
+                stroke-width="14"
+                stroke-dasharray="16 226"
+                stroke-dashoffset="-127"
+                transform="rotate(-90 50 50)"></circle>
             </svg>
             <div class="dp-legend">
-              <div class="dp-row"><span class="dp-dot" style="background:var(--forest)"></span><span>{f.dashboard.legendDining}</span><strong>{f.dashboard.legendDiningValue}</strong></div>
-              <div class="dp-row"><span class="dp-dot" style="background:var(--amber)"></span><span>{f.dashboard.legendTransport}</span><strong>{f.dashboard.legendTransportValue}</strong></div>
-              <div class="dp-row"><span class="dp-dot" style="background:var(--sky)"></span><span>{f.dashboard.legendShopping}</span><strong>{f.dashboard.legendShoppingValue}</strong></div>
+              <div class="dp-row">
+                <span class="dp-dot" style="background:var(--forest)"
+                ></span><span>{f.dashboard.legendDining}</span><strong
+                  >{f.dashboard.legendDiningValue}</strong>
+              </div>
+              <div class="dp-row">
+                <span class="dp-dot" style="background:var(--amber)"
+                ></span><span>{f.dashboard.legendTransport}</span><strong
+                  >{f.dashboard.legendTransportValue}</strong>
+              </div>
+              <div class="dp-row">
+                <span class="dp-dot" style="background:var(--sky)"></span><span
+                  >{f.dashboard.legendShopping}</span
+                ><strong>{f.dashboard.legendShoppingValue}</strong>
+              </div>
             </div>
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </section>
 
 <script>
-  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const prefersReduced = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
 
   const cardObserver = new IntersectionObserver(
     (entries) => {
@@ -230,32 +408,32 @@ const f = t.features;
 
         const el = entry.target;
 
-        const bars = el.querySelectorAll<HTMLElement>('.bfill--animate');
+        const bars = el.querySelectorAll<HTMLElement>(".bfill--animate");
         bars.forEach((bar) => {
-          const w = bar.dataset.width ?? '0';
+          const w = bar.dataset.width ?? "0";
           if (prefersReduced) {
             bar.style.width = `${w}%`;
           } else {
-            bar.style.width = '0%';
+            bar.style.width = "0%";
             requestAnimationFrame(() => {
-              bar.style.transition = 'width 0.9s cubic-bezier(0.16, 1, 0.3, 1)';
+              bar.style.transition = "width 0.9s cubic-bezier(0.16, 1, 0.3, 1)";
               bar.style.width = `${Math.min(Number(w), 100)}%`;
             });
           }
         });
 
-        const donut = el.querySelector('.donut-svg');
+        const donut = el.querySelector(".donut-svg");
         if (donut) {
-          const segs = donut.querySelectorAll<SVGCircleElement>('.donut-seg');
+          const segs = donut.querySelectorAll<SVGCircleElement>(".donut-seg");
           if (prefersReduced) return;
           segs.forEach((seg, i) => {
-            const finalDash = seg.getAttribute('stroke-dasharray') ?? '0 226';
-            const finalOffset = seg.getAttribute('stroke-dashoffset') ?? '0';
-            seg.setAttribute('stroke-dasharray', `0 226`);
+            const finalDash = seg.getAttribute("stroke-dasharray") ?? "0 226";
+            const finalOffset = seg.getAttribute("stroke-dashoffset") ?? "0";
+            seg.setAttribute("stroke-dasharray", `0 226`);
             seg.style.transition = `stroke-dasharray 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${i * 120 + 100}ms, stroke-dashoffset 0s`;
             requestAnimationFrame(() => {
-              seg.setAttribute('stroke-dasharray', finalDash);
-              seg.setAttribute('stroke-dashoffset', finalOffset);
+              seg.setAttribute("stroke-dasharray", finalDash);
+              seg.setAttribute("stroke-dashoffset", finalOffset);
             });
           });
         }
@@ -263,419 +441,438 @@ const f = t.features;
         cardObserver.unobserve(el);
       });
     },
-    { threshold: 0.3 }
+    { threshold: 0.3 },
   );
 
-  document.querySelectorAll('.card').forEach((card) => cardObserver.observe(card));
+  document
+    .querySelectorAll(".card")
+    .forEach((card) => cardObserver.observe(card));
 </script>
 
 <style>
-.features {
-  padding: clamp(64px, 8vw, 100px) 0;
-}
+  .features {
+    padding: clamp(64px, 8vw, 100px) 0;
+  }
 
-.features-inner {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 clamp(20px, 5vw, 48px);
-}
+  .features-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 clamp(20px, 5vw, 48px);
+  }
 
-.section-header {
-  margin-bottom: clamp(40px, 6vw, 64px);
-  max-width: 560px;
-}
+  .section-header {
+    margin-bottom: clamp(40px, 6vw, 64px);
+    max-width: 560px;
+  }
 
-.section-title {
-  font-family: var(--font-display);
-  font-size: clamp(32px, 4vw, 52px);
-  font-weight: 400;
-  line-height: 1.1;
-  color: var(--ink);
-}
-.section-title em { font-style: italic; color: var(--forest-light); }
+  .section-title {
+    font-family: var(--font-display);
+    font-size: clamp(32px, 4vw, 52px);
+    font-weight: 400;
+    line-height: 1.1;
+    color: var(--ink);
+  }
+  .section-title em {
+    font-style: italic;
+    color: var(--forest-light);
+  }
 
-.section-sub {
-  font-size: clamp(14px, 1.5vw, 16px);
-  color: var(--ink-mid);
-  line-height: 1.65;
-  margin-top: 14px;
-}
+  .section-sub {
+    font-size: clamp(14px, 1.5vw, 16px);
+    color: var(--ink-mid);
+    line-height: 1.65;
+    margin-top: 14px;
+  }
 
-/* ── Grid ───────────────────────────────────────────────── */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-/* ── Cards ──────────────────────────────────────────────── */
-.card {
-  background: white;
-  border: 1px solid var(--cream-darker);
-  border-radius: var(--radius-xl);
-  padding: clamp(20px, 3vw, 28px);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  transition:
-    transform 0.3s cubic-bezier(0.25, 1, 0.5, 1),
-    box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1),
-    border-color 0.3s;
-}
-
-.card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--sand);
-}
-
-.card--wide {
-  grid-column: span 2;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  align-items: center;
-}
-
-.card--flip {
-  grid-template-columns: 1fr 1fr;
-}
-
-.card--flip .dashboard-preview { order: 1; }
-.card--flip .card-text { order: 2; }
-
-.card h3 {
-  font-family: var(--font-display);
-  font-size: clamp(18px, 2vw, 22px);
-  font-weight: 400;
-  color: var(--ink);
-  line-height: 1.2;
-}
-
-.card p {
-  font-size: 14px;
-  color: var(--ink-mid);
-  line-height: 1.65;
-}
-
-.tag {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-light);
-  background: var(--cream-dark);
-  border: 1px solid var(--cream-darker);
-  padding: 4px 10px;
-  border-radius: 100px;
-  width: fit-content;
-}
-
-.detail {
-  font-size: 12px;
-  color: var(--ink-faint);
-  margin-top: auto;
-}
-
-.icon-wrap {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1);
-}
-
-.card:hover .icon-wrap {
-  transform: scale(1.08);
-}
-
-.card-text {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.card ul {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.card ul li {
-  font-size: 13px;
-  color: var(--ink-mid);
-  padding-left: 16px;
-  position: relative;
-}
-
-.card ul li::before {
-  content: '–';
-  position: absolute;
-  left: 0;
-  color: var(--ink-faint);
-}
-
-/* ── Command bar demo ───────────────────────────────────── */
-.card-demo {
-  background: var(--cream);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  border: 1px solid var(--cream-darker);
-}
-
-.demo-input {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--cream-darker);
-  background: white;
-  font-size: 13px;
-  color: var(--ink);
-}
-
-.demo-fields {
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.demo-field {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.demo-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--ink-faint);
-  width: 64px;
-  flex-shrink: 0;
-}
-
-.demo-field strong {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink);
-}
-
-.chip {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--ink-mid);
-  background: white;
-  border: 1px solid var(--cream-darker);
-  padding: 2px 7px;
-  border-radius: 4px;
-}
-
-.chip--new {
-  color: oklch(38% 0.09 145);
-  background: oklch(92% 0.04 145);
-  border-color: oklch(82% 0.08 145);
-}
-
-/* ── Chat bubbles ───────────────────────────────────────── */
-.chat-bubbles {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.bubble {
-  font-size: 13px;
-  line-height: 1.5;
-  padding: 9px 12px;
-  border-radius: 12px;
-  max-width: 90%;
-}
-
-.bubble--user {
-  background: var(--forest);
-  color: var(--cream);
-  align-self: flex-end;
-  border-radius: 12px 3px 12px 12px;
-}
-
-.bubble--ai {
-  background: var(--cream-dark);
-  color: var(--ink-mid);
-  align-self: flex-start;
-  border-radius: 3px 12px 12px 12px;
-}
-
-/* ── Budget bars ────────────────────────────────────────── */
-.budget-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.brow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--ink-mid);
-}
-
-.brow span:first-child { width: 72px; flex-shrink: 0; }
-
-.btrack {
-  flex: 1;
-  height: 5px;
-  background: var(--cream-dark);
-  border-radius: 99px;
-  overflow: hidden;
-}
-
-.bfill {
-  height: 100%;
-  border-radius: 99px;
-  width: 0%;
-}
-
-.bpct {
-  font-size: 11px;
-  font-weight: 600;
-  width: 36px;
-  text-align: right;
-  flex-shrink: 0;
-}
-
-/* ── Tag pills ──────────────────────────────────────────── */
-.tag-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.tag-pill {
-  font-size: 12px;
-  font-weight: 500;
-  padding: 4px 10px;
-  border-radius: 100px;
-  transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
-}
-
-.tag-pill:hover { transform: translateY(-2px); }
-
-/* ── Dashboard preview ──────────────────────────────────── */
-.dashboard-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.dp-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.dp-card {
-  background: white;
-  border: 1px solid var(--cream-darker);
-  border-radius: var(--radius);
-  padding: 10px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.dp-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--ink-faint);
-}
-
-.dp-value {
-  font-family: var(--font-display);
-  font-size: 20px;
-  color: var(--ink);
-  line-height: 1.1;
-}
-
-.dp-sub {
-  font-size: 11px;
-  color: var(--ink-faint);
-}
-
-.dp-chart {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: white;
-  border: 1px solid var(--cream-darker);
-  border-radius: var(--radius);
-  padding: 12px 14px;
-}
-
-.dp-legend {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1;
-}
-
-.dp-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 12px;
-  color: var(--ink-mid);
-}
-
-.dp-row span:nth-child(2) { flex: 1; }
-.dp-row strong { font-size: 12px; color: var(--ink); }
-
-.dp-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-
-/* ── Donut chart ────────────────────────────────────────── */
-.donut-seg {
-  transition: stroke-dasharray 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* ── Responsive ─────────────────────────────────────────── */
-@media (max-width: 900px) {
+  /* ── Grid ───────────────────────────────────────────────── */
   .grid {
-    grid-template-columns: repeat(2, 1fr);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  /* ── Cards ──────────────────────────────────────────────── */
+  .card {
+    background: white;
+    border: 1px solid var(--cream-darker);
+    border-radius: var(--radius-xl);
+    padding: clamp(20px, 3vw, 28px);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition:
+      transform 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+      box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+      border-color 0.3s;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--sand);
   }
 
   .card--wide {
     grid-column: span 2;
-    grid-template-columns: 1fr;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: center;
   }
 
   .card--flip {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 600px) {
-  .grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 
-  .card--wide {
-    grid-column: span 1;
+  .card--flip .dashboard-preview {
+    order: 1;
   }
-}
+  .card--flip .card-text {
+    order: 2;
+  }
+
+  .card h3 {
+    font-family: var(--font-display);
+    font-size: clamp(18px, 2vw, 22px);
+    font-weight: 400;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+
+  .card p {
+    font-size: 14px;
+    color: var(--ink-mid);
+    line-height: 1.65;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    background: var(--cream-dark);
+    border: 1px solid var(--cream-darker);
+    padding: 4px 10px;
+    border-radius: 100px;
+    width: fit-content;
+  }
+
+  .detail {
+    font-size: 12px;
+    color: var(--ink-faint);
+    margin-top: auto;
+  }
+
+  .icon-wrap {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  .card:hover .icon-wrap {
+    transform: scale(1.08);
+  }
+
+  .card-text {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .card ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .card ul li {
+    font-size: 13px;
+    color: var(--ink-mid);
+    padding-left: 16px;
+    position: relative;
+  }
+
+  .card ul li::before {
+    content: "–";
+    position: absolute;
+    left: 0;
+    color: var(--ink-faint);
+  }
+
+  /* ── Command bar demo ───────────────────────────────────── */
+  .card-demo {
+    background: var(--cream);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--cream-darker);
+  }
+
+  .demo-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--cream-darker);
+    background: white;
+    font-size: 13px;
+    color: var(--ink);
+  }
+
+  .demo-fields {
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .demo-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .demo-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-faint);
+    width: 64px;
+    flex-shrink: 0;
+  }
+
+  .demo-field strong {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .chip {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-mid);
+    background: white;
+    border: 1px solid var(--cream-darker);
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+
+  .chip--new {
+    color: oklch(38% 0.09 145);
+    background: oklch(92% 0.04 145);
+    border-color: oklch(82% 0.08 145);
+  }
+
+  /* ── Chat bubbles ───────────────────────────────────────── */
+  .chat-bubbles {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .bubble {
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 9px 12px;
+    border-radius: 12px;
+    max-width: 90%;
+  }
+
+  .bubble--user {
+    background: var(--forest);
+    color: var(--cream);
+    align-self: flex-end;
+    border-radius: 12px 3px 12px 12px;
+  }
+
+  .bubble--ai {
+    background: var(--cream-dark);
+    color: var(--ink-mid);
+    align-self: flex-start;
+    border-radius: 3px 12px 12px 12px;
+  }
+
+  /* ── Budget bars ────────────────────────────────────────── */
+  .budget-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .brow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--ink-mid);
+  }
+
+  .brow span:first-child {
+    width: 72px;
+    flex-shrink: 0;
+  }
+
+  .btrack {
+    flex: 1;
+    height: 5px;
+    background: var(--cream-dark);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .bfill {
+    height: 100%;
+    border-radius: 99px;
+    width: 0%;
+  }
+
+  .bpct {
+    font-size: 11px;
+    font-weight: 600;
+    width: 36px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* ── Tag pills ──────────────────────────────────────────── */
+  .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .tag-pill {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 100px;
+    transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  .tag-pill:hover {
+    transform: translateY(-2px);
+  }
+
+  /* ── Dashboard preview ──────────────────────────────────── */
+  .dashboard-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .dp-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .dp-card {
+    background: white;
+    border: 1px solid var(--cream-darker);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .dp-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-faint);
+  }
+
+  .dp-value {
+    font-family: var(--font-display);
+    font-size: 20px;
+    color: var(--ink);
+    line-height: 1.1;
+  }
+
+  .dp-sub {
+    font-size: 11px;
+    color: var(--ink-faint);
+  }
+
+  .dp-chart {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: white;
+    border: 1px solid var(--cream-darker);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+
+  .dp-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+  }
+
+  .dp-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    color: var(--ink-mid);
+  }
+
+  .dp-row span:nth-child(2) {
+    flex: 1;
+  }
+  .dp-row strong {
+    font-size: 12px;
+    color: var(--ink);
+  }
+
+  .dp-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ── Donut chart ────────────────────────────────────────── */
+  .donut-seg {
+    transition: stroke-dasharray 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* ── Responsive ─────────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .card--wide {
+      grid-column: span 2;
+      grid-template-columns: 1fr;
+    }
+
+    .card--flip {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+
+    .card--wide {
+      grid-column: span 1;
+    }
+  }
 </style>
