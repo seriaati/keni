@@ -76,7 +76,6 @@ const f = t.features;
         </div>
         <h3>{f.receipt.title}</h3>
         <p>{f.receipt.body}</p>
-        <span class="detail">{f.receipt.detail}</span>
       </div>
 
       <!-- 3. AI Chat -->
@@ -127,7 +126,6 @@ const f = t.features;
         </div>
         <h3>{f.wallets.title}</h3>
         <p>{f.wallets.body}</p>
-        <span class="detail">{f.wallets.detail}</span>
       </div>
 
       <!-- 5. Categories & Tags -->
@@ -197,7 +195,6 @@ const f = t.features;
         </div>
         <h3>{f.voice.title}</h3>
         <p>{f.voice.body}</p>
-        <span class="detail">{f.voice.detail}</span>
       </div>
 
       <!-- 7. Model agnostic -->
@@ -242,7 +239,6 @@ const f = t.features;
         </div>
         <h3>{f.mcp.title}</h3>
         <p>{f.mcp.body}</p>
-        <span class="detail">{f.mcp.detail}</span>
       </div>
 
       <!-- 9. Budgets -->
@@ -376,12 +372,14 @@ const f = t.features;
               <div class="dp-row">
                 <span class="dp-dot" style="background:var(--forest)"
                 ></span><span>{f.dashboard.legendDining}</span><strong
-                  >{f.dashboard.legendDiningValue}</strong>
+                  >{f.dashboard.legendDiningValue}</strong
+                >
               </div>
               <div class="dp-row">
                 <span class="dp-dot" style="background:var(--amber)"
                 ></span><span>{f.dashboard.legendTransport}</span><strong
-                  >{f.dashboard.legendTransportValue}</strong>
+                  >{f.dashboard.legendTransportValue}</strong
+                >
               </div>
               <div class="dp-row">
                 <span class="dp-dot" style="background:var(--sky)"></span><span
@@ -557,12 +555,6 @@ const f = t.features;
     padding: 4px 10px;
     border-radius: 100px;
     width: fit-content;
-  }
-
-  .detail {
-    font-size: 12px;
-    color: var(--ink-faint);
-    margin-top: auto;
   }
 
   .icon-wrap {
