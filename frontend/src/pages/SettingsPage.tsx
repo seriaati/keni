@@ -9,6 +9,7 @@ import { SearchableSelect } from '../components/ui/SearchableSelect';
 import { DatePicker } from '../components/ui/DatePicker';
 import type { AIProviderResponse, APITokenCreateResponse, APITokenResponse } from '../lib/types';
 import { AI_PROVIDERS, fmtDate } from '../lib/utils';
+import { getSupportedCurrencies } from '../lib/fx';
 
 export function SettingsPage() {
   const { user, refreshUser } = useAuth();
@@ -82,7 +83,13 @@ function ProfileTab({ user, refreshUser, toast }: { user: any; refreshUser: () =
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [timezone, setTimezone] = useState<string>(user?.timezone ?? '');
+  const [globalCurrency, setGlobalCurrency] = useState<string>(user?.global_currency ?? '');
+  const [currencyOptions, setCurrencyOptions] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    getSupportedCurrencies().then(setCurrencyOptions);
+  }, []);
 
   const handleSave = async () => {
     if (password && password !== confirmPassword) {
@@ -95,6 +102,7 @@ function ProfileTab({ user, refreshUser, toast }: { user: any; refreshUser: () =
         display_name: displayName || undefined,
         password: password || undefined,
         timezone: timezone || null,
+        global_currency: globalCurrency || null,
       });
       await refreshUser();
       setPassword('');
@@ -132,6 +140,16 @@ function ProfileTab({ user, refreshUser, toast }: { user: any; refreshUser: () =
             placeholder={`Browser default (${Intl.DateTimeFormat().resolvedOptions().timeZone})`}
           />
           <span className="input-hint">Used for "today's date" in AI transaction parsing</span>
+        </div>
+        <div className="input-group">
+          <label className="input-label">Global currency</label>
+          <SearchableSelect
+            value={globalCurrency}
+            onChange={setGlobalCurrency}
+            options={[{ value: '', label: '— None —' }, ...currencyOptions.map((c) => ({ value: c, label: c }))]}
+            placeholder={currencyOptions.length === 0 ? 'Loading…' : '— None —'}
+          />
+          <span className="input-hint">When set, transaction amounts are shown with a converted value next to them</span>
         </div>
         <hr className="divider" />
         <div className="input-group">
