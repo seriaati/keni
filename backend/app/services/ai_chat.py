@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import logging
 import operator
+import time
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
+import httpx
 from fastapi import HTTPException, status
 from sqlmodel import and_, col, select
 
@@ -152,6 +154,29 @@ CHAT_TOOLS: list[ChatTool] = [
             "required": [],
         },
     ),
+    ChatTool(
+        name="convert_currency",
+        description=(
+            "Convert an amount from one currency to another using live exchange rates. "
+            "Use this when the user asks 'how much is X in Y', wants amounts shown in a different currency, "
+            "or asks about exchange rates between currencies."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "amount": {"type": "number", "description": "The amount to convert."},
+                "from_currency": {
+                    "type": "string",
+                    "description": "Source currency code (e.g. USD, EUR, GBP).",
+                },
+                "to_currency": {
+                    "type": "string",
+                    "description": "Target currency code (e.g. USD, EUR, GBP).",
+                },
+            },
+            "required": ["amount", "from_currency", "to_currency"],
+        },
+    ),
 ]
 
 
@@ -196,6 +221,8 @@ def _make_executor(wallet_ids: list[Any], session: AsyncSession) -> Any:
             result = await _tool_get_category_breakdown(wallet_ids, session, args)
         elif tool_name == "get_monthly_trend":
             result = await _tool_get_monthly_trend(wallet_ids, session, args)
+        elif tool_name == "convert_currency":
+            result = await _tool_convert_currency(args)
         else:
             msg = f"Unknown tool: {tool_name}"
             raise ValueError(msg)
@@ -347,6 +374,47 @@ async def _tool_get_monthly_trend(
 
     trend = sorted(raw.values(), key=operator.itemgetter("period"), reverse=True)[:months_limit]
     return {"trend": trend}
+
+
+_fx_cache: dict[str, tuple[float, float]] = {}
+_FX_TTL = 3600.0
+
+
+async def _tool_convert_currency(args: dict[str, Any]) -> dict[str, Any]:
+    amount = float(args["amount"])
+    from_cur = str(args["from_currency"]).upper()
+    to_cur = str(args["to_currency"]).upper()
+
+    if from_cur == to_cur:
+        return {"from_currency": from_cur, "to_currency": to_cur, "rate": 1.0, "result": amount}
+
+    cache_key = f"{from_cur}:{to_cur}"
+    cached = _fx_cache.get(cache_key)
+    if cached and time.time() - cached[1] < _FX_TTL:
+        rate = cached[0]
+    else:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"https://open.er-api.com/v6/latest/{from_cur}")
+        if resp.status_code != 200:
+            msg = f"Exchange rate API returned {resp.status_code}"
+            raise ValueError(msg)
+        data = resp.json()
+        if data.get("result") != "success":
+            msg = f"Exchange rate API error: {data.get('error-type', 'unknown')}"
+            raise ValueError(msg)
+        rate = data["rates"].get(to_cur)
+        if rate is None:
+            msg = f"Unsupported currency: {to_cur}"
+            raise ValueError(msg)
+        _fx_cache[cache_key] = (float(rate), time.time())
+
+    return {
+        "from_currency": from_cur,
+        "to_currency": to_cur,
+        "rate": rate,
+        "amount": amount,
+        "result": round(amount * rate, 6),
+    }
 
 
 async def chat_about_expenses(
