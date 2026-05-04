@@ -4,11 +4,14 @@ import Hero from '../components/Hero.astro';
 import Features from '../components/Features.astro';
 import Privacy from '../components/Privacy.astro';
 import CTA from '../components/CTA.astro';
+import { getTranslations } from '../i18n/index.ts';
+
+const t = getTranslations(Astro.currentLocale);
 ---
 
 <Layout>
-  <Hero />
-  <Features />
-  <Privacy />
-  <CTA />
+  <Hero t={t} />
+  <Features t={t} />
+  <Privacy t={t} />
+  <CTA t={t} />
 </Layout>

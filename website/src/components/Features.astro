@@ -1,5 +1,7 @@
 ---
-import t from "../i18n/en.json";
+import type { Translations } from "../i18n/index.ts";
+interface Props { t: Translations }
+const { t } = Astro.props;
 const f = t.features;
 ---
 

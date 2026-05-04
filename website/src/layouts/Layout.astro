@@ -1,7 +1,13 @@
 ---
 import "../styles/global.css";
 import logoSrc from "../assets/logo.svg?url";
-import t from "../i18n/en.json";
+import { getTranslations } from "../i18n/index.ts";
+
+const locale = Astro.currentLocale ?? 'en';
+const t = getTranslations(locale);
+const altLocale = locale === 'zh-TW' ? 'en' : 'zh-TW';
+const altHref = locale === 'zh-TW' ? '/' : '/zh-TW/';
+const altLabel = locale === 'zh-TW' ? 'EN' : '中文';
 
 interface Props {
   title?: string;
@@ -48,7 +54,7 @@ const jsonLd = {
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang={locale}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -57,12 +63,15 @@ const jsonLd = {
     <meta name="theme-color" content="#3d6b4f" />
 
     <link rel="canonical" href={canonicalUrl} />
+    <link rel="alternate" hreflang="en" href="https://keni.seria.moe/" />
+    <link rel="alternate" hreflang="zh-TW" href="https://keni.seria.moe/zh-TW/" />
+    <link rel="alternate" hreflang="x-default" href="https://keni.seria.moe/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Keni" />
-    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale" content={locale === 'zh-TW' ? 'zh_TW' : 'en_US'} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImageAbsolute} />
@@ -92,6 +101,7 @@ const jsonLd = {
           <a href="#privacy">{t.nav.privacy}</a>
           <a href="https://github.com/seriaati/keni" target="_blank" rel="noopener">GitHub</a>
         </div>
+        <a href={altHref} class="nav-lang" hreflang={altLocale}>{altLabel}</a>
         <a href={t.site.appUrl} class="nav-cta">{t.nav.cta}</a>
       </nav>
     </header>
@@ -191,6 +201,22 @@ const jsonLd = {
 
   .nav-links a:hover {
     color: var(--ink);
+  }
+
+  .nav-lang {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink-light);
+    border: 1px solid var(--cream-darker);
+    padding: 5px 10px;
+    border-radius: var(--radius);
+    transition: color 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .nav-lang:hover {
+    color: var(--ink);
+    border-color: var(--ink-light);
   }
 
   .nav-cta {

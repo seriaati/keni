@@ -1,0 +1,158 @@
+{
+  "site": {
+    "title": "Keni | 輕鬆掌財，分毫不差",
+    "description": "Keni 是專為想要詳細記帳、又不想花太多心力的人打造的個人財務追蹤工具。透過 AI 處理各種輸入方式（文字、圖片、PDF、語音等），自動擷取交易資訊並分類，方便日後查詢。",
+    "appUrl": "https://app.keni.seria.moe"
+  },
+  "nav": {
+    "logo": "Keni",
+    "features": "功能介紹",
+    "privacy": "隱私保護",
+    "cta": "立即開始"
+  },
+  "footer": {
+    "brand": "Keni",
+    "tagline": "輕鬆掌財，分毫不差。"
+  },
+  "hero": {
+    "eyebrow": "個人財務追蹤工具",
+    "headline": "輕鬆掌財，",
+    "headlineEm": "分毫不差。",
+    "sub": "輸入「咖啡 45」、拍張收據、或直接開口說，Keni 都聽得懂。幾秒內完成記帳。",
+    "ctaPrimary": "免費試用 Keni",
+    "ctaGhost": "了解功能 ↓",
+    "mockup": {
+      "cmdText": "和團隊吃午餐 380",
+      "cmdHint": "⌘ K",
+      "labelAmount": "金額",
+      "labelCategory": "分類",
+      "labelTags": "標籤",
+      "amount": "NT$380",
+      "category": "🍽 餐飲",
+      "tagWork": "工作",
+      "tagTeam": "✦ 團隊",
+      "aiNote": "AI 已解讀：團隊午餐，共同支出",
+      "btnEdit": "編輯",
+      "btnSave": "儲存支出"
+    },
+    "statMonth": {
+      "label": "本月支出",
+      "value": "NT$12,400",
+      "sub": "共 42 筆"
+    },
+    "statBudget": {
+      "label": "餐飲預算",
+      "sub": "已用 68%・剩餘 NT$640"
+    }
+  },
+  "features": {
+    "sectionTitle": "一切都為了",
+    "sectionTitleEm": "讓記帳不再是負擔。",
+    "sectionSub": "隱私優先的財務追蹤工具，讓你掌握每一分錢，卻不必花太多心思。",
+    "commandBar": {
+      "tag": "AI 驅動",
+      "title": "⌘ K，什麼都能記",
+      "body": "一個指令列，搞定收入、支出、定期帳單、共同費用，或一次記多筆交易。",
+      "list": [
+        "AI 自動推斷情境並分類",
+        "細緻分類搭配標籤管理",
+        "儲存前可確認並修改"
+      ],
+      "demoInput": "和團隊吃午餐 380",
+      "demoLabelAmount": "金額",
+      "demoLabelCategory": "分類",
+      "demoLabelTags": "標籤",
+      "demoAmount": "NT$380",
+      "demoCategory": "🍽 餐飲",
+      "demoTagDinner": "工作",
+      "demoTagSarah": "✦ 團隊"
+    },
+    "receipt": {
+      "title": "收據與發票掃描",
+      "body": "拍下紙本收據或上傳電子發票 PDF，AI 自動讀取總金額、明細、商家名稱與日期，替你完成記帳。"
+    },
+    "chat": {
+      "title": "直接問你的帳",
+      "body": "用自然語言提問，就像和私人理財顧問聊天。所有答案都來自你真實的消費數據。",
+      "bubbleUser": "我這個月的總收入是多少？",
+      "bubbleAi": "你本月共有 3 筆收入來源，合計 NT$43,200。支出最高的分類是餐飲，共 NT$4,960。"
+    },
+    "models": {
+      "title": "自由選擇 AI 模型",
+      "body": "自備 API 金鑰。Keni 支援 OpenAI、OpenRouter、Anthropic 及 Google Gemini。"
+    },
+    "voice": {
+      "title": "語音輸入",
+      "body": "點選麥克風，直接說出你的支出。語音在本機處理，不會上傳至外部伺服器。"
+    },
+    "wallets": {
+      "title": "多帳戶管理",
+      "body": "將個人、工作、旅遊或共用支出分開管理。每個帳戶擁有獨立幣別、歷史記錄與分析報表，特別適合跨國生活的人。"
+    },
+    "categories": {
+      "title": "分類與標籤",
+      "body": "用分類和標籤整理支出。AI 根據情境自動建議，幾乎不需要手動輸入。查詢歷史記錄時，可依分類或標籤篩選。",
+      "pillDining": "🍽 餐飲",
+      "pillTravel": "✈️ 旅遊",
+      "pillGroceries": "🛒 超市採買",
+      "pillWork": "#工作"
+    },
+    "mcp": {
+      "title": "MCP 與 API 整合",
+      "body": "透過 MCP 將 Keni 接入你常用的 AI 助理，或使用個人 API 金鑰與第三方工具串接。"
+    },
+    "budgets": {
+      "title": "預算管理",
+      "body": "依週期、分類或帳戶設定預算。當你接近或超出上限時，儀表板會即時顯示警示。",
+      "barDining": "餐飲",
+      "barTransport": "交通",
+      "barShopping": "購物"
+    },
+    "dashboard": {
+      "tag": "數據分析",
+      "title": "一眼掌握全局",
+      "body": "月度總覽、本週節奏、每日平均、最近交易，以及分類圓餅圖，一個畫面看清楚。",
+      "cardMonth": {
+        "label": "本月支出",
+        "value": "NT$12,400",
+        "sub": "共 42 筆"
+      },
+      "cardWeek": {
+        "label": "本週支出",
+        "value": "NT$3,180",
+        "sub": "共 11 筆"
+      },
+      "cardDaily": {
+        "label": "每日平均",
+        "value": "NT$410",
+        "sub": "本月至今"
+      },
+      "legendDining": "餐飲",
+      "legendDiningValue": "NT$4,960",
+      "legendTransport": "交通",
+      "legendTransportValue": "NT$2,480",
+      "legendShopping": "購物",
+      "legendShoppingValue": "NT$890"
+    }
+  },
+  "privacy": {
+    "tag": "開源 · 自架部署",
+    "title": "你的數據，",
+    "titleEm": "永遠屬於你。",
+    "sub": "自行架設 Keni，所有財務資料存放在你自己的伺服器。無追蹤、無廣告、無訂閱費用。",
+    "checklist": [
+      "所有資料儲存於你自己的伺服器",
+      "自備 AI 供應商，OpenAI、Anthropic、Gemini、OpenRouter",
+      "語音在本機處理",
+      "隨時匯出你的資料"
+    ],
+    "codeFilename": "docker-compose.yml"
+  },
+  "cta": {
+    "title": "現在就開始，",
+    "titleEm": "記帳不費力。",
+    "sub": "用 Docker Compose 自架取得完整掌控權，或免費使用雲端版本（資料保留 2 週）。",
+    "btnPrimary": "免費試用雲端版",
+    "btnSecondary": "用 Docker 自架 ↗"
+  }
+}
