@@ -35,6 +35,7 @@ async def get_me(current_user: CurrentUser) -> UserResponse:
         timezone=current_user.timezone,
         custom_ai_prompt=current_user.custom_ai_prompt,
         global_currency=current_user.global_currency,
+        language=current_user.language,
     )
 
 
@@ -52,6 +53,8 @@ async def update_me(
         current_user.custom_ai_prompt = body.custom_ai_prompt
     if "global_currency" in body.model_fields_set:
         current_user.global_currency = body.global_currency
+    if "language" in body.model_fields_set:
+        current_user.language = body.language
 
     session.add(current_user)
     await session.commit()
@@ -66,6 +69,7 @@ async def update_me(
         timezone=current_user.timezone,
         custom_ai_prompt=current_user.custom_ai_prompt,
         global_currency=current_user.global_currency,
+        language=current_user.language,
     )
 
 

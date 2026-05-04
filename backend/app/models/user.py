@@ -20,6 +20,7 @@ class User(SQLModel, table=True):
     timezone: str | None = Field(default=None, max_length=50)
     custom_ai_prompt: str | None = Field(default=None, max_length=500)
     global_currency: str | None = Field(default=None, max_length=10)
+    language: str | None = Field(default=None, max_length=10)
     created_at: datetime = Field(
         default=None,
         sa_column=sa.Column(
