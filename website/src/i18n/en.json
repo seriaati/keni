@@ -21,6 +21,7 @@
     "sub": "Type \"coffee 4.50\", snap a receipt, or just ask - Keni understands. Record any transaction in seconds.",
     "ctaPrimary": "Try Keni free",
     "ctaGhost": "See features ↓",
+    "watchDemo": "Watch demo",
     "mockup": {
       "cmdText": "lunch with team 38",
       "cmdHint": "⌘ K",
