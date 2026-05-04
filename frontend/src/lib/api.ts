@@ -113,7 +113,7 @@ export const auth = {
 
 export const users = {
   me: () => request<UserResponse>('/users/me'),
-  update: (data: { display_name?: string; password?: string; timezone?: string | null; custom_ai_prompt?: string | null; global_currency?: string | null }) =>
+  update: (data: { display_name?: string; password?: string; timezone?: string | null; custom_ai_prompt?: string | null; global_currency?: string | null; language?: string | null }) =>
     request<UserResponse>('/users/me', { method: 'PATCH', body: JSON.stringify(data) }),
 };
 

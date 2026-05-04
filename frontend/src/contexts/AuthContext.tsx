@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { auth, users } from '../lib/api';
 import type { UserResponse } from '../lib/types';
+import i18n from '../lib/i18n';
 
 interface AuthContextValue {
   user: UserResponse | null;
@@ -21,6 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const me = await users.me();
       setUser(me);
+      if (me.language) await i18n.changeLanguage(me.language);
     } catch {
       setUser(null);
     }

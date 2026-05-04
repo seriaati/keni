@@ -297,6 +297,7 @@
     "profileConfirmPassword": "Confirm password",
     "profileConfirmPasswordPlaceholder": "Confirm new password",
     "profileSave": "Save changes",
+    "profileLanguage": "Language",
     "toastProfileSaved": "Profile updated",
     "toastPasswordsMismatch": "Passwords do not match",
     "aiProviderLabel": "Provider",

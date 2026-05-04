@@ -11,6 +11,7 @@ import { DatePicker } from '../components/ui/DatePicker';
 import type { AIProviderResponse, APITokenCreateResponse, APITokenResponse } from '../lib/types';
 import { AI_PROVIDERS, fmtDate } from '../lib/utils';
 import { getSupportedCurrencies } from '../lib/fx';
+import { SUPPORTED_LOCALES } from '../lib/i18n';
 
 export function SettingsPage() {
   const { t } = useTranslation();
@@ -81,12 +82,13 @@ function InfoTooltip({ children }: { children: React.ReactNode }) {
 const TIMEZONES = Intl.supportedValuesOf('timeZone');
 
 function ProfileTab({ user, refreshUser, toast }: { user: any; refreshUser: () => Promise<void>; toast: (msg: string, type?: any) => void }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [displayName, setDisplayName] = useState(user?.display_name ?? '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [timezone, setTimezone] = useState<string>(user?.timezone ?? '');
   const [globalCurrency, setGlobalCurrency] = useState<string>(user?.global_currency ?? '');
+  const [language, setLanguage] = useState<string>(user?.language ?? i18n.resolvedLanguage ?? 'en');
   const [currencyOptions, setCurrencyOptions] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -106,6 +108,7 @@ function ProfileTab({ user, refreshUser, toast }: { user: any; refreshUser: () =
         password: password || undefined,
         timezone: timezone || null,
         global_currency: globalCurrency || null,
+        language: language || null,
       });
       await refreshUser();
       setPassword('');
@@ -153,6 +156,14 @@ function ProfileTab({ user, refreshUser, toast }: { user: any; refreshUser: () =
             placeholder={currencyOptions.length === 0 ? 'Loading…' : t('settings.profileGlobalCurrencyNone')}
           />
           <span className="input-hint">{t('settings.profileGlobalCurrencyHint')}</span>
+        </div>
+        <div className="input-group">
+          <label className="input-label">{t('settings.profileLanguage')}</label>
+          <Select
+            value={language}
+            onChange={setLanguage}
+            options={SUPPORTED_LOCALES}
+          />
         </div>
         <hr className="divider" />
         <div className="input-group">

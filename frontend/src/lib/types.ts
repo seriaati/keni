@@ -12,6 +12,7 @@ export interface UserResponse {
   timezone: string | null;
   custom_ai_prompt: string | null;
   global_currency: string | null;
+  language: string | null;
 }
 
 export interface WalletResponse {
