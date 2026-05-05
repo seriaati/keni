@@ -407,5 +407,30 @@
     "freqBiweekly": "每兩週",
     "freqMonthly": "每月",
     "freqYearly": "每年"
+  },
+  "share": {
+    "title": "從分享新增",
+    "noContent": "找不到分享內容。",
+    "goHome": "回首頁",
+    "saved": "已儲存！",
+    "savedOne": "交易已儲存",
+    "savedMany": "已儲存 {{count}} 筆交易",
+    "wallet": "儲存至帳戶",
+    "parseButton": "AI 解析",
+    "parsing": "解析中…",
+    "parseError": "解析失敗",
+    "saveError": "儲存失敗",
+    "reviewOne": "確認交易",
+    "reviewMany": "確認 {{count}} 筆交易",
+    "image": "圖片",
+    "recurringUnsupported": "無法從分享內容儲存定期交易。",
+    "fieldType": "類型",
+    "fieldAmount": "金額",
+    "fieldCategory": "類別",
+    "fieldDescription": "說明",
+    "fieldDate": "日期",
+    "fieldTags": "標籤（逗號分隔）",
+    "typeExpense": "支出",
+    "typeIncome": "收入"
   }
 }

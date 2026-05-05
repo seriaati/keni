@@ -407,5 +407,30 @@
     "freqBiweekly": "Bi-weekly",
     "freqMonthly": "Monthly",
     "freqYearly": "Yearly"
+  },
+  "share": {
+    "title": "Add from Share",
+    "noContent": "No shared content found.",
+    "goHome": "Go to home",
+    "saved": "Saved!",
+    "savedOne": "Transaction saved",
+    "savedMany": "{{count}} transactions saved",
+    "wallet": "Save to wallet",
+    "parseButton": "Parse with AI",
+    "parsing": "Parsing…",
+    "parseError": "Failed to parse",
+    "saveError": "Failed to save",
+    "reviewOne": "Review transaction",
+    "reviewMany": "Review {{count}} transactions",
+    "image": "Image",
+    "recurringUnsupported": "Recurring transactions cannot be saved from shared content.",
+    "fieldType": "Type",
+    "fieldAmount": "Amount",
+    "fieldCategory": "Category",
+    "fieldDescription": "Description",
+    "fieldDate": "Date",
+    "fieldTags": "Tags (comma-separated)",
+    "typeExpense": "Expense",
+    "typeIncome": "Income"
   }
 }

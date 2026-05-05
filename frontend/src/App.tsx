@@ -16,6 +16,7 @@ import { CategoriesPage } from './pages/CategoriesPage';
 import { TagsPage } from './pages/TagsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AdminPage } from './pages/AdminPage';
+import { SharePage } from './pages/SharePage';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -82,6 +83,7 @@ export default function App() {
         <Route path="tags" element={<TagsPage />} />
         <Route path="chat" element={<ChatPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="share" element={<SharePage />} />
         <Route
           path="admin"
           element={
