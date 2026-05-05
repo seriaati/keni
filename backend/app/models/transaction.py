@@ -50,7 +50,7 @@ class TransactionTag(SQLModel, table=True):
     transaction_id: uuid.UUID = Field(
         foreign_key="transactions.id", primary_key=True, ondelete="CASCADE"
     )
-    tag_id: uuid.UUID = Field(foreign_key="tags.id", primary_key=True)
+    tag_id: uuid.UUID = Field(foreign_key="tags.id", primary_key=True, ondelete="CASCADE")
 
 
 class TransactionLink(SQLModel, table=True):
