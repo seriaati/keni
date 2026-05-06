@@ -31,7 +31,6 @@ export function fmtRelative(date: string | Date): string {
   const t = i18n.t.bind(i18n);
   if (days === 0) return t('utils.today');
   if (days === 1) return t('utils.yesterday');
-  if (days < 7) return t('utils.daysAgo', { count: days });
   return fmtDate(d);
 }
 
