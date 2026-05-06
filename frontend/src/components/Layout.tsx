@@ -30,6 +30,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useWallet } from '../contexts/WalletContext';
 import { CommandBar } from './CommandBar';
 import { Modal } from './ui/Modal';
+import { getSharedPayload, clearSharedPayload } from '../lib/shareTarget';
 import { getInitials } from '../lib/utils';
 import './layout.css';
 
@@ -51,6 +52,7 @@ export function Layout() {
   const { user, logout } = useAuth();
   const { wallets, activeWallet, setActiveWallet } = useWallet();
   const [cmdOpen, setCmdOpen] = useState(false);
+  const [cmdInitialPayload, setCmdInitialPayload] = useState<{ text?: string; file?: File } | undefined>();
   const [walletMenuOpen, setWalletMenuOpen] = useState(false);
   const [mobileWalletMenuOpen, setMobileWalletMenuOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -92,6 +94,20 @@ export function Layout() {
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, []);
+
+  useEffect(() => {
+    if (location.pathname !== '/share') return;
+    navigate('/', { replace: true });
+    getSharedPayload().then((data) => {
+      if (data) {
+        const file = data.files[0] ?? undefined;
+        const text = [data.title, data.text].filter(Boolean).join('\n') || undefined;
+        setCmdInitialPayload({ text, file });
+        clearSharedPayload();
+      }
+      setCmdOpen(true);
+    }).catch(() => setCmdOpen(true));
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!walletMenuOpen) return;
@@ -466,7 +482,12 @@ export function Layout() {
         document.body
       )}
 
-      <CommandBar open={cmdOpen} onClose={() => setCmdOpen(false)} onExpenseAdded={handleExpenseAdded} />
+      <CommandBar
+        open={cmdOpen}
+        onClose={() => { setCmdOpen(false); setCmdInitialPayload(undefined); }}
+        onExpenseAdded={handleExpenseAdded}
+        initialPayload={cmdInitialPayload}
+      />
 
       <Modal open={mcpOpen} onClose={() => setMcpOpen(false)} title={t('mcp.title')} size="lg">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>

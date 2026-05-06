@@ -41,6 +41,7 @@ interface CommandBarProps {
   open: boolean;
   onClose: () => void;
   onExpenseAdded?: () => void;
+  initialPayload?: { text?: string; file?: File };
 }
 
 type Mode = 'input' | 'processing' | 'review';
@@ -981,7 +982,7 @@ function GroupReview({
   );
 }
 
-export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
+export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: CommandBarProps) {
   const [text, setText] = useState('');
   const [mode, setMode] = useState<Mode>('input');
   const [parseResult, setParseResult] = useState<AIParseResponse | null>(null);
@@ -1036,6 +1037,13 @@ export function CommandBar({ open, onClose, onExpenseAdded }: CommandBarProps) {
   useEffect(() => {
     if (open) {
       reset();
+      if (initialPayload?.text) setText(initialPayload.text);
+      if (initialPayload?.file) {
+        setImageFile(initialPayload.file);
+        if (initialPayload.file.type.startsWith('image/')) {
+          setImagePreview(URL.createObjectURL(initialPayload.file));
+        }
+      }
       setTimeout(() => inputRef.current?.focus(), 50);
       categoriesApi.list().then(setCategories).catch(() => {});
     }

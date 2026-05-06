@@ -18,17 +18,22 @@ function openDB(): Promise<IDBDatabase> {
   })
 }
 
-export async function getAndClearSharedPayload(): Promise<SharedPayload | null> {
+export async function getSharedPayload(): Promise<SharedPayload | null> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readonly')
+    const get = tx.objectStore(STORE).get('latest')
+    get.onsuccess = () => { db.close(); resolve((get.result as SharedPayload | undefined) ?? null) }
+    get.onerror = () => { db.close(); reject(get.error) }
+  })
+}
+
+export async function clearSharedPayload(): Promise<void> {
   const db = await openDB()
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE, 'readwrite')
-    const store = tx.objectStore(STORE)
-    const get = store.get('latest')
-    get.onsuccess = () => {
-      const data = get.result as SharedPayload | undefined
-      if (data) store.delete('latest')
-      tx.oncomplete = () => { db.close(); resolve(data ?? null) }
-    }
+    tx.oncomplete = () => { db.close(); resolve() }
     tx.onerror = () => { db.close(); reject(tx.error) }
+    tx.objectStore(STORE).delete('latest')
   })
 }
