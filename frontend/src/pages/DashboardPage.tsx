@@ -11,6 +11,7 @@ import { fmt, fmtRelative, startOfMonth, endOfMonth, startOfWeek, getPeriodDateR
 import type { DashboardPeriod } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
 import type { LayoutOutletContext } from '../components/Layout';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const FALLBACK_COLORS = [
   'var(--forest)',
@@ -420,6 +421,7 @@ export function DashboardPage() {
                 </div>
               )}
             </div>
+            <ErrorBoundary fallback={<div className="empty-state" style={{ padding: '32px 16px', background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)' }}><p className="empty-state-desc">Chart unavailable</p></div>}>
             <div ref={spendingChartRef} style={{ transition: 'opacity 0.2s ease' }}>
             {loading ? (
               <div className="skeleton" style={{ height: 220, borderRadius: 12 }} />
@@ -494,6 +496,7 @@ export function DashboardPage() {
               </div>
             )}
             </div>
+            </ErrorBoundary>
           </div>
 
           {/* Income by category */}
@@ -524,6 +527,7 @@ export function DashboardPage() {
                   </div>
                 )}
               </div>
+              <ErrorBoundary fallback={<div className="empty-state" style={{ padding: '32px 16px', background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)' }}><p className="empty-state-desc">Chart unavailable</p></div>}>
               <div ref={incomeChartRef} style={{ transition: 'opacity 0.2s ease' }}>
               {loading ? (
                 <div className="skeleton" style={{ height: 220, borderRadius: 12 }} />
@@ -597,6 +601,7 @@ export function DashboardPage() {
                 })()
               )}
               </div>
+              </ErrorBoundary>
             </div>
           )}
         </div>
