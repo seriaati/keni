@@ -453,7 +453,7 @@ export function DashboardPage() {
                               startAngle={props.startAngle}
                               endAngle={props.endAngle}
                               cornerRadius={props.cornerRadius}
-                              fill={sorted[index].category_color ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length]}
+                              fill={sorted[index]?.category_color ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length]}
                               style={{ cursor: 'pointer' }}
                             />
                           )}
@@ -560,7 +560,7 @@ export function DashboardPage() {
                                 startAngle={props.startAngle}
                                 endAngle={props.endAngle}
                                 cornerRadius={props.cornerRadius}
-                                fill={sorted[index].category_color ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length]}
+                                fill={sorted[index]?.category_color ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length]}
                                 style={{ cursor: 'pointer' }}
                               />
                             )}
