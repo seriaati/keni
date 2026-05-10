@@ -463,13 +463,12 @@ function ExpenseCard({
         <div>
           <div style={{ fontSize: 10, color: 'var(--ink-light)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Description</div>
           {expense._editing ? (
-            <input
-              type="text"
+            <textarea
               value={expense._editDescription}
               onChange={(e) => onChange({ ...expense, _editDescription: e.target.value })}
-              onKeyDown={(e) => { if (e.key === 'Enter') commit(); }}
               placeholder="Optional"
-              style={inputStyle}
+              rows={3}
+              style={{ ...inputStyle, resize: 'vertical' }}
             />
           ) : (
             <div style={{ fontSize: 13, color: 'var(--ink)' }}>{expense.description}</div>
@@ -890,13 +889,12 @@ function RecurringReview({
           <div>
             {fieldLabel('Description')}
             {recurring._editing ? (
-              <input
-                type="text"
+              <textarea
                 value={recurring._editDescription}
                 onChange={(e) => onChange({ ...recurring, _editDescription: e.target.value })}
-                onKeyDown={(e) => { if (e.key === 'Enter') commit(); }}
                 placeholder="Optional"
-                style={inputStyle}
+                rows={3}
+                style={{ ...inputStyle, resize: 'vertical' }}
               />
             ) : (
               <div style={{ fontSize: 13, color: 'var(--ink)' }}>{recurring.description}</div>
