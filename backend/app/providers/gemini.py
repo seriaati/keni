@@ -70,6 +70,7 @@ class GeminiProvider(LLMProvider):
         image_media_type: str | None,
         categories: list[str],
         tags: list[str],
+        wallets: list[tuple[str, str]] | None = None,
         timezone: str = "UTC",
         custom_prompt: str | None = None,
     ) -> ParsedTransactionOutput:
@@ -90,6 +91,7 @@ class GeminiProvider(LLMProvider):
             text=text,
             categories=categories,
             tags=tags,
+            wallets=wallets,
             timezone=timezone,
             custom_prompt=custom_prompt,
         )

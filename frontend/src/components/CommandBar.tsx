@@ -26,11 +26,12 @@ import {
   Zap,
   Plus,
   Trash2,
+  Wallet,
 } from 'lucide-react';
-import { expenses as expensesApi, recurring as recurringApi, categories as categoriesApi, tags as tagsApi } from '../lib/api';
+import { expenses as expensesApi, recurring as recurringApi, categories as categoriesApi, tags as tagsApi, wallets as walletsApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
 import { useToast } from './ui/Toast';
-import type { AIExpenseResponse, AIParseResponse, AIRecurringResponse, CategoryResponse, TagResponse } from '../lib/types';
+import type { AIExpenseResponse, AIParseResponse, AIRecurringResponse, CategoryResponse, TagResponse, WalletResponse } from '../lib/types';
 import { fmt, fmtDate, FREQUENCIES } from '../lib/utils';
 import { DatePicker } from './ui/DatePicker';
 import { Select } from './ui/Select';
@@ -301,6 +302,9 @@ function ExpenseCard({
   onCancel,
   categories,
   allTags,
+  wallets,
+  selectedWalletId,
+  onWalletChange,
 }: {
   expense: EditableExpense;
   onChange: (e: EditableExpense) => void;
@@ -311,6 +315,9 @@ function ExpenseCard({
   onCancel?: () => void;
   categories: CategoryResponse[];
   allTags: TagResponse[];
+  wallets?: WalletResponse[];
+  selectedWalletId?: string | null;
+  onWalletChange?: (id: string) => void;
 }) {
   const amountRef = useRef<HTMLInputElement>(null);
 
@@ -495,6 +502,19 @@ function ExpenseCard({
         </div>
       )}
 
+      {wallets && wallets.length > 1 && selectedWalletId != null && onWalletChange && (
+        <div>
+          <div style={{ fontSize: 10, color: 'var(--ink-light)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Wallet size={10} /> Wallet
+          </div>
+          <Select
+            value={selectedWalletId}
+            onChange={onWalletChange}
+            options={wallets.map((w) => ({ value: w.id, label: `${w.name} (${w.currency})` }))}
+          />
+        </div>
+      )}
+
       {expense.ai_context && !expense._editing && (
         <div style={{ fontSize: 11, color: 'var(--ink-light)', fontStyle: 'italic' }}>
           AI: {expense.ai_context}
@@ -524,6 +544,7 @@ function ExpenseCard({
   );
 }
 
+
 function SingleReview({
   expense,
   onChange,
@@ -533,6 +554,9 @@ function SingleReview({
   saving,
   categories,
   allTags,
+  wallets,
+  selectedWalletId,
+  onWalletChange,
 }: {
   expense: EditableExpense;
   onChange: (e: EditableExpense) => void;
@@ -542,11 +566,14 @@ function SingleReview({
   saving: boolean;
   categories: CategoryResponse[];
   allTags: TagResponse[];
+  wallets: WalletResponse[];
+  selectedWalletId: string | null;
+  onWalletChange: (id: string) => void;
 }) {
   const isIncome = expense.type === 'income';
   return (
     <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <ExpenseCard expense={expense} onChange={onChange} currency={activeWalletCurrency} onCancel={onBack} categories={categories} allTags={allTags} />
+      <ExpenseCard expense={expense} onChange={onChange} currency={activeWalletCurrency} onCancel={onBack} categories={categories} allTags={allTags} wallets={wallets} selectedWalletId={selectedWalletId} onWalletChange={onWalletChange} />
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4 }}>
         <button
           className="btn btn-primary btn-sm"
@@ -581,6 +608,9 @@ function MultipleReview({
   saving,
   categories,
   allTags,
+  wallets,
+  selectedWalletId,
+  onWalletChange,
 }: {
   expenses: EditableExpense[];
   onChange: (list: EditableExpense[]) => void;
@@ -589,6 +619,9 @@ function MultipleReview({
   saving: boolean;
   categories: CategoryResponse[];
   allTags: TagResponse[];
+  wallets: WalletResponse[];
+  selectedWalletId: string | null;
+  onWalletChange: (id: string) => void;
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -676,6 +709,9 @@ function MultipleReview({
                 onCancelNew={exp._isNew ? () => removeExpense(i) : undefined}
                 categories={categories}
                 allTags={allTags}
+                wallets={wallets}
+                selectedWalletId={selectedWalletId}
+                onWalletChange={onWalletChange}
               />
             </div>
           ))}
@@ -721,6 +757,9 @@ function RecurringReview({
   saving,
   categories,
   allTags,
+  wallets,
+  selectedWalletId,
+  onWalletChange,
 }: {
   recurring: EditableRecurring;
   onChange: (r: EditableRecurring) => void;
@@ -729,6 +768,9 @@ function RecurringReview({
   saving: boolean;
   categories: CategoryResponse[];
   allTags: TagResponse[];
+  wallets: WalletResponse[];
+  selectedWalletId: string | null;
+  onWalletChange: (id: string) => void;
 }) {
   const inputStyle: React.CSSProperties = {
     width: '100%',
@@ -920,6 +962,19 @@ function RecurringReview({
           </div>
         )}
 
+        {wallets.length > 1 && selectedWalletId && (
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--ink-light)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Wallet size={10} /> Wallet
+            </div>
+            <Select
+              value={selectedWalletId}
+              onChange={onWalletChange}
+              options={wallets.map((w) => ({ value: w.id, label: `${w.name} (${w.currency})` }))}
+            />
+          </div>
+        )}
+
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
           {recurring._editing ? (
             <button className="btn btn-secondary btn-sm" style={{ fontSize: 12, padding: '3px 10px' }} onClick={() => onChange({ ...recurring, _editing: false })}>Cancel</button>
@@ -968,6 +1023,9 @@ function GroupReview({
   error,
   categories,
   allTags,
+  wallets,
+  selectedWalletId,
+  onWalletChange,
 }: {
   parent: EditableExpense;
   items: EditableExpense[];
@@ -979,6 +1037,9 @@ function GroupReview({
   error: string;
   categories: CategoryResponse[];
   allTags: TagResponse[];
+  wallets: WalletResponse[];
+  selectedWalletId: string | null;
+  onWalletChange: (id: string) => void;
 }) {
   const [showItems, setShowItems] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -1048,7 +1109,7 @@ function GroupReview({
       </div>
 
       {!showItems ? (
-        <ExpenseCard expense={parent} onChange={onChangeParent} currency={activeWalletCurrency} label="Group total" categories={categories} allTags={allTags} />
+        <ExpenseCard expense={parent} onChange={onChangeParent} currency={activeWalletCurrency} label="Group total" categories={categories} allTags={allTags} wallets={wallets} selectedWalletId={selectedWalletId} onWalletChange={onWalletChange} />
       ) : (
         <>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1087,6 +1148,9 @@ function GroupReview({
                     onCancelNew={item._isNew ? () => removeItem(i) : undefined}
                     categories={categories}
                     allTags={allTags}
+                    wallets={wallets}
+                    selectedWalletId={selectedWalletId}
+                    onWalletChange={onWalletChange}
                   />
                 </div>
               ))}
@@ -1150,7 +1214,7 @@ function GroupReview({
       )}
 
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4 }}>
-        <button className="btn btn-primary btn-sm" onClick={onSave} disabled={saving || sumMismatch}>
+        <button className="btn btn-primary btn-sm" onClick={onSave} disabled={saving || sumMismatch} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
           {saving && <span className="btn-spinner" />}
           Save group
         </button>
@@ -1181,6 +1245,8 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   const [dragging, setDragging] = useState(false);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [allTags, setAllTags] = useState<TagResponse[]>([]);
+  const [wallets, setWallets] = useState<WalletResponse[]>([]);
+  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
   const dragCounterRef = useRef(0);
 
   const dropZoneRef = useRef<HTMLDivElement>(null);
@@ -1210,6 +1276,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     setImagePreview(null);
     setImageEnlarged(false);
     setSaving(false);
+    setSelectedWalletId(null);
   }, []);
 
   useEffect(() => {
@@ -1225,6 +1292,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
       setTimeout(() => inputRef.current?.focus(), 50);
       categoriesApi.list().then(setCategories).catch(() => {});
       tagsApi.list().then(setAllTags).catch(() => {});
+      walletsApi.list().then(setWallets).catch(() => {});
     }
   }, [open, reset]);
 
@@ -1242,6 +1310,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
 
   const applyParseResult = (result: AIParseResponse) => {
     setParseResult(result);
+    setSelectedWalletId(result.suggested_wallet_id ?? activeWallet?.id ?? null);
     if (result.result_type === 'single') {
       setSingleExpense(makeEditable(result.expenses[0]));
     } else if (result.result_type === 'multiple') {
@@ -1291,11 +1360,11 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   };
 
   const handleSaveSingle = async () => {
-    if (!singleExpense || !activeWallet) return;
+    if (!singleExpense || !selectedWalletId) return;
     setSaving(true);
     try {
       const exp = singleExpense._editing ? commitEditable(singleExpense) : singleExpense;
-      await expensesApi.create(activeWallet.id, {
+      await expensesApi.create(selectedWalletId, {
         category_name: exp.category_name ?? 'Others',
         category_icon: exp.suggested_icon ?? undefined,
         amount: exp.amount ?? 0,
@@ -1316,12 +1385,12 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   };
 
   const handleSaveMultiple = async () => {
-    if (!activeWallet) return;
+    if (!selectedWalletId) return;
     setSaving(true);
     try {
       const committed = multiExpenses.map((e) => e._editing ? commitEditable(e) : e);
       await Promise.all(committed.map((exp) =>
-        expensesApi.create(activeWallet.id, {
+        expensesApi.create(selectedWalletId, {
           category_name: exp.category_name ?? 'Others',
           category_icon: exp.suggested_icon ?? undefined,
           amount: exp.amount ?? 0,
@@ -1343,14 +1412,14 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   };
 
   const handleSaveRecurring = async () => {
-    if (!recurringExpense || !activeWallet) return;
+    if (!recurringExpense || !selectedWalletId) return;
     setSaving(true);
     try {
       const tags = recurringExpense._editTags
         .split(',')
         .map((t) => t.trim())
         .filter(Boolean);
-      await recurringApi.create(activeWallet.id, {
+      await recurringApi.create(selectedWalletId, {
         category_name: recurringExpense._editCategory.trim() || recurringExpense.category_name,
         category_icon: recurringExpense.suggested_icon ?? undefined,
         amount: parseFloat(recurringExpense._editAmount) || recurringExpense.amount,
@@ -1371,7 +1440,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   };
 
   const handleSaveGroup = async () => {
-    if (!groupParent || !activeWallet) return;
+    if (!groupParent || !selectedWalletId) return;
     const parent = groupParent._editing ? commitEditable(groupParent) : groupParent;
     const items = groupItems.map((e) => e._editing ? commitEditable(e) : e);
 
@@ -1383,7 +1452,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
 
     setSaving(true);
     try {
-      await expensesApi.createGroup(activeWallet.id, {
+      await expensesApi.createGroup(selectedWalletId, {
         group: {
           category_name: parent.category_name ?? 'Others',
           category_icon: parent.suggested_icon ?? undefined,
@@ -1519,6 +1588,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   };
 
   const openManualEntry = () => {
+    setSelectedWalletId(activeWallet?.id ?? null);
     const today = new Date().toISOString().slice(0, 10);
     const blank = makeEditable({
       amount: null,
@@ -1535,7 +1605,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     blank._editing = true;
     blank._isNew = true;
     setSingleExpense(blank);
-    setParseResult({ result_type: 'single', expenses: [blank], group: null, recurring: null });
+    setParseResult({ result_type: 'single', expenses: [blank], group: null, recurring: null, suggested_wallet_id: null });
     setMode('review');
   };
 
@@ -1777,12 +1847,15 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
             <SingleReview
               expense={singleExpense}
               onChange={setSingleExpense}
-              activeWalletCurrency={activeWallet?.currency}
+              activeWalletCurrency={wallets.find((w) => w.id === selectedWalletId)?.currency ?? activeWallet?.currency}
               onSave={handleSaveSingle}
               onBack={() => setMode('input')}
               saving={saving}
               categories={categories}
               allTags={allTags}
+              wallets={wallets}
+              selectedWalletId={selectedWalletId}
+              onWalletChange={setSelectedWalletId}
             />
           )}
 
@@ -1791,11 +1864,14 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
             <MultipleReview
               expenses={multiExpenses}
               onChange={setMultiExpenses}
-              activeWalletCurrency={activeWallet?.currency}
+              activeWalletCurrency={wallets.find((w) => w.id === selectedWalletId)?.currency ?? activeWallet?.currency}
               onSave={handleSaveMultiple}
               saving={saving}
               categories={categories}
               allTags={allTags}
+              wallets={wallets}
+              selectedWalletId={selectedWalletId}
+              onWalletChange={setSelectedWalletId}
             />
           )}
 
@@ -1804,11 +1880,14 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
             <RecurringReview
               recurring={recurringExpense}
               onChange={setRecurringExpense}
-              activeWalletCurrency={activeWallet?.currency}
+              activeWalletCurrency={wallets.find((w) => w.id === selectedWalletId)?.currency ?? activeWallet?.currency}
               onSave={handleSaveRecurring}
               saving={saving}
               categories={categories}
               allTags={allTags}
+              wallets={wallets}
+              selectedWalletId={selectedWalletId}
+              onWalletChange={setSelectedWalletId}
             />
           )}
 
@@ -1819,12 +1898,15 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
               items={groupItems}
               onChangeParent={setGroupParent}
               onChangeItems={setGroupItems}
-              activeWalletCurrency={activeWallet?.currency}
+              activeWalletCurrency={wallets.find((w) => w.id === selectedWalletId)?.currency ?? activeWallet?.currency}
               onSave={handleSaveGroup}
               saving={saving}
               error={error}
               categories={categories}
               allTags={allTags}
+              wallets={wallets}
+              selectedWalletId={selectedWalletId}
+              onWalletChange={setSelectedWalletId}
             />
           )}
 

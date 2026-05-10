@@ -328,6 +328,7 @@ async def create_transaction_ai(  # noqa: PLR0913, PLR0917
         expenses=[_build_ai_transaction_item(e) for e in parsed.expenses],
         group=group,
         recurring=recurring,
+        suggested_wallet_id=parsed.suggested_wallet_id,
     )
 
 
@@ -397,6 +398,7 @@ async def create_transaction_voice(
         expenses=[_build_ai_transaction_item(e) for e in parsed.expenses],
         group=group,
         recurring=voice_recurring,
+        suggested_wallet_id=parsed.suggested_wallet_id,
     )
 
 

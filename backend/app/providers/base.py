@@ -52,6 +52,7 @@ class ParsedTransactionOutput(BaseModel):
     expenses: list[ParsedTransaction]
     group: ParsedTransactionGroupInfo | None = None
     recurring: ParsedRecurringTransaction | None = None
+    suggested_wallet_name: str | None = None
 
 
 @dataclass
@@ -181,11 +182,12 @@ def resolve_tz(tz_name: str) -> ZoneInfo | timezone:
         return UTC
 
 
-def build_parse_prompt(
+def build_parse_prompt(  # noqa: PLR0913
     *,
     text: str | None,
     categories: list[str],
     tags: list[str],
+    wallets: list[tuple[str, str]] | None = None,
     timezone: str = "UTC",
     custom_prompt: str | None = None,
 ) -> str:
@@ -196,6 +198,14 @@ def build_parse_prompt(
     prompt = f"Today's date: {today}\nAvailable categories: {category_list}\n"
     if tag_list:
         prompt += f"Available tags: {tag_list}\n"
+    if wallets:
+        wallet_list = ", ".join(f"{name} ({currency})" for name, currency in wallets)
+        prompt += f"Available wallets: {wallet_list}\n"
+        prompt += (
+            "Set suggested_wallet_name to the wallet name that best matches the transaction "
+            "(based on currency or context). If only one wallet exists or none clearly matches, "
+            "set it to null.\n"
+        )
     if custom_prompt:
         prompt += f"Custom instructions: {custom_prompt}\n"
     prompt += "\n"
@@ -226,6 +236,7 @@ class LLMProvider(ABC):
         image_media_type: str | None,
         categories: list[str],
         tags: list[str],
+        wallets: list[tuple[str, str]] | None = None,
         timezone: str = "UTC",
         custom_prompt: str | None = None,
     ) -> ParsedTransactionOutput: ...

@@ -12,6 +12,7 @@ from app.models.ai_provider import AIProvider
 from app.models.category import Category
 from app.models.tag import Tag
 from app.models.user import User
+from app.models.wallet import Wallet
 from app.providers import get_provider
 from app.providers.errors import (
     ProviderAPIError,
@@ -50,6 +51,7 @@ class ParsedTransactionResult:
     type: str = "expense"
     suggested_tags: list[SuggestedTagResult] = field(default_factory=list)
     suggested_icon: str | None = None
+    suggested_wallet_id: str | None = None
 
 
 @dataclass
@@ -85,6 +87,7 @@ class ParsedTransactionsResult:
     expenses: list[ParsedTransactionResult]
     group: ParsedGroupResult | None = None
     recurring: ParsedRecurringResult | None = None
+    suggested_wallet_id: str | None = None
 
 
 def _mask_key(key: str) -> str:
@@ -175,6 +178,11 @@ async def parse_transactions_with_ai(  # noqa: PLR0913, PLR0914, PLR0915, PLR091
     existing_tags = tag_result.all()
     tag_names = [t.name for t in existing_tags]
 
+    wallet_result = await session.exec(select(Wallet).where(Wallet.user_id == user_id))
+    user_wallets = wallet_result.all()
+    wallet_context = [(w.name, w.currency) for w in user_wallets]
+    wallet_by_name = {w.name.lower(): str(w.id) for w in user_wallets}
+
     provider = get_provider(record.provider, api_key=api_key, model=record.model)
 
     try:
@@ -184,6 +192,7 @@ async def parse_transactions_with_ai(  # noqa: PLR0913, PLR0914, PLR0915, PLR091
             image_media_type=image_media_type,
             categories=category_names,
             tags=tag_names,
+            wallets=wallet_context if len(wallet_context) > 1 else None,
             timezone=timezone or "UTC",
             custom_prompt=custom_ai_prompt,
         )
@@ -297,9 +306,14 @@ async def parse_transactions_with_ai(  # noqa: PLR0913, PLR0914, PLR0915, PLR091
     if output.recurring is not None:
         enriched_recurring = _enrich_recurring(output.recurring)
 
+    suggested_wallet_id: str | None = None
+    if output.suggested_wallet_name:
+        suggested_wallet_id = wallet_by_name.get(output.suggested_wallet_name.lower())
+
     return ParsedTransactionsResult(
         result_type=output.result_type,
         expenses=enriched_transactions,
         group=enriched_group,
         recurring=enriched_recurring,
+        suggested_wallet_id=suggested_wallet_id,
     )

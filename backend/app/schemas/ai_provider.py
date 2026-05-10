@@ -79,6 +79,7 @@ class AITransactionsResponse(BaseModel):
     expenses: list[AITransactionItem]
     group: AITransactionGroupInfo | None
     recurring: AIRecurringItem | None = None
+    suggested_wallet_id: str | None = None
 
 
 class VoiceTransactionsResponse(BaseModel):
@@ -87,3 +88,4 @@ class VoiceTransactionsResponse(BaseModel):
     expenses: list[AITransactionItem]
     group: AITransactionGroupInfo | None
     recurring: AIRecurringItem | None = None
+    suggested_wallet_id: str | None = None

@@ -150,6 +150,7 @@ export interface AIParseResponse {
   expenses: AIExpenseResponse[];
   group: AIExpenseResponse | null;
   recurring: AIRecurringResponse | null;
+  suggested_wallet_id: string | null;
 }
 
 export interface VoiceParseResponse extends AIParseResponse {
