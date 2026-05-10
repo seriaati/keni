@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
@@ -6,7 +6,6 @@ import {
   ArrowLeftRight,
   ArrowRight,
   Bot,
-  Check,
   ChevronLeft,
   ChevronRight,
   FileText,
@@ -28,14 +27,15 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react';
-import { expenses as expensesApi, recurring as recurringApi, categories as categoriesApi } from '../lib/api';
+import { expenses as expensesApi, recurring as recurringApi, categories as categoriesApi, tags as tagsApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
 import { useToast } from './ui/Toast';
-import type { AIExpenseResponse, AIParseResponse, AIRecurringResponse, CategoryResponse } from '../lib/types';
+import type { AIExpenseResponse, AIParseResponse, AIRecurringResponse, CategoryResponse, TagResponse } from '../lib/types';
 import { fmt, fmtDate, FREQUENCIES } from '../lib/utils';
 import { DatePicker } from './ui/DatePicker';
 import { Select } from './ui/Select';
 import { CategorySelect } from './ui/CategorySelect';
+import { Search } from 'lucide-react';
 
 interface CommandBarProps {
   open: boolean;
@@ -122,29 +122,174 @@ function makeEditableRecurring(r: AIRecurringResponse): EditableRecurring {
   };
 }
 
-function TypeBadge({ type }: { type: 'expense' | 'income' }) {
-  const isIncome = type === 'income';
+
+function TagMultiSelect({
+  value,
+  onChange,
+  allTags,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  allTags: TagResponse[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [dropPos, setDropPos] = useState<{ top: number; left: number; width: number; openUp: boolean } | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const selected = value.split(',').map((t) => t.trim()).filter(Boolean);
+  const trimmed = query.trim();
+  const filtered = allTags.filter(
+    (t) => !selected.includes(t.name) && (!trimmed || t.name.toLowerCase().includes(trimmed.toLowerCase())),
+  );
+  const exactMatch = allTags.some((t) => t.name.toLowerCase() === trimmed.toLowerCase())
+    || selected.some((n) => n.toLowerCase() === trimmed.toLowerCase());
+  const showCreate = trimmed.length > 0 && !exactMatch;
+
+  const addTag = (name: string) => { onChange([...selected, name].join(', ')); setQuery(''); };
+  const removeTag = (name: string) => onChange(selected.filter((t) => t !== name).join(', '));
+
+  const measure = () => {
+    if (!triggerRef.current) return;
+    const r = triggerRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - r.bottom;
+    const openUp = spaceBelow < 220 && r.top > spaceBelow;
+    setDropPos({
+      top: openUp ? r.top + window.scrollY - 4 : r.bottom + window.scrollY + 4,
+      left: r.left + window.scrollX,
+      width: Math.max(r.width, 180),
+      openUp,
+    });
+  };
+
+  useLayoutEffect(() => { if (open) measure(); }, [open]);
+  useEffect(() => {
+    if (!open) { setQuery(''); return; }
+    setTimeout(() => searchRef.current?.focus(), 0);
+  }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (!triggerRef.current?.contains(e.target as Node) && !dropdownRef.current?.contains(e.target as Node))
+        setOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (showCreate) { addTag(trimmed); }
+      else if (filtered[0]) { addTag(filtered[0].name); }
+    }
+    if (e.key === 'Escape') setOpen(false);
+  };
+
   return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 3,
-      fontSize: 10,
-      fontWeight: 700,
-      letterSpacing: '0.05em',
-      textTransform: 'uppercase',
-      borderRadius: 4,
-      padding: '2px 6px',
-      color: isIncome ? 'oklch(42% 0.14 155)' : 'oklch(42% 0.12 20)',
-      background: isIncome ? 'oklch(94% 0.05 155)' : 'oklch(95% 0.03 20)',
-      border: `1px solid ${isIncome ? 'oklch(80% 0.1 155)' : 'oklch(85% 0.06 20)'}`,
-    }}>
-      {isIncome ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
-      {isIncome ? 'Income' : 'Expense'}
-    </span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      {selected.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+          {selected.map((name) => (
+            <span key={name} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 500,
+              color: 'var(--ink-mid)', background: 'var(--cream-dark)', border: '1px solid var(--sand)',
+              borderRadius: 5, padding: '2px 4px 2px 7px',
+            }}>
+              {name}
+              <button
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); removeTag(name); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', color: 'var(--ink-faint)' }}
+              >
+                <X size={10} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 5, width: 'fit-content',
+          padding: '3px 8px', borderRadius: 5, fontSize: 12, fontFamily: 'var(--font-body)',
+          background: 'white', border: '1px solid var(--sand)', color: 'var(--ink-light)', cursor: 'pointer',
+        }}
+      >
+        <Plus size={11} />
+        Add tag
+      </button>
+      {open && dropPos && createPortal(
+        <div
+          ref={dropdownRef}
+          style={{
+            position: 'absolute',
+            top: dropPos.openUp ? undefined : dropPos.top,
+            bottom: dropPos.openUp ? window.innerHeight + window.scrollY - dropPos.top : undefined,
+            left: dropPos.left,
+            width: dropPos.width,
+            zIndex: 9999,
+            background: 'white',
+            border: '1.5px solid var(--sand)',
+            borderRadius: 'var(--radius)',
+            boxShadow: 'var(--shadow-lg)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            animation: 'ssDropIn 0.12s cubic-bezier(0.16, 1, 0.3, 1) both',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', borderBottom: '1px solid var(--cream-dark)' }}>
+            <Search size={12} style={{ color: 'var(--ink-faint)', flexShrink: 0 }} />
+            <input
+              ref={searchRef}
+              style={{ flex: 1, border: 'none', outline: 'none', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--ink)', background: 'transparent' }}
+              placeholder="Search or create tag…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+          </div>
+          <ul style={{ listStyle: 'none', padding: 4, maxHeight: 180, overflowY: 'auto', margin: 0 }}>
+            {filtered.length === 0 && !showCreate && (
+              <li style={{ padding: '10px', fontSize: 13, color: 'var(--ink-faint)', textAlign: 'center' }}>
+                {trimmed ? 'No match' : 'No tags yet'}
+              </li>
+            )}
+            {filtered.map((tag) => (
+              <li
+                key={tag.id}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 'calc(var(--radius) - 4px)', fontSize: 13, cursor: 'pointer' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--cream-dark)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                onMouseDown={(e) => { e.preventDefault(); addTag(tag.name); }}
+              >
+                {tag.color && <span style={{ width: 8, height: 8, borderRadius: '50%', background: tag.color, flexShrink: 0 }} />}
+                <span style={{ color: 'var(--ink)' }}>{tag.name}</span>
+              </li>
+            ))}
+            {showCreate && (
+              <li
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 'calc(var(--radius) - 4px)', fontSize: 13, cursor: 'pointer', color: 'var(--forest)', fontWeight: 500 }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--cream-dark)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                onMouseDown={(e) => { e.preventDefault(); addTag(trimmed); setOpen(false); }}
+              >
+                <Plus size={13} style={{ flexShrink: 0 }} />
+                Create &ldquo;{trimmed}&rdquo;
+              </li>
+            )}
+          </ul>
+        </div>,
+        document.body,
+      )}
+    </div>
   );
 }
-
 
 function ExpenseCard({
   expense,
@@ -153,7 +298,9 @@ function ExpenseCard({
   label,
   onRemove,
   onCancelNew,
+  onCancel,
   categories,
+  allTags,
 }: {
   expense: EditableExpense;
   onChange: (e: EditableExpense) => void;
@@ -161,7 +308,9 @@ function ExpenseCard({
   label?: string;
   onRemove?: () => void;
   onCancelNew?: () => void;
+  onCancel?: () => void;
   categories: CategoryResponse[];
+  allTags: TagResponse[];
 }) {
   const amountRef = useRef<HTMLInputElement>(null);
 
@@ -202,21 +351,44 @@ function ExpenseCard({
       gap: 8,
       border: expense._editing ? '1.5px solid var(--forest)' : '1.5px solid transparent',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      {(label || onRemove) && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           {label && <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</div>}
-          <TypeBadge type={expense.type ?? 'expense'} />
+          {onRemove && (
+            <button
+              type="button"
+              onClick={onRemove}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-faint)', padding: 2, display: 'flex', alignItems: 'center', marginLeft: 'auto' }}
+            >
+              <Trash2 size={12} />
+            </button>
+          )}
         </div>
-        {onRemove && (
-          <button
-            type="button"
-            onClick={onRemove}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-faint)', padding: 2, display: 'flex', alignItems: 'center' }}
-          >
-            <Trash2 size={12} />
-          </button>
-        )}
-      </div>
+      )}
+
+      {expense._editing && (
+        <div>
+          <div style={{ fontSize: 10, color: 'var(--ink-light)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Type</div>
+          <div className="tabs" style={{ display: 'inline-flex' }}>
+            <button
+              type="button"
+              className={`tab ${expense.type === 'expense' ? 'tab-active' : ''}`}
+              onClick={() => onChange({ ...expense, type: 'expense' })}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            >
+              <TrendingDown size={12} /> Expense
+            </button>
+            <button
+              type="button"
+              className={`tab ${expense.type === 'income' ? 'tab-active' : ''}`}
+              onClick={() => onChange({ ...expense, type: 'income' })}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            >
+              <TrendingUp size={12} /> Income
+            </button>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
         <div>
@@ -302,13 +474,10 @@ function ExpenseCard({
         <div>
           <div style={{ fontSize: 10, color: 'var(--ink-light)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tags</div>
           {expense._editing ? (
-            <input
-              type="text"
+            <TagMultiSelect
               value={expense._editTags}
-              onChange={(e) => onChange({ ...expense, _editTags: e.target.value })}
-              onKeyDown={(e) => { if (e.key === 'Enter') commit(); }}
-              placeholder="tag1, tag2"
-              style={inputStyle}
+              onChange={(v) => onChange({ ...expense, _editTags: v })}
+              allTags={allTags}
             />
           ) : (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
@@ -334,12 +503,17 @@ function ExpenseCard({
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
         {expense._editing ? (
-          <>
-            <button className="btn btn-secondary btn-sm" style={{ fontSize: 12, padding: '3px 10px' }} onClick={() => expense._isNew && onCancelNew ? onCancelNew() : onChange({ ...expense, _editing: false })}>Cancel</button>
-            <button className="btn btn-primary btn-sm" style={{ fontSize: 12, padding: '3px 10px', display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={commit}>
-              <Check size={11} /> Apply
-            </button>
-          </>
+          <button
+            className="btn btn-secondary btn-sm"
+            style={{ fontSize: 12, padding: '3px 10px' }}
+            onClick={() => {
+              if (onCancel) { onCancel(); return; }
+              if (expense._isNew && onCancelNew) { onCancelNew(); return; }
+              onChange({ ...expense, _editing: false });
+            }}
+          >
+            Cancel
+          </button>
         ) : (
           <button className="btn btn-secondary btn-sm" style={{ fontSize: 12, padding: '3px 10px', display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={startEditing}>
             <Pencil size={11} /> Edit
@@ -355,20 +529,24 @@ function SingleReview({
   onChange,
   activeWalletCurrency,
   onSave,
+  onBack,
   saving,
   categories,
+  allTags,
 }: {
   expense: EditableExpense;
   onChange: (e: EditableExpense) => void;
   activeWalletCurrency?: string;
   onSave: () => void;
+  onBack: () => void;
   saving: boolean;
   categories: CategoryResponse[];
+  allTags: TagResponse[];
 }) {
   const isIncome = expense.type === 'income';
   return (
     <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <ExpenseCard expense={expense} onChange={onChange} currency={activeWalletCurrency} categories={categories} />
+      <ExpenseCard expense={expense} onChange={onChange} currency={activeWalletCurrency} onCancel={onBack} categories={categories} allTags={allTags} />
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4 }}>
         <button
           className="btn btn-primary btn-sm"
@@ -402,6 +580,7 @@ function MultipleReview({
   onSave,
   saving,
   categories,
+  allTags,
 }: {
   expenses: EditableExpense[];
   onChange: (list: EditableExpense[]) => void;
@@ -409,6 +588,7 @@ function MultipleReview({
   onSave: () => void;
   saving: boolean;
   categories: CategoryResponse[];
+  allTags: TagResponse[];
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -495,6 +675,7 @@ function MultipleReview({
                 label={`Expense ${i + 1}`}
                 onCancelNew={exp._isNew ? () => removeExpense(i) : undefined}
                 categories={categories}
+                allTags={allTags}
               />
             </div>
           ))}
@@ -539,6 +720,7 @@ function RecurringReview({
   onSave,
   saving,
   categories,
+  allTags,
 }: {
   recurring: EditableRecurring;
   onChange: (r: EditableRecurring) => void;
@@ -546,6 +728,7 @@ function RecurringReview({
   onSave: () => void;
   saving: boolean;
   categories: CategoryResponse[];
+  allTags: TagResponse[];
 }) {
   const inputStyle: React.CSSProperties = {
     width: '100%',
@@ -611,7 +794,6 @@ function RecurringReview({
             <RefreshCw size={12} />
             Recurring
           </div>
-          <TypeBadge type={recurring.type ?? 'expense'} />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -711,13 +893,10 @@ function RecurringReview({
           <div>
             {fieldLabel('Tags')}
             {recurring._editing ? (
-              <input
-                type="text"
+              <TagMultiSelect
                 value={recurring._editTags}
-                onChange={(e) => onChange({ ...recurring, _editTags: e.target.value })}
-                onKeyDown={(e) => { if (e.key === 'Enter') commit(); }}
-                placeholder="tag1, tag2"
-                style={inputStyle}
+                onChange={(v) => onChange({ ...recurring, _editTags: v })}
+                allTags={allTags}
               />
             ) : (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
@@ -743,12 +922,7 @@ function RecurringReview({
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
           {recurring._editing ? (
-            <>
-              <button className="btn btn-secondary btn-sm" style={{ fontSize: 12, padding: '3px 10px' }} onClick={() => onChange({ ...recurring, _editing: false })}>Cancel</button>
-              <button className="btn btn-primary btn-sm" style={{ fontSize: 12, padding: '3px 10px', display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={commit}>
-                <Check size={11} /> Apply
-              </button>
-            </>
+            <button className="btn btn-secondary btn-sm" style={{ fontSize: 12, padding: '3px 10px' }} onClick={() => onChange({ ...recurring, _editing: false })}>Cancel</button>
           ) : (
             <button className="btn btn-secondary btn-sm" style={{ fontSize: 12, padding: '3px 10px', display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={startEditing}>
               <Pencil size={11} /> Edit
@@ -793,6 +967,7 @@ function GroupReview({
   saving,
   error,
   categories,
+  allTags,
 }: {
   parent: EditableExpense;
   items: EditableExpense[];
@@ -803,6 +978,7 @@ function GroupReview({
   saving: boolean;
   error: string;
   categories: CategoryResponse[];
+  allTags: TagResponse[];
 }) {
   const [showItems, setShowItems] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -872,7 +1048,7 @@ function GroupReview({
       </div>
 
       {!showItems ? (
-        <ExpenseCard expense={parent} onChange={onChangeParent} currency={activeWalletCurrency} label="Group total" categories={categories} />
+        <ExpenseCard expense={parent} onChange={onChangeParent} currency={activeWalletCurrency} label="Group total" categories={categories} allTags={allTags} />
       ) : (
         <>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -910,6 +1086,7 @@ function GroupReview({
                     onRemove={items.length > 1 ? () => removeItem(i) : undefined}
                     onCancelNew={item._isNew ? () => removeItem(i) : undefined}
                     categories={categories}
+                    allTags={allTags}
                   />
                 </div>
               ))}
@@ -1003,6 +1180,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   const [saving, setSaving] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
+  const [allTags, setAllTags] = useState<TagResponse[]>([]);
   const dragCounterRef = useRef(0);
 
   const dropZoneRef = useRef<HTMLDivElement>(null);
@@ -1046,6 +1224,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
       }
       setTimeout(() => inputRef.current?.focus(), 50);
       categoriesApi.list().then(setCategories).catch(() => {});
+      tagsApi.list().then(setAllTags).catch(() => {});
     }
   }, [open, reset]);
 
@@ -1339,6 +1518,27 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     setRecording(false);
   };
 
+  const openManualEntry = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const blank = makeEditable({
+      amount: null,
+      currency: activeWallet?.currency ?? null,
+      category_name: null,
+      is_new_category: false,
+      description: null,
+      date: today,
+      ai_context: null,
+      suggested_tags: [],
+      suggested_icon: null,
+      type: 'expense',
+    });
+    blank._editing = true;
+    blank._isNew = true;
+    setSingleExpense(blank);
+    setParseResult({ result_type: 'single', expenses: [blank], group: null, recurring: null });
+    setMode('review');
+  };
+
   if (!open) return null;
 
   const resultType = parseResult?.result_type;
@@ -1457,33 +1657,36 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
               value={text}
               onChange={(e) => { setText(e.target.value); setSelectedNavIndex(0); }}
               onKeyDown={(e) => {
-                if (mode === 'input' && (navSuggestions.length > 0 || text.trim())) {
-                  const isExpense = text.trim() && looksLikeExpense(text);
-                  if (!isExpense) {
-                    const totalItems = navSuggestions.length + (text.trim() ? 1 : 0);
-                    if (e.key === 'ArrowDown') {
-                      e.preventDefault();
-                      setSelectedNavIndex((i) => Math.min(i + 1, totalItems - 1));
-                      return;
-                    }
-                    if (e.key === 'ArrowUp') {
-                      e.preventDefault();
-                      setSelectedNavIndex((i) => Math.max(i - 1, 0));
-                      return;
-                    }
+                if (mode === 'input') {
+                  const isExpense = !!(text.trim() && looksLikeExpense(text));
+                  // total navigable items always includes the "Add manually" entry at the end
+                  const totalItems = isExpense
+                    ? 2  // 0=parse, 1=manual
+                    : navSuggestions.length + (text.trim() ? 1 : 0) + 1; // nav + add-as-tx? + manual
+                  const manualIndex = totalItems - 1;
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setSelectedNavIndex((i) => Math.min(i + 1, totalItems - 1));
+                    return;
                   }
-                }
-                if (e.key === 'Enter') {
-                  if (mode === 'input') {
-                    if (text.trim() && !looksLikeExpense(text)) {
-                      const isAddTx = selectedNavIndex === navSuggestions.length;
-                      if (isAddTx) { handleSubmit(); return; }
+                  if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setSelectedNavIndex((i) => Math.max(i - 1, 0));
+                    return;
+                  }
+                  if (e.key === 'Enter') {
+                    if (selectedNavIndex === manualIndex) { openManualEntry(); return; }
+                    if (isExpense) { handleSubmit(); return; }
+                    if (text.trim()) {
+                      if (selectedNavIndex === navSuggestions.length) { handleSubmit(); return; }
                       const item = navSuggestions[selectedNavIndex];
                       if (item) { navigate(item.path); onClose(); return; }
                     }
                     handleSubmit();
-                  } else if (mode === 'review') handleSubmit();
+                    return;
+                  }
                 }
+                if (e.key === 'Enter' && mode === 'review') handleSubmit();
               }}
               placeholder={
                 mode === 'processing' ? 'Processing…' :
@@ -1576,8 +1779,10 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
               onChange={setSingleExpense}
               activeWalletCurrency={activeWallet?.currency}
               onSave={handleSaveSingle}
+              onBack={() => setMode('input')}
               saving={saving}
               categories={categories}
+              allTags={allTags}
             />
           )}
 
@@ -1590,6 +1795,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
               onSave={handleSaveMultiple}
               saving={saving}
               categories={categories}
+              allTags={allTags}
             />
           )}
 
@@ -1602,6 +1808,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
               onSave={handleSaveRecurring}
               saving={saving}
               categories={categories}
+              allTags={allTags}
             />
           )}
 
@@ -1617,6 +1824,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
               saving={saving}
               error={error}
               categories={categories}
+              allTags={allTags}
             />
           )}
 
@@ -1624,28 +1832,54 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
           {mode === 'input' && (
             <div style={{ padding: '6px 8px 8px' }}>
               {text.trim() && looksLikeExpense(text) ? (
-                <button
-                  onClick={handleSubmit}
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    padding: '10px 12px',
-                    borderRadius: 10,
-                    background: 'var(--forest)',
-                    color: 'var(--cream)',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: 14,
-                    fontFamily: 'var(--font-body)',
-                    fontWeight: 500,
-                  }}
-                >
-                  <Zap size={16} />
-                  <span>Parse "{text}" as transaction</span>
-                  <ArrowRight size={14} style={{ marginLeft: 'auto' }} />
-                </button>
+                <>
+                  <button
+                    onClick={handleSubmit}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      background: 'var(--forest)',
+                      color: 'var(--cream)',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      fontFamily: 'var(--font-body)',
+                      fontWeight: 500,
+                    }}
+                  >
+                    <Zap size={16} />
+                    <span>Parse "{text}" as transaction</span>
+                    <ArrowRight size={14} style={{ marginLeft: 'auto' }} />
+                  </button>
+                  <div style={{ height: 1, background: 'var(--cream-darker)', margin: '4px 4px 2px' }} />
+                  <button
+                    onClick={openManualEntry}
+                    onMouseEnter={() => setSelectedNavIndex(1)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      background: selectedNavIndex === 1 ? 'var(--cream)' : 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: 13,
+                      fontFamily: 'var(--font-body)',
+                      color: 'var(--ink-light)',
+                      textAlign: 'left',
+                      transition: 'background 0.1s',
+                    }}
+                  >
+                    <Plus size={14} style={{ flexShrink: 0 }} />
+                    Add transaction manually
+                  </button>
+                </>
               ) : (
                 <>
                   {navSuggestions.length > 0 && (
@@ -1704,6 +1938,30 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
                       Add as transaction
                     </button>
                   )}
+                  <div style={{ height: 1, background: 'var(--cream-darker)', margin: '4px 4px 2px' }} />
+                  <button
+                    onClick={openManualEntry}
+                    onMouseEnter={() => setSelectedNavIndex(navSuggestions.length + (text.trim() ? 1 : 0))}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      background: selectedNavIndex === navSuggestions.length + (text.trim() ? 1 : 0) ? 'var(--cream)' : 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: 13,
+                      fontFamily: 'var(--font-body)',
+                      color: 'var(--ink-light)',
+                      textAlign: 'left',
+                      transition: 'background 0.1s',
+                    }}
+                  >
+                    <Plus size={14} style={{ flexShrink: 0 }} />
+                    Add transaction manually
+                  </button>
                 </>
               )}
             </div>
