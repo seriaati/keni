@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import base64
 import operator
+import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+import httpx
 from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions, RevocationOptions
 from mcp.server.fastmcp import FastMCP
@@ -784,3 +786,257 @@ async def delete_transaction(wallet_id: str, transaction_id: str) -> dict[str, A
         await session.commit()
         return {"deleted": transaction_id}
     return {"error": "Database error"}
+
+
+@dataclass
+class GetSpendingSummaryInput:
+    wallet_id: str
+    start_date: str | None = None
+    end_date: str | None = None
+
+
+@mcp.tool()
+async def get_spending_summary(params: GetSpendingSummaryInput) -> dict[str, Any]:
+    """
+    Get aggregate expense and income totals for a wallet over a date range.
+
+    Args:
+        params.wallet_id: UUID of the wallet to summarize.
+        params.start_date: ISO 8601 start date filter.
+        params.end_date: ISO 8601 end date filter.
+    """
+    user = await _get_authenticated_user()
+    w_id = _parse_uuid(params.wallet_id, "wallet_id")
+    if isinstance(w_id, str):
+        return {"error": w_id}
+
+    async for session in get_session():
+        wallet_result = await session.exec(
+            select(Wallet).where(Wallet.id == w_id, Wallet.user_id == user.id)
+        )
+        if not wallet_result.first():
+            return {"error": "Wallet not found"}
+
+        query = select(Transaction).where(
+            Transaction.wallet_id == w_id, col(Transaction.group_id).is_(None)
+        )
+        query, err = _apply_date_filters(query, params.start_date, params.end_date)
+        if err:
+            return {"error": err}
+
+        result = await session.exec(query)
+        txns = result.all()
+
+        expenses = [t for t in txns if t.type == "expense"]
+        income = [t for t in txns if t.type == "income"]
+
+        return {
+            "expense_total": sum(t.amount for t in expenses),
+            "expense_count": len(expenses),
+            "income_total": sum(t.amount for t in income),
+            "income_count": len(income),
+            "net_balance": sum(t.amount for t in income) - sum(t.amount for t in expenses),
+            "start_date": params.start_date,
+            "end_date": params.end_date,
+        }
+    return {"error": "Database error"}
+
+
+@dataclass
+class GetCategoryBreakdownInput:
+    wallet_id: str
+    start_date: str | None = None
+    end_date: str | None = None
+    type: str = "expense"
+    limit: int = 20
+
+
+@mcp.tool()
+async def get_category_breakdown(params: GetCategoryBreakdownInput) -> dict[str, Any]:
+    """
+    Get spending or income totals grouped by category for a wallet.
+
+    Args:
+        params.wallet_id: UUID of the wallet.
+        params.start_date: ISO 8601 start date filter.
+        params.end_date: ISO 8601 end date filter.
+        params.type: Transaction type: "expense" (default) or "income".
+        params.limit: Max categories to return (default 20).
+    """
+    user = await _get_authenticated_user()
+    w_id = _parse_uuid(params.wallet_id, "wallet_id")
+    if isinstance(w_id, str):
+        return {"error": w_id}
+
+    if params.type not in {"expense", "income"}:
+        return {"error": "type must be 'expense' or 'income'"}
+
+    async for session in get_session():
+        wallet_result = await session.exec(
+            select(Wallet).where(Wallet.id == w_id, Wallet.user_id == user.id)
+        )
+        if not wallet_result.first():
+            return {"error": "Wallet not found"}
+
+        query = select(Transaction).where(
+            Transaction.wallet_id == w_id,
+            Transaction.type == params.type,
+            col(Transaction.group_id).is_(None),
+        )
+        query, err = _apply_date_filters(query, params.start_date, params.end_date)
+        if err:
+            return {"error": err}
+
+        result = await session.exec(query)
+        txns = result.all()
+
+        cat_ids = {t.category_id for t in txns}
+        cat_map: dict[Any, dict[str, Any]] = {}
+        for cat_id in cat_ids:
+            r = await session.exec(select(Category).where(Category.id == cat_id))
+            cat = r.first()
+            if cat:
+                cat_map[cat_id] = {"name": cat.name, "color": cat.color}
+
+        raw: dict[str, dict[str, Any]] = {}
+        for t in txns:
+            info = cat_map.get(t.category_id, {"name": "Unknown", "color": None})
+            name = info["name"]
+            if name not in raw:
+                raw[name] = {
+                    "category": name,
+                    "category_color": info["color"],
+                    "total": 0.0,
+                    "count": 0,
+                }
+            raw[name]["total"] += t.amount
+            raw[name]["count"] += 1
+
+        breakdown = sorted(raw.values(), key=operator.itemgetter("total"), reverse=True)[
+            : params.limit
+        ]
+        return {
+            "type": params.type,
+            "breakdown": breakdown,
+            "start_date": params.start_date,
+            "end_date": params.end_date,
+        }
+    return {"error": "Database error"}
+
+
+@dataclass
+class GetMonthlyTrendInput:
+    wallet_id: str
+    start_date: str | None = None
+    end_date: str | None = None
+    months: int = 12
+
+
+@mcp.tool()
+async def get_monthly_trend(params: GetMonthlyTrendInput) -> dict[str, Any]:
+    """
+    Get expense and income totals grouped by month for a wallet.
+
+    Args:
+        params.wallet_id: UUID of the wallet.
+        params.start_date: ISO 8601 start date filter.
+        params.end_date: ISO 8601 end date filter.
+        params.months: Number of most recent months if no date range given (default 12).
+    """
+    user = await _get_authenticated_user()
+    w_id = _parse_uuid(params.wallet_id, "wallet_id")
+    if isinstance(w_id, str):
+        return {"error": w_id}
+
+    async for session in get_session():
+        wallet_result = await session.exec(
+            select(Wallet).where(Wallet.id == w_id, Wallet.user_id == user.id)
+        )
+        if not wallet_result.first():
+            return {"error": "Wallet not found"}
+
+        query = select(Transaction).where(
+            Transaction.wallet_id == w_id, col(Transaction.group_id).is_(None)
+        )
+        query, err = _apply_date_filters(query, params.start_date, params.end_date)
+        if err:
+            return {"error": err}
+
+        result = await session.exec(query.order_by(col(Transaction.date).desc()))
+        txns = result.all()
+
+        raw: dict[str, dict[str, Any]] = {}
+        for t in txns:
+            period = t.date.strftime("%Y-%m")
+            if period not in raw:
+                raw[period] = {
+                    "period": period,
+                    "expense_total": 0.0,
+                    "income_total": 0.0,
+                    "count": 0,
+                }
+            if t.type == "expense":
+                raw[period]["expense_total"] += t.amount
+            else:
+                raw[period]["income_total"] += t.amount
+            raw[period]["count"] += 1
+
+        trend = sorted(raw.values(), key=operator.itemgetter("period"), reverse=True)[
+            : params.months
+        ]
+        return {"trend": trend}
+    return {"error": "Database error"}
+
+
+_fx_cache: dict[str, tuple[dict[str, float], float]] = {}
+_FX_TTL = 3600.0
+
+
+@mcp.tool()
+async def convert_currency(amount: float, from_currency: str, to_currency: str) -> dict[str, Any]:
+    """
+    Convert an amount between currencies using live exchange rates.
+
+    Args:
+        amount: The amount to convert.
+        from_currency: Source currency code (e.g. USD, EUR, GBP).
+        to_currency: Target currency code (e.g. USD, EUR, GBP).
+    """
+    await _get_authenticated_user()
+    from_cur = from_currency.upper()
+    to_cur = to_currency.upper()
+
+    if from_cur == to_cur:
+        return {
+            "from_currency": from_cur,
+            "to_currency": to_cur,
+            "rate": 1.0,
+            "amount": amount,
+            "result": amount,
+        }
+
+    cached = _fx_cache.get(from_cur)
+    if cached and time.time() - cached[1] < _FX_TTL:
+        rates = cached[0]
+    else:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"https://open.er-api.com/v6/latest/{from_cur}")
+        if resp.status_code != 200:
+            return {"error": f"Exchange rate API returned {resp.status_code}"}
+        data = resp.json()
+        if data.get("result") != "success":
+            return {"error": f"Exchange rate API error: {data.get('error-type', 'unknown')}"}
+        rates = {k: float(v) for k, v in data["rates"].items()}
+        _fx_cache[from_cur] = (rates, time.time())
+
+    rate = rates.get(to_cur)
+    if rate is None:
+        return {"error": f"Unsupported currency: {to_cur}"}
+
+    return {
+        "from_currency": from_cur,
+        "to_currency": to_cur,
+        "rate": rate,
+        "amount": amount,
+        "result": round(amount * rate, 6),
+    }

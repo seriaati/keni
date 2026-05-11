@@ -3,7 +3,8 @@ from __future__ import annotations
 import logging
 import operator
 import time
-from datetime import datetime, timedelta
+import uuid
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 import httpx
@@ -11,7 +12,8 @@ from fastapi import HTTPException, status
 from sqlmodel import and_, col, select
 
 from app.models.category import Category
-from app.models.transaction import Transaction
+from app.models.tag import Tag
+from app.models.transaction import Transaction, TransactionTag
 from app.models.wallet import Wallet
 from app.providers import get_provider
 from app.providers.base import ChatContext, ChatTool
@@ -22,10 +24,9 @@ from app.providers.errors import (
     ProviderRateLimitError,
 )
 from app.services.ai_transaction import _decrypt_key, get_ai_provider_record
+from app.services.category_tag import find_or_create_category, find_or_create_tag
 
 if TYPE_CHECKING:
-    import uuid
-
     from sqlmodel.ext.asyncio.session import AsyncSession
 
     from app.providers.base import ChatResponse
@@ -177,6 +178,132 @@ CHAT_TOOLS: list[ChatTool] = [
             "required": ["amount", "from_currency", "to_currency"],
         },
     ),
+    ChatTool(
+        name="list_wallets",
+        description="List all wallets for the current user with their IDs, names, and currencies.",
+        parameters={"type": "object", "properties": {}, "required": []},
+    ),
+    ChatTool(
+        name="list_categories",
+        description="List all categories for the current user. Use to find category IDs before creating or filtering transactions.",
+        parameters={"type": "object", "properties": {}, "required": []},
+    ),
+    ChatTool(
+        name="list_tags",
+        description="List all tags for the current user. Use to find tag IDs or names before creating transactions.",
+        parameters={"type": "object", "properties": {}, "required": []},
+    ),
+    ChatTool(
+        name="get_transaction",
+        description="Get a single transaction by its ID.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "wallet_id": {
+                    "type": "string",
+                    "description": "UUID of the wallet containing the transaction.",
+                },
+                "transaction_id": {"type": "string", "description": "UUID of the transaction."},
+            },
+            "required": ["wallet_id", "transaction_id"],
+        },
+    ),
+    ChatTool(
+        name="create_transaction",
+        description=(
+            "Create a new expense or income transaction. "
+            "Categories and tags are auto-created if they don't exist. "
+            "Use list_wallets first if you don't know the wallet ID."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "wallet_id": {
+                    "type": "string",
+                    "description": "UUID of the wallet to add the transaction to.",
+                },
+                "amount": {
+                    "type": "number",
+                    "description": "Transaction amount (must be positive).",
+                },
+                "type": {
+                    "type": "string",
+                    "enum": ["expense", "income"],
+                    "description": "Transaction type (default: expense).",
+                    "default": "expense",
+                },
+                "category_name": {
+                    "type": "string",
+                    "description": "Category name — created if it doesn't exist. Use this or category_id, not both.",
+                },
+                "category_id": {
+                    "type": "string",
+                    "description": "UUID of an existing category. Use this or category_name, not both.",
+                },
+                "description": {"type": "string", "description": "Optional description."},
+                "date": {
+                    "type": "string",
+                    "description": "ISO 8601 date (defaults to now if omitted).",
+                },
+                "tag_names": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Tag names to attach — created if they don't exist.",
+                },
+            },
+            "required": ["wallet_id", "amount"],
+        },
+    ),
+    ChatTool(
+        name="update_transaction",
+        description="Update an existing transaction. Only provided fields are changed.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "wallet_id": {
+                    "type": "string",
+                    "description": "UUID of the wallet containing the transaction.",
+                },
+                "transaction_id": {
+                    "type": "string",
+                    "description": "UUID of the transaction to update.",
+                },
+                "amount": {"type": "number", "description": "New amount (must be positive)."},
+                "type": {
+                    "type": "string",
+                    "enum": ["expense", "income"],
+                    "description": "New transaction type.",
+                },
+                "category_id": {"type": "string", "description": "New category UUID."},
+                "description": {"type": "string", "description": "New description."},
+                "date": {"type": "string", "description": "New date (ISO 8601)."},
+                "tag_ids": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Replace all tags with these tag UUIDs.",
+                },
+            },
+            "required": ["wallet_id", "transaction_id"],
+        },
+    ),
+    ChatTool(
+        name="delete_transaction",
+        description="Delete a transaction by ID. Also deletes child transactions if this is a group parent.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "wallet_id": {
+                    "type": "string",
+                    "description": "UUID of the wallet containing the transaction.",
+                },
+                "transaction_id": {
+                    "type": "string",
+                    "description": "UUID of the transaction to delete.",
+                },
+            },
+            "required": ["wallet_id", "transaction_id"],
+        },
+    ),
 ]
 
 
@@ -210,8 +337,10 @@ def _build_date_filters(date_from: str | None, date_to: str | None) -> list[Any]
     return filters
 
 
-def _make_executor(wallet_ids: list[Any], session: AsyncSession) -> Any:
-    async def execute_tool(tool_name: str, args: dict[str, Any]) -> Any:
+def _make_executor(
+    wallet_ids: list[Any], wallets: list[Wallet], user_id: uuid.UUID, session: AsyncSession
+) -> Any:
+    async def execute_tool(tool_name: str, args: dict[str, Any]) -> Any:  # noqa: PLR0912
         logger.info("AI tool call: %s(%s)", tool_name, args)
         if tool_name == "get_transactions":
             result = await _tool_get_transactions(wallet_ids, session, args)
@@ -223,6 +352,20 @@ def _make_executor(wallet_ids: list[Any], session: AsyncSession) -> Any:
             result = await _tool_get_monthly_trend(wallet_ids, session, args)
         elif tool_name == "convert_currency":
             result = await _tool_convert_currency(args)
+        elif tool_name == "list_wallets":
+            result = _tool_list_wallets(wallets)
+        elif tool_name == "list_categories":
+            result = await _tool_list_categories(user_id, session)
+        elif tool_name == "list_tags":
+            result = await _tool_list_tags(user_id, session)
+        elif tool_name == "get_transaction":
+            result = await _tool_get_transaction(wallet_ids, session, args)
+        elif tool_name == "create_transaction":
+            result = await _tool_create_transaction(wallet_ids, user_id, session, args)
+        elif tool_name == "update_transaction":
+            result = await _tool_update_transaction(wallet_ids, user_id, session, args)
+        elif tool_name == "delete_transaction":
+            result = await _tool_delete_transaction(wallet_ids, session, args)
         else:
             msg = f"Unknown tool: {tool_name}"
             raise ValueError(msg)
@@ -419,6 +562,287 @@ async def _tool_convert_currency(args: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _tool_list_wallets(wallets: list[Wallet]) -> dict[str, Any]:
+    return {"wallets": [{"id": str(w.id), "name": w.name, "currency": w.currency} for w in wallets]}
+
+
+async def _tool_list_categories(user_id: uuid.UUID, session: AsyncSession) -> dict[str, Any]:
+    result = await session.exec(select(Category).where(Category.user_id == user_id))
+    return {
+        "categories": [
+            {"id": str(c.id), "name": c.name, "icon": c.icon, "color": c.color}
+            for c in result.all()
+        ]
+    }
+
+
+async def _tool_list_tags(user_id: uuid.UUID, session: AsyncSession) -> dict[str, Any]:
+    result = await session.exec(select(Tag).where(Tag.user_id == user_id))
+    return {"tags": [{"id": str(t.id), "name": t.name, "color": t.color} for t in result.all()]}
+
+
+async def _tool_get_transaction(
+    wallet_ids: list[Any], session: AsyncSession, args: dict[str, Any]
+) -> dict[str, Any]:
+    try:
+        wallet_id = uuid.UUID(args["wallet_id"])
+        transaction_id = uuid.UUID(args["transaction_id"])
+    except (ValueError, KeyError) as exc:
+        return {"error": str(exc)}
+
+    if wallet_id not in wallet_ids:
+        return {"error": "Wallet not found or not accessible"}
+
+    t_result = await session.exec(
+        select(Transaction).where(
+            Transaction.id == transaction_id, Transaction.wallet_id == wallet_id
+        )
+    )
+    t = t_result.first()
+    if not t:
+        return {"error": "Transaction not found"}
+
+    cat_result = await session.exec(select(Category).where(Category.id == t.category_id))
+    cat = cat_result.first()
+
+    tag_result = await session.exec(
+        select(Tag)
+        .join(TransactionTag, col(Tag.id) == col(TransactionTag.tag_id))
+        .where(col(TransactionTag.transaction_id) == t.id)
+    )
+    tags = [{"id": str(tag.id), "name": tag.name} for tag in tag_result.all()]
+
+    return {
+        "id": str(t.id),
+        "wallet_id": str(t.wallet_id),
+        "type": t.type,
+        "amount": t.amount,
+        "category": cat.name if cat else "Unknown",
+        "category_id": str(t.category_id),
+        "description": t.description or "",
+        "date": t.date.strftime("%Y-%m-%d"),
+        "tags": tags,
+    }
+
+
+async def _tool_create_transaction(  # noqa: PLR0911, PLR0912
+    wallet_ids: list[Any], user_id: uuid.UUID, session: AsyncSession, args: dict[str, Any]
+) -> dict[str, Any]:
+    try:
+        wallet_id = uuid.UUID(args["wallet_id"])
+    except (ValueError, KeyError):
+        return {"error": "Invalid wallet_id"}
+
+    if wallet_id not in wallet_ids:
+        return {"error": "Wallet not found or not accessible"}
+
+    amount = float(args.get("amount", 0))
+    if amount <= 0:
+        return {"error": "Amount must be positive"}
+
+    txn_type = args.get("type", "expense")
+    if txn_type not in {"expense", "income"}:
+        return {"error": "type must be 'expense' or 'income'"}
+
+    category_id_str: str | None = args.get("category_id")
+    category_name: str | None = args.get("category_name")
+    if category_id_str and category_name:
+        return {"error": "Provide either category_id or category_name, not both"}
+    if not category_id_str and not category_name:
+        return {"error": "Provide either category_id or category_name"}
+
+    if category_id_str:
+        try:
+            cat_id = uuid.UUID(category_id_str)
+        except ValueError:
+            return {"error": "Invalid category_id"}
+        cat_result = await session.exec(
+            select(Category).where(Category.id == cat_id, Category.user_id == user_id)
+        )
+        cat = cat_result.first()
+        if not cat:
+            return {"error": "Category not found"}
+        resolved_category_id = cat_id
+    else:
+        assert category_name is not None
+        cat = await find_or_create_category(user_id=user_id, name=category_name, session=session)
+        resolved_category_id = cat.id
+
+    transaction_date = datetime.now(UTC)
+    date_str: str | None = args.get("date")
+    if date_str:
+        parsed = _parse_date(date_str)
+        if parsed:
+            transaction_date = parsed.replace(tzinfo=UTC) if parsed.tzinfo is None else parsed
+
+    tag_ids: list[uuid.UUID] = []
+    for name in args.get("tag_names", []):
+        tag = await find_or_create_tag(user_id=user_id, name=name, session=session)
+        if tag.id not in tag_ids:
+            tag_ids.append(tag.id)
+
+    transaction = Transaction(
+        wallet_id=wallet_id,
+        category_id=resolved_category_id,
+        type=txn_type,
+        amount=amount,
+        description=args.get("description"),
+        date=transaction_date,
+    )
+    session.add(transaction)
+    await session.flush()
+
+    for tag_id in tag_ids:
+        session.add(TransactionTag(transaction_id=transaction.id, tag_id=tag_id))
+
+    await session.commit()
+    await session.refresh(transaction)
+
+    return {
+        "id": str(transaction.id),
+        "wallet_id": str(transaction.wallet_id),
+        "type": transaction.type,
+        "amount": transaction.amount,
+        "category": cat.name,
+        "description": transaction.description or "",
+        "date": transaction.date.strftime("%Y-%m-%d"),
+    }
+
+
+async def _tool_update_transaction(  # noqa: C901, PLR0911, PLR0912
+    wallet_ids: list[Any], user_id: uuid.UUID, session: AsyncSession, args: dict[str, Any]
+) -> dict[str, Any]:
+    try:
+        wallet_id = uuid.UUID(args["wallet_id"])
+        transaction_id = uuid.UUID(args["transaction_id"])
+    except (ValueError, KeyError):
+        return {"error": "Invalid wallet_id or transaction_id"}
+
+    if wallet_id not in wallet_ids:
+        return {"error": "Wallet not found or not accessible"}
+
+    t_result = await session.exec(
+        select(Transaction).where(
+            Transaction.id == transaction_id, Transaction.wallet_id == wallet_id
+        )
+    )
+    t = t_result.first()
+    if not t:
+        return {"error": "Transaction not found"}
+
+    if "amount" in args:
+        amount = float(args["amount"])
+        if amount <= 0:
+            return {"error": "Amount must be positive"}
+        t.amount = amount
+
+    if "type" in args:
+        if args["type"] not in {"expense", "income"}:
+            return {"error": "type must be 'expense' or 'income'"}
+        t.type = args["type"]
+
+    if "description" in args:
+        t.description = args["description"]
+
+    if "date" in args:
+        parsed = _parse_date(args["date"])
+        if not parsed:
+            return {"error": "Invalid date format"}
+        t.date = parsed.replace(tzinfo=UTC) if parsed.tzinfo is None else parsed
+
+    if "category_id" in args:
+        try:
+            cat_id = uuid.UUID(args["category_id"])
+        except ValueError:
+            return {"error": "Invalid category_id"}
+        cat_result = await session.exec(
+            select(Category).where(Category.id == cat_id, Category.user_id == user_id)
+        )
+        if not cat_result.first():
+            return {"error": "Category not found"}
+        t.category_id = cat_id
+
+    t.updated_at = datetime.now(UTC)
+
+    if "tag_ids" in args:
+        new_tag_ids: list[uuid.UUID] = []
+        for tid_str in args["tag_ids"]:
+            try:
+                tid = uuid.UUID(tid_str)
+            except ValueError:
+                return {"error": f"Invalid tag_id: {tid_str}"}
+            tag_check = await session.exec(select(Tag).where(Tag.id == tid, Tag.user_id == user_id))
+            if not tag_check.first():
+                return {"error": f"Tag {tid_str} not found"}
+            new_tag_ids.append(tid)
+
+        existing = await session.exec(
+            select(TransactionTag).where(col(TransactionTag.transaction_id) == t.id)
+        )
+        for tt in existing.all():
+            await session.delete(tt)
+        for tag_id in new_tag_ids:
+            session.add(TransactionTag(transaction_id=t.id, tag_id=tag_id))
+
+    session.add(t)
+    await session.commit()
+    await session.refresh(t)
+
+    cat_result = await session.exec(select(Category).where(Category.id == t.category_id))
+    cat = cat_result.first()
+
+    return {
+        "id": str(t.id),
+        "wallet_id": str(t.wallet_id),
+        "type": t.type,
+        "amount": t.amount,
+        "category": cat.name if cat else "Unknown",
+        "description": t.description or "",
+        "date": t.date.strftime("%Y-%m-%d"),
+    }
+
+
+async def _tool_delete_transaction(
+    wallet_ids: list[Any], session: AsyncSession, args: dict[str, Any]
+) -> dict[str, Any]:
+    try:
+        wallet_id = uuid.UUID(args["wallet_id"])
+        transaction_id = uuid.UUID(args["transaction_id"])
+    except (ValueError, KeyError):
+        return {"error": "Invalid wallet_id or transaction_id"}
+
+    if wallet_id not in wallet_ids:
+        return {"error": "Wallet not found or not accessible"}
+
+    t_result = await session.exec(
+        select(Transaction).where(
+            Transaction.id == transaction_id, Transaction.wallet_id == wallet_id
+        )
+    )
+    t = t_result.first()
+    if not t:
+        return {"error": "Transaction not found"}
+
+    existing_tags = await session.exec(
+        select(TransactionTag).where(col(TransactionTag.transaction_id) == t.id)
+    )
+    for tt in existing_tags.all():
+        await session.delete(tt)
+
+    children = await session.exec(select(Transaction).where(col(Transaction.group_id) == t.id))
+    for child in children.all():
+        child_tags = await session.exec(
+            select(TransactionTag).where(col(TransactionTag.transaction_id) == child.id)
+        )
+        for tt in child_tags.all():
+            await session.delete(tt)
+        await session.delete(child)
+
+    await session.delete(t)
+    await session.commit()
+    return {"deleted": str(transaction_id)}
+
+
 async def chat_about_expenses(
     user_id: uuid.UUID,
     message: str,
@@ -447,7 +871,7 @@ async def chat_about_expenses(
         timezone=timezone or "UTC",
     )
 
-    tool_executor = _make_executor(wallet_ids, session)
+    tool_executor = _make_executor(wallet_ids, wallets, user_id, session)
     provider = get_provider(
         record.provider,
         api_key=_decrypt_key(record.api_key_encrypted),
