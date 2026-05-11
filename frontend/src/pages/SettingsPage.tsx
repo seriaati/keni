@@ -205,7 +205,8 @@ function AIProviderTab({ user, refreshUser, toast }: { user: any; refreshUser: (
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showKey, setShowKey] = useState(false);
-  const [form, setForm] = useState({ provider: 'anthropic', model: '', api_key: '', ocr_enabled: false });
+  const [form, setForm] = useState({ provider: 'anthropic', model: '', chat_model: '', api_key: '', ocr_enabled: false });
+  const [useSeparateChatModel, setUseSeparateChatModel] = useState(false);
   const [customPrompt, setCustomPrompt] = useState<string>(user?.custom_ai_prompt ?? '');
   const [savingPrompt, setSavingPrompt] = useState(false);
   const [models, setModels] = useState<string[]>([]);
@@ -215,7 +216,8 @@ function AIProviderTab({ user, refreshUser, toast }: { user: any; refreshUser: (
     aiProviderApi.get()
       .then(async (p) => {
         setProvider(p);
-        setForm({ provider: p.provider, model: p.model, api_key: '', ocr_enabled: p.ocr_enabled });
+        setUseSeparateChatModel(!!p.chat_model);
+        setForm({ provider: p.provider, model: p.model, chat_model: p.chat_model ?? '', api_key: '', ocr_enabled: p.ocr_enabled });
         // Fetch available models using the stored key so the user can change model
         setFetchingModels(true);
         try {
@@ -256,11 +258,13 @@ function AIProviderTab({ user, refreshUser, toast }: { user: any; refreshUser: (
       const updated = await aiProviderApi.upsert({
         provider: form.provider,
         model: form.model,
+        chat_model: useSeparateChatModel ? (form.chat_model || null) : null,
         api_key: form.api_key || undefined,
         ocr_enabled: form.ocr_enabled,
       });
       setProvider(updated);
-      setForm((f) => ({ ...f, api_key: '' }));
+      setUseSeparateChatModel(!!updated.chat_model);
+      setForm((f) => ({ ...f, api_key: '', chat_model: updated.chat_model ?? '' }));
       // Re-fetch models using the (possibly new) stored key
       setFetchingModels(true);
       try {
@@ -285,7 +289,8 @@ function AIProviderTab({ user, refreshUser, toast }: { user: any; refreshUser: (
       await aiProviderApi.delete();
       setProvider(null);
       setModels([]);
-      setForm({ provider: 'anthropic', model: '', api_key: '', ocr_enabled: true });
+      setUseSeparateChatModel(false);
+      setForm({ provider: 'anthropic', model: '', chat_model: '', api_key: '', ocr_enabled: true });
       toast(t('settings.aiToastRemoved'), 'success');
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed', 'error');
@@ -297,6 +302,7 @@ function AIProviderTab({ user, refreshUser, toast }: { user: any; refreshUser: (
   if (loading) return <div className="skeleton" style={{ height: 200, borderRadius: 14 }} />;
 
   const modelOptions = models.length > 0 ? models : (provider && !form.api_key ? [provider.model] : []);
+  const chatModelOptions = models.length > 0 ? models : (provider?.chat_model && !form.api_key ? [provider.chat_model] : modelOptions);
 
   return (
     <>
@@ -376,6 +382,33 @@ function AIProviderTab({ user, refreshUser, toast }: { user: any; refreshUser: (
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
+            <input
+              type="checkbox"
+              checked={useSeparateChatModel}
+              onChange={(e) => {
+                setUseSeparateChatModel(e.target.checked);
+                if (!e.target.checked) setForm((f) => ({ ...f, chat_model: '' }));
+              }}
+              style={{ width: 16, height: 16, accentColor: 'var(--forest)', cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: 14, color: 'var(--ink)' }}>{t('settings.aiChatModelToggle')}</span>
+          </label>
+
+          {useSeparateChatModel && (
+            <div className="input-group" style={{ marginBottom: 0 }}>
+              <label className="input-label">{t('settings.aiChatModelLabel')}</label>
+              <SearchableSelect
+                value={form.chat_model}
+                onChange={(v) => setForm((f) => ({ ...f, chat_model: v }))}
+                options={chatModelOptions.map((m) => ({ value: m, label: m }))}
+                placeholder={fetchingModels ? t('settings.aiModelLoading') : t('settings.aiModelPlaceholder')}
+                disabled={chatModelOptions.length === 0}
+              />
+              <span className="input-hint">{t('settings.aiChatModelHint')}</span>
+            </div>
+          )}
+
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
               <input

@@ -295,7 +295,7 @@ export const tokens = {
 
 export const aiProvider = {
   get: () => request<AIProviderResponse>('/users/me/ai-provider'),
-  upsert: (data: { provider: string; api_key?: string; model: string; ocr_enabled?: boolean }) =>
+  upsert: (data: { provider: string; api_key?: string; model: string; chat_model?: string | null; ocr_enabled?: boolean }) =>
     request<AIProviderResponse>('/users/me/ai-provider', {
       method: 'POST',
       body: JSON.stringify(data),

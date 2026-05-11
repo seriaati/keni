@@ -116,6 +116,7 @@ async def upsert_ai_provider(  # noqa: PLR0913, PLR0917
     model: str,
     session: AsyncSession,
     ocr_enabled: bool = True,
+    chat_model: str | None = None,
 ) -> AIProvider:
     record = await get_ai_provider_record(user_id, session)
     if record is None:
@@ -128,6 +129,7 @@ async def upsert_ai_provider(  # noqa: PLR0913, PLR0917
             api_key_encrypted=_encrypt_key(api_key),
             model=model,
             ocr_enabled=ocr_enabled,
+            chat_model=chat_model,
         )
     else:
         record.provider = provider
@@ -135,6 +137,7 @@ async def upsert_ai_provider(  # noqa: PLR0913, PLR0917
             record.api_key_encrypted = _encrypt_key(api_key)
         record.model = model
         record.ocr_enabled = ocr_enabled
+        record.chat_model = chat_model
 
     session.add(record)
     await session.commit()

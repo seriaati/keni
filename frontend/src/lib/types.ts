@@ -230,6 +230,7 @@ export interface APITokenCreateResponse extends APITokenResponse {
 export interface AIProviderResponse {
   provider: string;
   model: string;
+  chat_model: string | null;
   api_key_masked: string;
   ocr_enabled: boolean;
 }

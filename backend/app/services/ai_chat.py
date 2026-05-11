@@ -449,7 +449,9 @@ async def chat_about_expenses(
 
     tool_executor = _make_executor(wallet_ids, session)
     provider = get_provider(
-        record.provider, api_key=_decrypt_key(record.api_key_encrypted), model=record.model
+        record.provider,
+        api_key=_decrypt_key(record.api_key_encrypted),
+        model=record.chat_model or record.model,
     )
 
     try:
