@@ -164,6 +164,7 @@ export const expenses = {
     description?: string;
     date?: string;
     tag_ids?: string[];
+    type?: 'expense' | 'income';
   }) =>
     request<TransactionResponse>(`/wallets/${walletId}/transactions/${expenseId}`, {
       method: 'PATCH',

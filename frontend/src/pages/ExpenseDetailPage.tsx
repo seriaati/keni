@@ -352,6 +352,7 @@ export function ExpenseDetailPage() {
     category_id: '',
     date: '',
     tag_ids: [] as string[],
+    type: 'expense' as 'expense' | 'income',
   });
 
   useEffect(() => {
@@ -383,6 +384,7 @@ export function ExpenseDetailPage() {
         category_id: exp.category.id,
         date: exp.date.slice(0, 10),
         tag_ids: exp.tags.map((t) => t.id),
+        type: exp.type,
       });
     }).catch(() => toast(t('expenseDetail.toastLoadFailed'), 'error'))
       .finally(() => setLoading(false));
@@ -398,6 +400,7 @@ export function ExpenseDetailPage() {
         category_id: form.category_id,
         date: form.date ? new Date(form.date).toISOString() : undefined,
         tag_ids: form.tag_ids,
+        type: form.type,
       });
       const originalIds = expense.linked_transactions.map((l) => l.id);
       const pendingIds = pendingLinks.map((l) => l.id);
@@ -582,14 +585,40 @@ export function ExpenseDetailPage() {
         <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px' }}>
           <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('expenseDetail.sectionAmount')}</div>
           {editing ? (
-            <input
-              className="input"
-              type="number"
-              step="0.01"
-              value={form.amount}
-              onChange={(e) => setForm({ ...form, amount: e.target.value })}
-              style={{ fontSize: 24, fontFamily: 'var(--font-display)', height: 'auto', padding: '4px 8px' }}
-            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', background: 'var(--cream)', borderRadius: 8, padding: 3, gap: 3, alignSelf: 'flex-start' }}>
+                {(['expense', 'income'] as const).map((typ) => (
+                  <button
+                    key={typ}
+                    type="button"
+                    onClick={() => setForm({ ...form, type: typ })}
+                    style={{
+                      padding: '5px 14px',
+                      borderRadius: 6,
+                      border: 'none',
+                      fontSize: 12,
+                      fontFamily: 'var(--font-body)',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      transition: 'background 0.15s, color 0.15s, box-shadow 0.15s',
+                      background: form.type === typ ? 'white' : 'transparent',
+                      color: form.type === typ ? (typ === 'income' ? 'var(--forest)' : 'var(--rose)') : 'var(--ink-faint)',
+                      boxShadow: form.type === typ ? 'var(--shadow-sm)' : 'none',
+                    }}
+                  >
+                    {typ.charAt(0).toUpperCase() + typ.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <input
+                className="input"
+                type="number"
+                step="0.01"
+                value={form.amount}
+                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                style={{ fontSize: 24, fontFamily: 'var(--font-display)', height: 'auto', padding: '4px 8px' }}
+              />
+            </div>
           ) : (
             <div>
               <div style={{ fontSize: 32, fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>
