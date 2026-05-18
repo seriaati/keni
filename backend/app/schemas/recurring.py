@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 FrequencyType = Literal["daily", "weekly", "bi-weekly", "monthly", "yearly"]
 
@@ -18,6 +18,14 @@ class RecurringTransactionCreate(BaseModel):
     frequency: FrequencyType
     next_due: datetime
     tag_names: list[str] = Field(default_factory=list)
+
+    @field_validator("next_due")
+    @classmethod
+    def next_due_not_in_past(cls, v: datetime) -> datetime:
+        if v.date() < datetime.now(UTC).date():
+            msg = "next_due cannot be in the past"
+            raise ValueError(msg)
+        return v
 
     @model_validator(mode="after")
     def validate_category(self) -> RecurringTransactionCreate:
@@ -35,6 +43,14 @@ class RecurringTransactionUpdate(BaseModel):
     frequency: FrequencyType | None = None
     next_due: datetime | None = None
     is_active: bool | None = None
+
+    @field_validator("next_due")
+    @classmethod
+    def next_due_not_in_past(cls, v: datetime | None) -> datetime | None:
+        if v is not None and v.date() < datetime.now(UTC).date():
+            msg = "next_due cannot be in the past"
+            raise ValueError(msg)
+        return v
 
 
 class RecurringTransactionResponse(BaseModel):

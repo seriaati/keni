@@ -62,6 +62,8 @@ async def process_due_recurring_transactions(session: AsyncSession) -> int:
         session.add(transaction)
 
         next_due = _compute_next_due(recurring.next_due, recurring.frequency)
+        while next_due <= now:
+            next_due = _compute_next_due(next_due, recurring.frequency)
         recurring.next_due = next_due
         session.add(recurring)
         created += 1
