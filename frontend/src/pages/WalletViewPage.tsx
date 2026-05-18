@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams, useSearchParams, useOutletContext } from 'react-router-dom';
 import { ArrowLeftRight, Download, Filter, Layers, Search, SortAsc, SortDesc, X } from 'lucide-react';
@@ -27,7 +27,7 @@ function useIsMobile(breakpoint = 640) {
 export function WalletViewPage() {
   const { t } = useTranslation();
   const { walletId } = useParams<{ walletId: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const toast = useToast();
   const { user } = useAuth();
   const { expenseAddedKey } = useOutletContext<LayoutOutletContext>();
@@ -37,6 +37,7 @@ export function WalletViewPage() {
   const isMobile = useIsMobile();
   const [showConverted, setShowConverted] = useState(false);
   const [switching, setSwitching] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
   const handleToggleConverted = () => {
     if (switching) return;
@@ -44,24 +45,42 @@ export function WalletViewPage() {
     setTimeout(() => setShowConverted((v) => !v), 112);
     setTimeout(() => setSwitching(false), 320);
   };
+
   const [data, setData] = useState<TransactionListResponse | null>(null);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [allTags, setAllTags] = useState<TagResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [search, setSearch] = useState('');
-  const [categoryId, setCategoryId] = useState(() => searchParams.get('category_id') ?? '');
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(() => searchParams.getAll('tag_ids'));
-  const [sortBy, setSortBy] = useState('date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [page, setPage] = useState(1);
-  const [showFilters, setShowFilters] = useState(false);
-  const [startDate, setStartDate] = useState(() => searchParams.get('start_date') ?? '');
-  const [endDate, setEndDate] = useState(() => searchParams.get('end_date') ?? '');
-  const [minAmount, setMinAmount] = useState('');
-  const [maxAmount, setMaxAmount] = useState('');
+  // Filter state derived from URL params
+  const search = searchParams.get('q') ?? '';
+  const categoryId = searchParams.get('category_id') ?? '';
+  const selectedTagIds = useMemo(() => searchParams.getAll('tag_ids'), [searchParams]);
+  const sortBy = searchParams.get('sort_by') ?? 'date';
+  const sortOrder = (searchParams.get('sort_order') ?? 'desc') as 'asc' | 'desc';
+  const page = Number(searchParams.get('page') ?? '1');
+  const startDate = searchParams.get('start_date') ?? '';
+  const endDate = searchParams.get('end_date') ?? '';
+  const minAmount = searchParams.get('min_amount') ?? '';
+  const maxAmount = searchParams.get('max_amount') ?? '';
 
   const PAGE_SIZE = 20;
+
+  const setParam = (updates: Record<string, string | string[] | null>) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      for (const [key, value] of Object.entries(updates)) {
+        if (value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
+          next.delete(key);
+        } else if (Array.isArray(value)) {
+          next.delete(key);
+          for (const v of value) next.append(key, v);
+        } else {
+          next.set(key, value);
+        }
+      }
+      return next;
+    }, { replace: true });
+  };
 
   const load = useCallback(async () => {
     if (!walletId) return;
@@ -125,10 +144,10 @@ export function WalletViewPage() {
   };
 
   const toggleTag = (id: string) => {
-    setSelectedTagIds((prev) =>
-      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
-    );
-    setPage(1);
+    const next = selectedTagIds.includes(id)
+      ? selectedTagIds.filter((t) => t !== id)
+      : [...selectedTagIds, id];
+    setParam({ tag_ids: next, page: null });
   };
 
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
@@ -162,13 +181,13 @@ export function WalletViewPage() {
             style={{ paddingLeft: 32 }}
             placeholder={t('walletView.searchPlaceholder')}
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            onChange={(e) => setParam({ q: e.target.value, page: null })}
           />
         </div>
 
         <Select
           value={categoryId}
-          onChange={(v) => { setCategoryId(v); setPage(1); }}
+          onChange={(v) => setParam({ category_id: v, page: null })}
           options={[{ value: '', label: t('walletView.filterAllCategories') }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
           placeholder={t('walletView.filterAllCategories')}
         />
@@ -185,7 +204,7 @@ export function WalletViewPage() {
 
         <button
           className="btn btn-secondary btn-md"
-          onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+          onClick={() => setParam({ sort_order: sortOrder === 'desc' ? 'asc' : 'desc' })}
           title="Toggle sort order"
         >
           {sortOrder === 'desc' ? <SortDesc size={14} /> : <SortAsc size={14} />}
@@ -207,25 +226,25 @@ export function WalletViewPage() {
         }}>
           <div className="input-group">
             <label className="input-label">{t('walletView.filterFromDate')}</label>
-            <DatePicker value={startDate} onChange={(v) => { setStartDate(v); setPage(1); }} />
+            <DatePicker value={startDate} onChange={(v) => setParam({ start_date: v, page: null })} />
           </div>
           <div className="input-group">
             <label className="input-label">{t('walletView.filterToDate')}</label>
-            <DatePicker value={endDate} onChange={(v) => { setEndDate(v); setPage(1); }} />
+            <DatePicker value={endDate} onChange={(v) => setParam({ end_date: v, page: null })} />
           </div>
           <div className="input-group">
             <label className="input-label">{t('walletView.filterMinAmount')}</label>
-            <input className="input" type="number" placeholder="0" value={minAmount} onChange={(e) => { setMinAmount(e.target.value); setPage(1); }} />
+            <input className="input" type="number" placeholder="0" value={minAmount} onChange={(e) => setParam({ min_amount: e.target.value, page: null })} />
           </div>
           <div className="input-group">
             <label className="input-label">{t('walletView.filterMaxAmount')}</label>
-            <input className="input" type="number" placeholder="∞" value={maxAmount} onChange={(e) => { setMaxAmount(e.target.value); setPage(1); }} />
+            <input className="input" type="number" placeholder="∞" value={maxAmount} onChange={(e) => setParam({ max_amount: e.target.value, page: null })} />
           </div>
           <div className="input-group">
             <label className="input-label">{t('walletView.filterSortBy')}</label>
             <Select
               value={sortBy}
-              onChange={setSortBy}
+              onChange={(v) => setParam({ sort_by: v })}
               options={[{ value: 'date', label: t('walletView.filterSortDate') }, { value: 'amount', label: t('walletView.filterSortAmount') }]}
             />
           </div>
@@ -266,7 +285,7 @@ export function WalletViewPage() {
             <div style={{ display: 'flex', alignItems: 'flex-end' }}>
               <button
                 className="btn btn-ghost btn-md"
-                onClick={() => { setSearch(''); setCategoryId(''); setSelectedTagIds([]); setStartDate(''); setEndDate(''); setMinAmount(''); setMaxAmount(''); setPage(1); }}
+                onClick={() => setParam({ q: null, category_id: null, tag_ids: null, start_date: null, end_date: null, min_amount: null, max_amount: null, page: null })}
               >
                 <X size={14} /> {t('walletView.filterClearAll')}
               </button>
@@ -326,7 +345,7 @@ export function WalletViewPage() {
               <button
                 className="btn btn-secondary btn-sm"
                 disabled={page === 1}
-                onClick={() => setPage(page - 1)}
+                onClick={() => setParam({ page: String(page - 1) })}
               >
                 {t('walletView.paginationPrev')}
               </button>
@@ -336,7 +355,7 @@ export function WalletViewPage() {
               <button
                 className="btn btn-secondary btn-sm"
                 disabled={page === totalPages}
-                onClick={() => setPage(page + 1)}
+                onClick={() => setParam({ page: String(page + 1) })}
               >
                 {t('walletView.paginationNext')}
               </button>
