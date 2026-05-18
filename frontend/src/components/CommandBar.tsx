@@ -300,6 +300,7 @@ function ExpenseCard({
   onRemove,
   onCancelNew,
   onCancel,
+  showInlineSave,
   categories,
   allTags,
   wallets,
@@ -313,6 +314,7 @@ function ExpenseCard({
   onRemove?: () => void;
   onCancelNew?: () => void;
   onCancel?: () => void;
+  showInlineSave?: boolean;
   categories: CategoryResponse[];
   allTags: TagResponse[];
   wallets?: WalletResponse[];
@@ -522,17 +524,28 @@ function ExpenseCard({
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
         {expense._editing ? (
-          <button
-            className="btn btn-secondary btn-sm"
-            style={{ fontSize: 12, padding: '3px 10px' }}
-            onClick={() => {
-              if (onCancel) { onCancel(); return; }
-              if (expense._isNew && onCancelNew) { onCancelNew(); return; }
-              onChange({ ...expense, _editing: false });
-            }}
-          >
-            Cancel
-          </button>
+          <>
+            <button
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: 12, padding: '3px 10px' }}
+              onClick={() => {
+                if (onCancel) { onCancel(); return; }
+                if (expense._isNew && onCancelNew) { onCancelNew(); return; }
+                onChange({ ...expense, _editing: false });
+              }}
+            >
+              Cancel
+            </button>
+            {showInlineSave && (
+              <button
+                className="btn btn-primary btn-sm"
+                style={{ fontSize: 12, padding: '3px 10px' }}
+                onClick={commit}
+              >
+                Save
+              </button>
+            )}
+          </>
         ) : (
           <button className="btn btn-secondary btn-sm" style={{ fontSize: 12, padding: '3px 10px', display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={startEditing}>
             <Pencil size={11} /> Edit
@@ -549,7 +562,6 @@ function SingleReview({
   onChange,
   activeWalletCurrency,
   onSave,
-  onBack,
   saving,
   categories,
   allTags,
@@ -561,7 +573,6 @@ function SingleReview({
   onChange: (e: EditableExpense) => void;
   activeWalletCurrency?: string;
   onSave: () => void;
-  onBack: () => void;
   saving: boolean;
   categories: CategoryResponse[];
   allTags: TagResponse[];
@@ -572,7 +583,7 @@ function SingleReview({
   const isIncome = expense.type === 'income';
   return (
     <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <ExpenseCard expense={expense} onChange={onChange} currency={activeWalletCurrency} onCancel={onBack} categories={categories} allTags={allTags} wallets={wallets} selectedWalletId={selectedWalletId} onWalletChange={onWalletChange} />
+      <ExpenseCard expense={expense} onChange={onChange} currency={activeWalletCurrency} categories={categories} allTags={allTags} wallets={wallets} selectedWalletId={selectedWalletId} onWalletChange={onWalletChange} />
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4 }}>
         <button
           className="btn btn-primary btn-sm"
@@ -706,6 +717,7 @@ function MultipleReview({
                 currency={activeWalletCurrency}
                 label={`Expense ${i + 1}`}
                 onCancelNew={exp._isNew ? () => removeExpense(i) : undefined}
+                showInlineSave
                 categories={categories}
                 allTags={allTags}
                 wallets={wallets}
@@ -1107,7 +1119,7 @@ function GroupReview({
       </div>
 
       {!showItems ? (
-        <ExpenseCard expense={parent} onChange={onChangeParent} currency={activeWalletCurrency} label="Group total" categories={categories} allTags={allTags} wallets={wallets} selectedWalletId={selectedWalletId} onWalletChange={onWalletChange} />
+        <ExpenseCard expense={parent} onChange={onChangeParent} currency={activeWalletCurrency} label="Group total" showInlineSave categories={categories} allTags={allTags} wallets={wallets} selectedWalletId={selectedWalletId} onWalletChange={onWalletChange} />
       ) : (
         <>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1144,6 +1156,7 @@ function GroupReview({
                     label={`Item ${i + 1}`}
                     onRemove={items.length > 1 ? () => removeItem(i) : undefined}
                     onCancelNew={item._isNew ? () => removeItem(i) : undefined}
+                    showInlineSave
                     categories={categories}
                     allTags={allTags}
                     wallets={wallets}
@@ -1847,7 +1860,6 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
               onChange={setSingleExpense}
               activeWalletCurrency={wallets.find((w) => w.id === selectedWalletId)?.currency ?? activeWallet?.currency}
               onSave={handleSaveSingle}
-              onBack={() => setMode('input')}
               saving={saving}
               categories={categories}
               allTags={allTags}
