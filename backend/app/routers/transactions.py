@@ -253,29 +253,27 @@ async def create_transaction_ai(  # noqa: PLR0913, PLR0917
     current_user: CurrentUser,
     session: DbDep,
     text: Annotated[str | None, Form()] = None,
-    file: Annotated[UploadFile | None, File()] = None,
+    files: Annotated[list[UploadFile], File()] = [],  # noqa: B006
     x_timezone: Annotated[str | None, Header()] = None,
 ) -> AITransactionsResponse:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
 
-    if not text and not file:
+    if not text and not files:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Provide at least one of: text, file",
         )
 
-    image_base64: str | None = None
-    image_media_type: str | None = None
-    if file:
-        raw = await file.read()
-        content_type = file.content_type or ""
+    images: list[tuple[str, str]] = []
+    for upload in files:
+        raw = await upload.read()
+        content_type = upload.content_type or ""
         if content_type == "application/pdf":
             pdf_text = extract_text_from_pdf(raw)
             if pdf_text:
                 text = f"{pdf_text}\n\n{text}" if text else pdf_text
         elif content_type.startswith("image/"):
-            image_base64 = _b64.b64encode(raw).decode()
-            image_media_type = content_type or "image/jpeg"
+            images.append((_b64.b64encode(raw).decode(), content_type or "image/jpeg"))
         else:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -284,12 +282,7 @@ async def create_transaction_ai(  # noqa: PLR0913, PLR0917
 
     timezone = current_user.timezone or x_timezone or None
     parsed = await parse_transactions_with_ai(
-        user_id=current_user.id,
-        text=text,
-        image_base64=image_base64,
-        image_media_type=image_media_type,
-        session=session,
-        timezone=timezone,
+        user_id=current_user.id, text=text, images=images, session=session, timezone=timezone
     )
 
     group: AITransactionGroupInfo | None = None
@@ -353,12 +346,7 @@ async def create_transaction_voice(
 
     timezone = current_user.timezone or x_timezone or None
     parsed = await parse_transactions_with_ai(
-        user_id=current_user.id,
-        text=transcript,
-        image_base64=None,
-        image_media_type=None,
-        session=session,
-        timezone=timezone,
+        user_id=current_user.id, text=transcript, images=[], session=session, timezone=timezone
     )
 
     group: AITransactionGroupInfo | None = None

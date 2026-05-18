@@ -64,25 +64,23 @@ class OpenAICompatibleProvider(LLMProvider):
         self,
         *,
         text: str | None,
-        image_base64: str | None,
-        image_media_type: str | None,
+        images: list[tuple[str, str]],
         categories: list[str],
         tags: list[str],
         wallets: list[tuple[str, str]] | None = None,
         timezone: str = "UTC",
         custom_prompt: str | None = None,
     ) -> ParsedTransactionOutput:
-        if not text and not image_base64:
+        if not text and not images:
             msg = "At least one of text or image must be provided"
             raise ValueError(msg)
 
         parts: list[ChatCompletionContentPartTextParam | ChatCompletionContentPartImageParam] = []
 
-        if image_base64 and image_media_type:
+        for img_b64, img_media_type in images:
             parts.append(
                 ChatCompletionContentPartImageParam(
-                    type="image_url",
-                    image_url={"url": f"data:{image_media_type};base64,{image_base64}"},
+                    type="image_url", image_url={"url": f"data:{img_media_type};base64,{img_b64}"}
                 )
             )
 

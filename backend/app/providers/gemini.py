@@ -66,24 +66,23 @@ class GeminiProvider(LLMProvider):
         self,
         *,
         text: str | None,
-        image_base64: str | None,
-        image_media_type: str | None,
+        images: list[tuple[str, str]],
         categories: list[str],
         tags: list[str],
         wallets: list[tuple[str, str]] | None = None,
         timezone: str = "UTC",
         custom_prompt: str | None = None,
     ) -> ParsedTransactionOutput:
-        if not text and not image_base64:
+        if not text and not images:
             msg = "At least one of text or image must be provided"
             raise ValueError(msg)
 
         parts: list[genai_types.Part] = []
 
-        if image_base64 and image_media_type:
+        for img_b64, img_media_type in images:
             parts.append(
                 genai_types.Part.from_bytes(
-                    data=__import__("base64").b64decode(image_base64), mime_type=image_media_type
+                    data=__import__("base64").b64decode(img_b64), mime_type=img_media_type
                 )
             )
 

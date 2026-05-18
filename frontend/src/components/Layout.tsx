@@ -52,7 +52,7 @@ export function Layout() {
   const { user, logout } = useAuth();
   const { wallets, activeWallet, setActiveWallet } = useWallet();
   const [cmdOpen, setCmdOpen] = useState(false);
-  const [cmdInitialPayload, setCmdInitialPayload] = useState<{ text?: string; file?: File } | undefined>();
+  const [cmdInitialPayload, setCmdInitialPayload] = useState<{ text?: string; files?: File[] } | undefined>();
   const [walletMenuOpen, setWalletMenuOpen] = useState(false);
   const [mobileWalletMenuOpen, setMobileWalletMenuOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -100,9 +100,9 @@ export function Layout() {
     navigate('/', { replace: true });
     getSharedPayload().then((data) => {
       if (data) {
-        const file = data.files[0] ?? undefined;
+        const files = data.files.length ? data.files : undefined;
         const text = [data.title, data.text].filter(Boolean).join('\n') || undefined;
-        setCmdInitialPayload({ text, file });
+        setCmdInitialPayload({ text, files });
         clearSharedPayload();
       }
       setCmdOpen(true);

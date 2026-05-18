@@ -42,7 +42,7 @@ interface CommandBarProps {
   open: boolean;
   onClose: () => void;
   onExpenseAdded?: () => void;
-  initialPayload?: { text?: string; file?: File };
+  initialPayload?: { text?: string; files?: File[] };
 }
 
 type Mode = 'input' | 'processing' | 'review';
@@ -1239,7 +1239,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   const [mode, setMode] = useState<Mode>('input');
   const [parseResult, setParseResult] = useState<AIParseResponse | null>(null);
   const [transcript, setTranscript] = useState('');
-  const [imageEnlarged, setImageEnlarged] = useState(false);
+  const [enlargedPreview, setEnlargedPreview] = useState<string | null>(null);
 
   const [singleExpense, setSingleExpense] = useState<EditableExpense | null>(null);
   const [multiExpenses, setMultiExpenses] = useState<EditableExpense[]>([]);
@@ -1250,8 +1250,8 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   const [error, setError] = useState('');
   const [selectedNavIndex, setSelectedNavIndex] = useState(0);
   const [recording, setRecording] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [filePreviews, setFilePreviews] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
@@ -1283,9 +1283,9 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     setGroupItems([]);
     setRecurringExpense(null);
     setError('');
-    setImageFile(null);
-    setImagePreview(null);
-    setImageEnlarged(false);
+    setAttachedFiles([]);
+    setFilePreviews([]);
+    setEnlargedPreview(null);
     setSaving(false);
     setSelectedWalletId(null);
   }, []);
@@ -1294,11 +1294,13 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     if (open) {
       reset();
       if (initialPayload?.text) setText(initialPayload.text);
-      if (initialPayload?.file) {
-        setImageFile(initialPayload.file);
-        if (initialPayload.file.type.startsWith('image/')) {
-          setImagePreview(URL.createObjectURL(initialPayload.file));
-        }
+      if (initialPayload?.files?.length) {
+        setAttachedFiles(initialPayload.files);
+        setFilePreviews(
+          initialPayload.files.map((f) =>
+            f.type.startsWith('image/') ? URL.createObjectURL(f) : '',
+          ),
+        );
       }
       setTimeout(() => inputRef.current?.focus(), 50);
       categoriesApi.list().then(setCategories).catch(() => {});
@@ -1351,10 +1353,10 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     : NAV_ITEMS.slice(0, 4);
 
   const handleSubmit = async () => {
-    if (!text.trim() && !imageFile) return;
+    if (!text.trim() && !attachedFiles.length) return;
     if (!activeWallet) { setError('No wallet selected'); return; }
 
-    if (!imageFile && !looksLikeExpense(text)) {
+    if (!attachedFiles.length && !looksLikeExpense(text)) {
       const match = navSuggestions[0];
       if (match) { navigate(match.path); onClose(); return; }
     }
@@ -1362,7 +1364,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     setMode('processing');
     setError('');
     try {
-      const result = await expensesApi.aiParse(activeWallet.id, text || undefined, imageFile || undefined);
+      const result = await expensesApi.aiParse(activeWallet.id, text || undefined, attachedFiles.length ? attachedFiles : undefined);
       applyParseResult(result);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to parse expense');
@@ -1512,14 +1514,13 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     e.preventDefault();
     dragCounterRef.current = 0;
     setDragging(false);
-    const file = e.dataTransfer?.files?.[0];
-    if (!file) return;
-    setImageFile(file);
-    if (file.type.startsWith('image/')) {
-      setImagePreview(URL.createObjectURL(file));
-    } else {
-      setImagePreview(null);
-    }
+    const dropped = Array.from(e.dataTransfer?.files ?? []);
+    if (!dropped.length) return;
+    setAttachedFiles((prev) => [...prev, ...dropped]);
+    setFilePreviews((prev) => [
+      ...prev,
+      ...dropped.map((f) => (f.type.startsWith('image/') ? URL.createObjectURL(f) : '')),
+    ]);
   }, []);
 
   useEffect(() => {
@@ -1544,8 +1545,8 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     if (!item) return;
     const file = item.getAsFile();
     if (!file) return;
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    setAttachedFiles((prev) => [...prev, file]);
+    setFilePreviews((prev) => [...prev, URL.createObjectURL(file)]);
   }, [open]);
 
   useEffect(() => {
@@ -1554,14 +1555,14 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   }, [handleImagePaste]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImageFile(file);
-    if (file.type.startsWith('image/')) {
-      setImagePreview(URL.createObjectURL(file));
-    } else {
-      setImagePreview(null);
-    }
+    const selected = Array.from(e.target.files ?? []);
+    if (!selected.length) return;
+    setAttachedFiles((prev) => [...prev, ...selected]);
+    setFilePreviews((prev) => [
+      ...prev,
+      ...selected.map((f) => (f.type.startsWith('image/') ? URL.createObjectURL(f) : '')),
+    ]);
+    e.target.value = '';
   };
 
   const startRecording = async () => {
@@ -1626,7 +1627,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
 
   return (
     <>
-      {imageEnlarged && imagePreview && createPortal(
+      {enlargedPreview && createPortal(
         <div
           style={{
             position: 'fixed',
@@ -1639,10 +1640,10 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
             padding: 24,
             backdropFilter: 'blur(4px)',
           }}
-          onClick={() => setImageEnlarged(false)}
+          onClick={() => setEnlargedPreview(null)}
         >
           <img
-            src={imagePreview}
+            src={enlargedPreview}
             alt="Receipt enlarged"
             style={{
               maxWidth: '90vw',
@@ -1654,7 +1655,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
             onClick={(e) => e.stopPropagation()}
           />
           <button
-            onClick={() => setImageEnlarged(false)}
+            onClick={() => setEnlargedPreview(null)}
             style={{
               position: 'absolute',
               top: 16,
@@ -1790,9 +1791,9 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
               <button className="icon-btn" onClick={() => fileInputRef.current?.click()} title="Attach image or PDF">
                 <Paperclip size={16} />
               </button>
-              <input ref={fileInputRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={handleImageSelect} />
+              <input ref={fileInputRef} type="file" accept="image/*,application/pdf" multiple style={{ display: 'none' }} onChange={handleImageSelect} />
 
-              {text.trim() || imageFile ? (
+              {text.trim() || attachedFiles.length ? (
                 <button
                   className="icon-btn"
                   onClick={mode === 'input' ? handleSubmit : handleSubmit}
@@ -1814,27 +1815,45 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
             </div>
           </div>
 
-          {/* File preview */}
-          {imageFile && (
-            <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8, background: 'var(--cream)' }}>
-              {imagePreview ? (
-                <img
-                  src={imagePreview}
-                  alt="Receipt"
-                  onClick={() => setImageEnlarged(true)}
-                  style={{ height: 48, width: 48, objectFit: 'cover', borderRadius: 6, cursor: 'zoom-in' }}
-                />
-              ) : (
-                <div style={{ height: 48, width: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--cream-darker)', borderRadius: 6, flexShrink: 0 }}>
-                  <FileText size={22} style={{ color: 'var(--ink-mid)' }} />
+          {/* File previews */}
+          {attachedFiles.length > 0 && (
+            <div style={{ padding: '8px 16px', display: 'flex', flexWrap: 'wrap', gap: 8, background: 'var(--cream)', alignItems: 'flex-start' }}>
+              {attachedFiles.map((file, i) => (
+                <div
+                  key={i}
+                  style={{ position: 'relative', flexShrink: 0 }}
+                  title={file.name}
+                >
+                  {filePreviews[i] ? (
+                    <img
+                      src={filePreviews[i]}
+                      alt={file.name}
+                      onClick={() => setEnlargedPreview(filePreviews[i])}
+                      style={{ height: 48, width: 48, objectFit: 'cover', borderRadius: 6, cursor: 'zoom-in', display: 'block' }}
+                    />
+                  ) : (
+                    <div style={{ height: 48, width: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--cream-darker)', borderRadius: 6 }}>
+                      <FileText size={20} style={{ color: 'var(--ink-mid)' }} />
+                    </div>
+                  )}
+                  <button
+                    className="icon-btn"
+                    onClick={() => {
+                      setAttachedFiles((prev) => prev.filter((_, idx) => idx !== i));
+                      setFilePreviews((prev) => prev.filter((_, idx) => idx !== i));
+                    }}
+                    style={{
+                      position: 'absolute', top: -6, right: -6,
+                      width: 18, height: 18, borderRadius: '50%',
+                      background: 'var(--ink)', color: 'white',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      padding: 0, flexShrink: 0,
+                    }}
+                  >
+                    <X size={10} />
+                  </button>
                 </div>
-              )}
-              <span style={{ fontSize: 13, color: 'var(--ink-mid)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {imageFile.name}
-              </span>
-              <button className="icon-btn" onClick={() => { setImageFile(null); setImagePreview(null); }} style={{ marginLeft: 'auto', flexShrink: 0 }}>
-                <X size={14} />
-              </button>
+              ))}
             </div>
           )}
 

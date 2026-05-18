@@ -69,30 +69,29 @@ class AnthropicProvider(LLMProvider):
         self,
         *,
         text: str | None,
-        image_base64: str | None,
-        image_media_type: str | None,
+        images: list[tuple[str, str]],
         categories: list[str],
         tags: list[str],
         wallets: list[tuple[str, str]] | None = None,
         timezone: str = "UTC",
         custom_prompt: str | None = None,
     ) -> ParsedTransactionOutput:
-        if not text and not image_base64:
+        if not text and not images:
             msg = "At least one of text or image must be provided"
             raise ValueError(msg)
 
         parts: list[TextBlockParam | ImageBlockParam] = []
 
-        if image_base64 and image_media_type:
+        for img_b64, img_media_type in images:
             safe_media_type = cast(
                 "_SupportedMediaType",
-                image_media_type if image_media_type in _SUPPORTED_MEDIA_TYPES else "image/jpeg",
+                img_media_type if img_media_type in _SUPPORTED_MEDIA_TYPES else "image/jpeg",
             )
             parts.append(
                 ImageBlockParam(
                     type="image",
                     source=Base64ImageSourceParam(
-                        type="base64", media_type=safe_media_type, data=image_base64
+                        type="base64", media_type=safe_media_type, data=img_b64
                     ),
                 )
             )

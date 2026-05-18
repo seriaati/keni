@@ -145,11 +145,10 @@ async def upsert_ai_provider(  # noqa: PLR0913, PLR0917
     return record
 
 
-async def parse_transactions_with_ai(  # noqa: PLR0913, PLR0914, PLR0915, PLR0917
+async def parse_transactions_with_ai(  # noqa: PLR0912, PLR0914, PLR0915, C901
     user_id: uuid.UUID,
     text: str | None,
-    image_base64: str | None,
-    image_media_type: str | None,
+    images: list[tuple[str, str]],
     session: AsyncSession,
     timezone: str | None = None,
 ) -> ParsedTransactionsResult:
@@ -166,12 +165,19 @@ async def parse_transactions_with_ai(  # noqa: PLR0913, PLR0914, PLR0915, PLR091
 
     api_key = _decrypt_key(record.api_key_encrypted)
 
-    if record.ocr_enabled and image_base64 is not None:
-        ocr_text = extract_text_from_base64(image_base64)
-        if ocr_text is not None:
-            text = "OCR extracted from receipt image:\n" + ocr_text
-            image_base64 = None
-            image_media_type = None
+    if record.ocr_enabled and images:
+        ocr_texts: list[str] = []
+        remaining_images: list[tuple[str, str]] = []
+        for img_b64, img_media_type in images:
+            ocr_text = extract_text_from_base64(img_b64)
+            if ocr_text is not None:
+                ocr_texts.append(ocr_text)
+            else:
+                remaining_images.append((img_b64, img_media_type))
+        if ocr_texts:
+            combined_ocr = "\n\n".join(f"OCR extracted from receipt image:\n{t}" for t in ocr_texts)
+            text = f"{combined_ocr}\n\n{text}" if text else combined_ocr
+        images = remaining_images
 
     cat_result = await session.exec(select(Category).where(Category.user_id == user_id))
     existing_categories = cat_result.all()
@@ -191,8 +197,7 @@ async def parse_transactions_with_ai(  # noqa: PLR0913, PLR0914, PLR0915, PLR091
     try:
         output = await provider.parse_transactions(
             text=text,
-            image_base64=image_base64,
-            image_media_type=image_media_type,
+            images=images,
             categories=category_names,
             tags=tag_names,
             wallets=wallet_context if len(wallet_context) > 1 else None,

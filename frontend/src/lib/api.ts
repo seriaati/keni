@@ -178,10 +178,10 @@ export const expenses = {
     if (params.end_date) q.set('end_date', params.end_date);
     return request<TransactionSummary>(`/wallets/${walletId}/transactions/summary?${q}`);
   },
-  aiParse: (walletId: string, text?: string, file?: File) => {
+  aiParse: (walletId: string, text?: string, files?: File[]) => {
     const form = new FormData();
     if (text) form.append('text', text);
-    if (file) form.append('file', file);
+    files?.forEach((f) => form.append('files', f));
     return request<AIParseResponse>(`/wallets/${walletId}/transactions/ai`, {
       method: 'POST',
       body: form,
