@@ -622,11 +622,11 @@ export function ExpenseDetailPage() {
           ) : (
             <div>
               <div style={{ fontSize: 32, fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>
-                {fmt(expense.amount, currency)}
+                {expense.type === 'income' ? '+' : ''}{fmt(expense.amount, currency)}
               </div>
               {fxRate != null && user?.global_currency && (
                 <div style={{ fontSize: 14, color: 'var(--ink-mid)', marginTop: 4 }}>
-                  ≈ {fmt(expense.amount * fxRate, user.global_currency)}
+                  ≈ {expense.type === 'income' ? '+' : ''}{fmt(expense.amount * fxRate, user.global_currency)}
                 </div>
               )}
             </div>
