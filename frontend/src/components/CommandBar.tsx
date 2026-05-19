@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
@@ -292,7 +292,7 @@ function TagMultiSelect({
   );
 }
 
-function ExpenseCard({
+const ExpenseCard = memo(function ExpenseCard({
   expense,
   onChange,
   currency,
@@ -554,7 +554,7 @@ function ExpenseCard({
       </div>
     </div>
   );
-}
+});
 
 
 function SingleReview({
@@ -635,23 +635,19 @@ function MultipleReview({
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const update = (i: number, e: EditableExpense) => {
-    const next = [...expenses];
-    next[i] = e;
-    onChange(next);
-  };
+  const update = useCallback((i: number, e: EditableExpense) => {
+    onChange(expenses.map((ex, idx) => idx === i ? e : ex));
+  }, [expenses, onChange]);
 
-  const goTo = (next: number) => {
+  const goTo = useCallback((next: number) => {
     const current = expenses[activeIndex];
     if (current._editing) {
-      const next2 = [...expenses];
-      next2[activeIndex] = commitEditable(current);
-      onChange(next2);
+      onChange(expenses.map((ex, idx) => idx === activeIndex ? commitEditable(current) : ex));
     }
     setActiveIndex(next);
-  };
+  }, [expenses, activeIndex, onChange]);
 
-  const addExpense = () => {
+  const addExpense = useCallback(() => {
     const ref = expenses[0];
     const newExpense = makeEditable({
       amount: 0,
@@ -670,13 +666,13 @@ function MultipleReview({
     const newList = [...expenses, newExpense];
     onChange(newList);
     setActiveIndex(newList.length - 1);
-  };
+  }, [expenses, onChange]);
 
-  const removeExpense = (i: number) => {
+  const removeExpense = useCallback((i: number) => {
     const next = expenses.filter((_, idx) => idx !== i);
     onChange(next);
     setActiveIndex((prev) => Math.min(prev, next.length - 1));
-  };
+  }, [expenses, onChange]);
 
   const incomeCount = expenses.filter((e) => e.type === 'income').length;
   const expenseCount = expenses.filter((e) => e.type === 'expense').length;
@@ -711,19 +707,21 @@ function MultipleReview({
         >
           {expenses.map((exp, i) => (
             <div key={i} style={{ minWidth: '100%' }}>
-              <ExpenseCard
-                expense={exp}
-                onChange={(e) => update(i, e)}
-                currency={activeWalletCurrency}
-                label={`Expense ${i + 1}`}
-                onCancelNew={exp._isNew ? () => removeExpense(i) : undefined}
-                showInlineSave
-                categories={categories}
-                allTags={allTags}
-                wallets={wallets}
-                selectedWalletId={selectedWalletId}
-                onWalletChange={onWalletChange}
-              />
+              {Math.abs(i - activeIndex) <= 1 && (
+                <ExpenseCard
+                  expense={exp}
+                  onChange={(e) => update(i, e)}
+                  currency={activeWalletCurrency}
+                  label={`Expense ${i + 1}`}
+                  onCancelNew={exp._isNew ? () => removeExpense(i) : undefined}
+                  showInlineSave
+                  categories={categories}
+                  allTags={allTags}
+                  wallets={wallets}
+                  selectedWalletId={selectedWalletId}
+                  onWalletChange={onWalletChange}
+                />
+              )}
             </div>
           ))}
         </div>
@@ -1054,19 +1052,17 @@ function GroupReview({
   const [showItems, setShowItems] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const updateItem = (i: number, e: EditableExpense) => {
-    const next = [...items];
-    next[i] = e;
-    onChangeItems(next);
-  };
+  const updateItem = useCallback((i: number, e: EditableExpense) => {
+    onChangeItems(items.map((it, idx) => idx === i ? e : it));
+  }, [items, onChangeItems]);
 
-  const removeItem = (i: number) => {
+  const removeItem = useCallback((i: number) => {
     const next = items.filter((_, idx) => idx !== i);
     onChangeItems(next);
     setActiveIndex((prev) => Math.min(prev, next.length - 1));
-  };
+  }, [items, onChangeItems]);
 
-  const addItem = () => {
+  const addItem = useCallback(() => {
     const newItem = makeEditable({
       amount: 0,
       currency: parent.currency,
@@ -1084,23 +1080,25 @@ function GroupReview({
     const newItems = [...items, newItem];
     onChangeItems(newItems);
     setActiveIndex(newItems.length - 1);
-  };
+  }, [items, parent, onChangeItems]);
 
-  const goTo = (next: number) => {
+  const goTo = useCallback((next: number) => {
     const current = items[activeIndex];
     if (current._editing) {
-      const nextItems = [...items];
-      nextItems[activeIndex] = commitEditable(current);
-      onChangeItems(nextItems);
+      onChangeItems(items.map((it, idx) => idx === activeIndex ? commitEditable(current) : it));
     }
     setActiveIndex(next);
-  };
+  }, [items, activeIndex, onChangeItems]);
 
-  const committedParent = parent._editing ? commitEditable(parent) : parent;
-  const committedItems = items.map((e) => e._editing ? commitEditable(e) : e);
-  const itemsSum = committedItems.reduce((s, e) => s + (e.amount ?? 0), 0);
-  const parentTotal = committedParent.amount ?? 0;
-  const sumMismatch = Math.abs(itemsSum - parentTotal) > 0.001;
+  const { parentTotal, itemsSum, sumMismatch } = useMemo(() => {
+    const cp = parent._editing ? commitEditable(parent) : parent;
+    const total = cp.amount ?? 0;
+    const sum = items.reduce((s, e) => {
+      const amount = e._editing ? (parseFloat(e._editAmount) || 0) : (e.amount ?? 0);
+      return s + amount;
+    }, 0);
+    return { parentTotal: total, itemsSum: sum, sumMismatch: Math.abs(sum - total) > 0.001 };
+  }, [parent, items]);
 
   return (
     <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1149,20 +1147,22 @@ function GroupReview({
             >
               {items.map((item, i) => (
                 <div key={i} style={{ minWidth: '100%' }}>
-                  <ExpenseCard
-                    expense={item}
-                    onChange={(e) => updateItem(i, e)}
-                    currency={activeWalletCurrency}
-                    label={`Item ${i + 1}`}
-                    onRemove={items.length > 1 ? () => removeItem(i) : undefined}
-                    onCancelNew={item._isNew ? () => removeItem(i) : undefined}
-                    showInlineSave
-                    categories={categories}
-                    allTags={allTags}
-                    wallets={wallets}
-                    selectedWalletId={selectedWalletId}
-                    onWalletChange={onWalletChange}
-                  />
+                  {Math.abs(i - activeIndex) <= 1 && (
+                    <ExpenseCard
+                      expense={item}
+                      onChange={(e) => updateItem(i, e)}
+                      currency={activeWalletCurrency}
+                      label={`Item ${i + 1}`}
+                      onRemove={items.length > 1 ? () => removeItem(i) : undefined}
+                      onCancelNew={item._isNew ? () => removeItem(i) : undefined}
+                      showInlineSave
+                      categories={categories}
+                      allTags={allTags}
+                      wallets={wallets}
+                      selectedWalletId={selectedWalletId}
+                      onWalletChange={onWalletChange}
+                    />
+                  )}
                 </div>
               ))}
             </div>
