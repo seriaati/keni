@@ -25,6 +25,13 @@ dependencies = [
 ]
 
 [tool.pyright]
+exclude = [
+    "migrations/**",
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.*",
+    "**/.venv",
+]
 enableTypeIgnoreComments = false
 reportIncompatibleMethodOverride = false
 reportIncompatibleVariableOverride = false
@@ -36,3 +43,9 @@ typeCheckingMode = "standard"
 
 [dependency-groups]
 dev = ["pyright>=1.1.408", "ruff>=0.15.8"]
+
+[tool.uv]
+exclude-newer = "P7D"
+
+[tool.poe.tasks]
+dev = "uvicorn main:app --reload --port 8001"

@@ -8,7 +8,7 @@ import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
 import { SearchableSelect } from '../components/ui/SearchableSelect';
 import { DatePicker } from '../components/ui/DatePicker';
-import type { AIProviderResponse, APITokenCreateResponse, APITokenResponse } from '../lib/types';
+import type { AIProviderResponse, APITokenCreateResponse, APITokenResponse, UserResponse } from '../lib/types';
 import { AI_PROVIDERS, fmtDate } from '../lib/utils';
 import { getSupportedCurrencies } from '../lib/fx';
 import { SUPPORTED_LOCALES } from '../lib/i18n';
@@ -39,8 +39,8 @@ export function SettingsPage() {
         </button>
       </div>
 
-      {activeTab === 'profile' && <ProfileTab user={user} refreshUser={refreshUser} toast={toast} />}
-      {activeTab === 'ai' && <AIProviderTab user={user} refreshUser={refreshUser} toast={toast} />}
+      {activeTab === 'profile' && user && <ProfileTab user={user} refreshUser={refreshUser} toast={toast} />}
+      {activeTab === 'ai' && user && <AIProviderTab user={user} refreshUser={refreshUser} toast={toast} />}
       {activeTab === 'tokens' && <TokensTab toast={toast} />}
     </div>
   );
@@ -81,7 +81,7 @@ function InfoTooltip({ children }: { children: React.ReactNode }) {
 
 const TIMEZONES = Intl.supportedValuesOf('timeZone');
 
-function ProfileTab({ user, refreshUser, toast }: { user: any; refreshUser: () => Promise<void>; toast: (msg: string, type?: any) => void }) {
+function ProfileTab({ user, refreshUser, toast }: { user: UserResponse; refreshUser: () => Promise<void>; toast: (msg: string, type?: 'success' | 'error' | 'info') => void }) {
   const { t, i18n } = useTranslation();
   const [displayName, setDisplayName] = useState(user?.display_name ?? '');
   const [password, setPassword] = useState('');
@@ -199,7 +199,7 @@ function ProfileTab({ user, refreshUser, toast }: { user: any; refreshUser: () =
   );
 }
 
-function AIProviderTab({ user, refreshUser, toast }: { user: any; refreshUser: () => Promise<void>; toast: (msg: string, type?: any) => void }) {
+function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refreshUser: () => Promise<void>; toast: (msg: string, type?: 'success' | 'error' | 'info') => void }) {
   const { t } = useTranslation();
   const [provider, setProvider] = useState<AIProviderResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -487,7 +487,7 @@ function AIProviderTab({ user, refreshUser, toast }: { user: any; refreshUser: (
   );
 }
 
-function TokensTab({ toast }: { toast: (msg: string, type?: any) => void }) {
+function TokensTab({ toast }: { toast: (msg: string, type?: 'success' | 'error' | 'info') => void }) {
   const { t } = useTranslation();
   const [tokenList, setTokenList] = useState<APITokenResponse[]>([]);
   const [loading, setLoading] = useState(true);

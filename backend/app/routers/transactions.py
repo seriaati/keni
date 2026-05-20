@@ -27,6 +27,9 @@ from app.schemas.ai_provider import (
     VoiceTransactionsResponse,
 )
 from app.schemas.transaction import (
+    BulkDeleteRequest,
+    BulkUpdateRequest,
+    BulkUpdateResponse,
     CategoryBrief,
     TagBrief,
     TransactionCreate,
@@ -751,3 +754,123 @@ async def delete_transaction(
     transaction = await _get_transaction_or_404(transaction_id, wallet_id, session)
     await delete_transfer_pair(session, transaction)
     await session.commit()
+
+
+@router.delete("/bulk", status_code=status.HTTP_204_NO_CONTENT)
+async def bulk_delete_transactions(
+    wallet_id: uuid.UUID, body: BulkDeleteRequest, current_user: CurrentUser, session: DbDep
+) -> None:
+    await _get_wallet_or_404(wallet_id, current_user.id, session)
+
+    for transaction_id in body.transaction_ids:
+        result = await session.exec(
+            select(Transaction).where(
+                Transaction.id == transaction_id, Transaction.wallet_id == wallet_id
+            )
+        )
+        transaction = result.first()
+        if transaction is None:
+            continue
+
+        children_result = await session.exec(
+            select(Transaction).where(col(Transaction.group_id) == transaction.id)
+        )
+        for child in children_result.all():
+            child_tags = await session.exec(
+                select(TransactionTag).where(col(TransactionTag.transaction_id) == child.id)
+            )
+            for tt in child_tags.all():
+                await session.delete(tt)
+            await session.delete(child)
+
+        existing = await session.exec(
+            select(TransactionTag).where(col(TransactionTag.transaction_id) == transaction.id)
+        )
+        for tt in existing.all():
+            await session.delete(tt)
+
+        await session.delete(transaction)
+
+    await session.commit()
+
+
+async def _apply_bulk_update_to_transaction(
+    txn: Transaction, body: BulkUpdateRequest, session: AsyncSession, now: datetime
+) -> bool:
+    modified = False
+
+    if body.category_id is not None:
+        txn.category_id = body.category_id
+        modified = True
+
+    if body.add_tag_ids:
+        existing_tags_result = await session.exec(
+            select(TransactionTag).where(col(TransactionTag.transaction_id) == txn.id)
+        )
+        existing_tag_ids = {tt.tag_id for tt in existing_tags_result.all()}
+        for tag_id in body.add_tag_ids:
+            if tag_id not in existing_tag_ids:
+                session.add(TransactionTag(transaction_id=txn.id, tag_id=tag_id))
+                modified = True
+
+    if body.remove_tag_ids:
+        for tag_id in body.remove_tag_ids:
+            tt_result = await session.exec(
+                select(TransactionTag).where(
+                    col(TransactionTag.transaction_id) == txn.id,
+                    col(TransactionTag.tag_id) == tag_id,
+                )
+            )
+            tt = tt_result.first()
+            if tt is not None:
+                await session.delete(tt)
+                modified = True
+
+    if modified:
+        txn.updated_at = now
+
+    return modified
+
+
+@router.patch("/bulk")
+async def bulk_update_transactions(
+    wallet_id: uuid.UUID, body: BulkUpdateRequest, current_user: CurrentUser, session: DbDep
+) -> BulkUpdateResponse:
+    await _get_wallet_or_404(wallet_id, current_user.id, session)
+
+    if body.category_id is not None:
+        await _validate_category(body.category_id, current_user.id, session)
+    if body.add_tag_ids is not None:
+        await _validate_tag_ids(body.add_tag_ids, current_user.id, session)
+    if body.remove_tag_ids is not None:
+        await _validate_tag_ids(body.remove_tag_ids, current_user.id, session)
+
+    updated_count = 0
+    now = datetime.now(UTC)
+
+    for transaction_id in body.transaction_ids:
+        result = await session.exec(
+            select(Transaction).where(
+                Transaction.id == transaction_id, Transaction.wallet_id == wallet_id
+            )
+        )
+        transaction = result.first()
+        if transaction is None:
+            continue
+
+        targets: list[Transaction] = [transaction]
+        if transaction.group_id is None and body.category_id is not None:
+            children_result = await session.exec(
+                select(Transaction).where(col(Transaction.group_id) == transaction.id)
+            )
+            targets.extend(children_result.all())
+
+        for txn in targets:
+            modified = await _apply_bulk_update_to_transaction(txn, body, session, now)
+            if modified:
+                session.add(txn)
+
+        updated_count += 1
+
+    await session.commit()
+    return BulkUpdateResponse(updated_count=updated_count)

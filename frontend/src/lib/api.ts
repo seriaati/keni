@@ -261,6 +261,21 @@ export const expenses = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  bulkDelete: (walletId: string, ids: string[]) =>
+    request<void>(`/wallets/${walletId}/transactions/bulk`, {
+      method: 'DELETE',
+      body: JSON.stringify({ transaction_ids: ids }),
+    }),
+  bulkUpdate: (walletId: string, data: {
+    transaction_ids: string[];
+    category_id?: string;
+    add_tag_ids?: string[];
+    remove_tag_ids?: string[];
+  }) =>
+    request<{ updated_count: number }>(`/wallets/${walletId}/transactions/bulk`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
   export: (walletId: string, format: 'csv' | 'json', params: { start_date?: string; end_date?: string } = {}) => {
     const q = new URLSearchParams({ format });
     if (params.start_date) q.set('start_date', params.start_date);
