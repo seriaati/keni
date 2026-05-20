@@ -68,6 +68,7 @@ export interface TransactionLinkBrief {
   category: CategoryBrief;
   type: 'expense' | 'income';
   amount: number;
+  is_transfer: boolean;
   description: string | null;
   date: string;
   tags: TagBrief[];
@@ -79,6 +80,7 @@ export interface TransactionResponse {
   category: CategoryBrief;
   amount: number;
   type: 'expense' | 'income';
+  is_transfer: boolean;
   description: string | null;
   date: string;
   ai_context: string | null;
@@ -145,11 +147,22 @@ export interface AIRecurringResponse {
   suggested_icon: string | null;
 }
 
+export interface AITransferResponse {
+  amount: number;
+  to_amount: number | null;
+  from_wallet_id: string | null;
+  to_wallet_id: string | null;
+  description: string;
+  date: string;
+  ai_context: string;
+}
+
 export interface AIParseResponse {
-  result_type: 'single' | 'multiple' | 'group' | 'recurring';
+  result_type: 'single' | 'multiple' | 'group' | 'recurring' | 'transfer';
   expenses: AIExpenseResponse[];
   group: AIExpenseResponse | null;
   recurring: AIRecurringResponse | null;
+  transfer: AITransferResponse | null;
   suggested_wallet_id: string | null;
 }
 

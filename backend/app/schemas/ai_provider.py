@@ -78,11 +78,22 @@ class AIRecurringItem(BaseModel):
     suggested_icon: str | None = None
 
 
+class AITransferItem(BaseModel):
+    amount: float
+    to_amount: float | None = None
+    from_wallet_id: str | None = None
+    to_wallet_id: str | None = None
+    description: str
+    date: str
+    ai_context: str
+
+
 class AITransactionsResponse(BaseModel):
     result_type: str
     expenses: list[AITransactionItem]
     group: AITransactionGroupInfo | None
     recurring: AIRecurringItem | None = None
+    transfer: AITransferItem | None = None
     suggested_wallet_id: str | None = None
 
 
@@ -92,4 +103,5 @@ class VoiceTransactionsResponse(BaseModel):
     expenses: list[AITransactionItem]
     group: AITransactionGroupInfo | None
     recurring: AIRecurringItem | None = None
+    transfer: AITransferItem | None = None
     suggested_wallet_id: str | None = None

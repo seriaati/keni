@@ -15,9 +15,9 @@ class TransactionCreate(BaseModel):
     amount: float = Field(gt=0)
     description: str | None = Field(default=None, max_length=500)
     date: datetime | None = None
+    ai_context: str | None = None
     tag_ids: list[uuid.UUID] = Field(default_factory=list)
     tag_names: list[str] = Field(default_factory=list)
-    ai_context: str | None = None
     group_id: uuid.UUID | None = None
 
     @model_validator(mode="after")
@@ -47,6 +47,27 @@ class TransactionUpdate(BaseModel):
     tag_ids: list[uuid.UUID] | None = None
 
 
+class TransferCreate(BaseModel):
+    to_wallet_id: uuid.UUID
+    category_id: uuid.UUID | None = None
+    category_name: str | None = None
+    category_icon: str | None = None
+    amount: float = Field(gt=0)
+    to_amount: float | None = Field(default=None, gt=0)
+    description: str | None = Field(default=None, max_length=500)
+    date: datetime | None = None
+    ai_context: str | None = None
+    tag_ids: list[uuid.UUID] = Field(default_factory=list)
+    tag_names: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_category(self) -> TransferCreate:
+        if self.category_id is not None and self.category_name is not None:
+            msg = "Provide either category_id or category_name, not both"
+            raise ValueError(msg)
+        return self
+
+
 class TagBrief(BaseModel):
     id: uuid.UUID
     name: str
@@ -66,6 +87,7 @@ class TransactionLinkBrief(BaseModel):
     category: CategoryBrief
     type: str
     amount: float
+    is_transfer: bool
     description: str | None
     date: datetime
     tags: list[TagBrief]
@@ -77,6 +99,7 @@ class TransactionResponse(BaseModel):
     category: CategoryBrief
     type: str
     amount: float
+    is_transfer: bool
     description: str | None
     date: datetime
     ai_context: str | None

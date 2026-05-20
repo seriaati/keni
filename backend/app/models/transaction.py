@@ -68,3 +68,44 @@ class TransactionLink(SQLModel, table=True):
             sa.DateTime(timezone=True), server_default=text("NOW()"), nullable=False
         ),
     )
+
+
+class Transfer(SQLModel, table=True):
+    __tablename__: str = "transfers"
+
+    id: uuid.UUID = Field(
+        default=None,
+        primary_key=True,
+        sa_column_kwargs={"server_default": text("gen_random_uuid()")},
+    )
+    source_wallet_id: uuid.UUID = Field(foreign_key="wallets.id", index=True, ondelete="CASCADE")
+    destination_wallet_id: uuid.UUID = Field(
+        foreign_key="wallets.id", index=True, ondelete="CASCADE"
+    )
+    source_amount: float
+    destination_amount: float | None = None
+    date: datetime = Field(
+        default=None,
+        sa_column=sa.Column(
+            sa.DateTime(timezone=True), server_default=text("NOW()"), nullable=False
+        ),
+    )
+    description: str | None = Field(default=None, max_length=500)
+    source_transaction_id: uuid.UUID = Field(
+        foreign_key="transactions.id", index=True, unique=True, ondelete="CASCADE"
+    )
+    destination_transaction_id: uuid.UUID = Field(
+        foreign_key="transactions.id", index=True, unique=True, ondelete="CASCADE"
+    )
+    created_at: datetime = Field(
+        default=None,
+        sa_column=sa.Column(
+            sa.DateTime(timezone=True), server_default=text("NOW()"), nullable=False
+        ),
+    )
+    updated_at: datetime = Field(
+        default=None,
+        sa_column=sa.Column(
+            sa.DateTime(timezone=True), server_default=text("NOW()"), nullable=False
+        ),
+    )

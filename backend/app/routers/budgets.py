@@ -15,6 +15,7 @@ from app.models.transaction import Transaction
 from app.models.user import User
 from app.models.wallet import Wallet
 from app.schemas.budget import BudgetCreate, BudgetResponse, BudgetUpdate
+from app.services.transfers import exclude_transfer_transactions
 
 router = APIRouter(prefix="/api/budgets", tags=["budgets"])
 
@@ -78,6 +79,7 @@ async def _compute_spent(budget: Budget, session: AsyncSession) -> float:
     if budget.category_id is not None:
         query = query.where(Transaction.category_id == budget.category_id)
 
+    query = exclude_transfer_transactions(query)
     result = await session.exec(query)
     return sum(e.amount for e in result.all())
 

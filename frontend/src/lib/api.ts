@@ -192,13 +192,30 @@ export const expenses = {
     type?: 'expense' | 'income';
     description?: string;
     date?: string;
+    ai_context?: string;
     tag_ids?: string[];
     tag_names?: string[];
-    ai_context?: string;
   }) =>
     request<TransactionResponse>(`/wallets/${walletId}/transactions`, {
       method: 'POST',
       body: JSON.stringify({ tag_ids: [], tag_names: [], ...data }),
+    }),
+  createTransfer: (walletId: string, data: {
+    to_wallet_id: string;
+    category_id?: string;
+    category_name?: string;
+    category_icon?: string;
+    amount: number;
+    to_amount?: number;
+    description?: string;
+    date?: string;
+    ai_context?: string;
+    tag_ids?: string[];
+    tag_names?: string[];
+  }) =>
+    request<TransactionResponse>(`/wallets/${walletId}/transactions/transfers`, {
+      method: 'POST',
+      body: JSON.stringify(data),
     }),
   update: (walletId: string, expenseId: string, data: {
     category_id?: string;

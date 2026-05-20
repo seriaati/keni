@@ -11,12 +11,18 @@ import {
   MicOff,
   Paperclip,
   Plus,
+  TrendingDown,
+  TrendingUp,
   X,
   Zap,
 } from 'lucide-react';
 import { expenses as expensesApi, recurring as recurringApi, categories as categoriesApi, tags as tagsApi, wallets as walletsApi } from '../../lib/api';
 import { useWallet } from '../../contexts/WalletContext';
 import { useToast } from '../ui/Toast';
+import { DatePicker } from '../ui/DatePicker';
+import { Select } from '../ui/Select';
+import { CategorySelect } from '../ui/CategorySelect';
+import { TagMultiSelect } from './TagMultiSelect';
 import type { AIParseResponse, CategoryResponse, TagResponse, WalletResponse } from '../../lib/types';
 import { NAV_ITEMS_STATIC, looksLikeExpense, makeEditable, commitEditable, makeEditableRecurring } from './utils';
 import { SingleReview } from './SingleReview';
@@ -37,6 +43,17 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   const [groupParent, setGroupParent] = useState<EditableExpense | null>(null);
   const [groupItems, setGroupItems] = useState<EditableExpense[]>([]);
   const [recurringExpense, setRecurringExpense] = useState<EditableRecurring | null>(null);
+  const [transferForm, setTransferForm] = useState<{
+    fromWalletId: string;
+    toWalletId: string;
+    amount: string;
+    toAmount: string;
+    categoryName: string;
+    tagNames: string;
+    description: string;
+    date: string;
+    aiContext: string | null;
+  } | null>(null);
 
   const [error, setError] = useState('');
   const [selectedNavIndex, setSelectedNavIndex] = useState(0);
@@ -73,6 +90,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     setGroupParent(null);
     setGroupItems([]);
     setRecurringExpense(null);
+    setTransferForm(null);
     setError('');
     setAttachedFiles([]);
     setFilePreviews((prev) => { prev.forEach((url) => { if (url) URL.revokeObjectURL(url); }); return []; });
@@ -115,12 +133,32 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   const applyParseResult = (result: AIParseResponse) => {
     setParseResult(result);
     setSelectedWalletId(result.suggested_wallet_id ?? activeWallet?.id ?? null);
+    setSingleExpense(null);
+    setMultiExpenses([]);
+    setGroupParent(null);
+    setGroupItems([]);
+    setRecurringExpense(null);
+    setTransferForm(null);
     if (result.result_type === 'single') {
       setSingleExpense(makeEditable(result.expenses[0]));
     } else if (result.result_type === 'multiple') {
       setMultiExpenses(result.expenses.map(makeEditable));
     } else if (result.result_type === 'recurring') {
       if (result.recurring) setRecurringExpense(makeEditableRecurring(result.recurring));
+    } else if (result.result_type === 'transfer' && result.transfer) {
+      const fromWalletId = result.transfer.from_wallet_id ?? activeWallet?.id ?? '';
+      const fallbackToWallet = wallets.find((w) => w.id !== fromWalletId);
+      setTransferForm({
+        fromWalletId,
+        toWalletId: result.transfer.to_wallet_id ?? fallbackToWallet?.id ?? '',
+        amount: String(result.transfer.amount),
+        toAmount: result.transfer.to_amount != null ? String(result.transfer.to_amount) : '',
+        categoryName: 'Transfer',
+        tagNames: '',
+        description: result.transfer.description ?? '',
+        date: result.transfer.date ? result.transfer.date.slice(0, 10) : new Date().toISOString().slice(0, 10),
+        aiContext: result.transfer.ai_context,
+      });
     } else {
       setGroupParent(result.group ? makeEditable(result.group) : null);
       setGroupItems(result.expenses.map(makeEditable));
@@ -390,8 +428,9 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     setRecording(false);
   };
 
-  const openManualEntry = () => {
+  const openManualEntry = (type: 'expense' | 'income' = 'expense') => {
     setSelectedWalletId(activeWallet?.id ?? null);
+    setTransferForm(null);
     const today = new Date().toISOString().slice(0, 10);
     const blank = {
       ...makeEditable({
@@ -404,14 +443,84 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
         ai_context: null,
         suggested_tags: [],
         suggested_icon: null,
-        type: 'expense',
+        type,
       }),
       _editing: true,
       _isNew: true,
     };
     setSingleExpense(blank);
-    setParseResult({ result_type: 'single', expenses: [blank], group: null, recurring: null, suggested_wallet_id: null });
+    setParseResult({ result_type: 'single', expenses: [blank], group: null, recurring: null, transfer: null, suggested_wallet_id: null });
     setMode('review');
+  };
+
+  const openTransferEntry = () => {
+    if (!activeWallet) { setError('No wallet selected'); return; }
+    const destinationWallet = wallets.find((w) => w.id !== activeWallet.id);
+    if (!destinationWallet) { setError('Create another wallet before adding a transfer'); return; }
+    setSingleExpense(null);
+    setMultiExpenses([]);
+    setGroupParent(null);
+    setGroupItems([]);
+    setRecurringExpense(null);
+    setTransferForm({
+      fromWalletId: activeWallet.id,
+      toWalletId: destinationWallet.id,
+      amount: '',
+      toAmount: '',
+      categoryName: 'Transfer',
+      tagNames: '',
+      description: '',
+      date: new Date().toISOString().slice(0, 10),
+      aiContext: null,
+    });
+    setParseResult(null);
+    setMode('review');
+  };
+
+  const handleSaveTransfer = async () => {
+    if (!transferForm) return;
+    const amount = Number(transferForm.amount);
+    const toAmount = transferForm.toAmount.trim() ? Number(transferForm.toAmount) : undefined;
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError('Enter a transfer amount');
+      return;
+    }
+    if (toAmount !== undefined && (!Number.isFinite(toAmount) || toAmount <= 0)) {
+      setError('Enter a valid destination amount');
+      return;
+    }
+    if (!transferForm.fromWalletId || !transferForm.toWalletId) {
+      setError('Choose source and destination wallets');
+      return;
+    }
+    if (transferForm.fromWalletId === transferForm.toWalletId) {
+      setError('Choose two different wallets');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await expensesApi.createTransfer(transferForm.fromWalletId, {
+        to_wallet_id: transferForm.toWalletId,
+        category_name: transferForm.categoryName.trim() || 'Transfer',
+        amount,
+        to_amount: toAmount,
+        description: transferForm.description.trim() || undefined,
+        date: transferForm.date ? new Date(transferForm.date).toISOString() : undefined,
+        ai_context: transferForm.aiContext ?? undefined,
+        tag_names: transferForm.tagNames
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter(Boolean),
+      });
+      toast('Transfer saved', 'success');
+      onExpenseAdded?.();
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to save transfer');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!open) return null;
@@ -679,6 +788,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
               wallets={wallets}
               selectedWalletId={selectedWalletId}
               onWalletChange={setSelectedWalletId}
+              onTransferClick={openTransferEntry}
             />
           )}
 
@@ -733,6 +843,140 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
             />
           )}
 
+          {mode === 'review' && (resultType === 'transfer' || !resultType) && transferForm && (
+            <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ background: 'var(--cream)', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8, border: '1.5px solid var(--forest)' }}>
+                <div>
+                  <div style={{ fontSize: 10, color: 'var(--ink-light)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Type</div>
+                  <div className="tabs" style={{ display: 'inline-flex' }}>
+                    <button
+                      type="button"
+                      className="tab"
+                      onClick={() => openManualEntry('expense')}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                    >
+                      <TrendingDown size={12} /> Expense
+                    </button>
+                    <button
+                      type="button"
+                      className="tab"
+                      onClick={() => openManualEntry('income')}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                    >
+                      <TrendingUp size={12} /> Income
+                    </button>
+                    <button
+                      type="button"
+                      className="tab tab-active"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                    >
+                      <ArrowLeftRight size={12} /> Transfer
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 10, color: 'var(--ink-light)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Amount</div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={transferForm.amount}
+                      onChange={(e) => setTransferForm((f) => f ? { ...f, amount: e.target.value } : f)}
+                      style={{ width: '100%', fontSize: 16, color: 'var(--ink)', background: 'white', border: '1px solid var(--sand)', borderRadius: 6, padding: '3px 7px', outline: 'none', fontFamily: 'var(--font-display)' }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, color: 'var(--ink-light)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Destination amount</div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={transferForm.toAmount}
+                      onChange={(e) => setTransferForm((f) => f ? { ...f, toAmount: e.target.value } : f)}
+                      placeholder="Same as amount if empty"
+                      style={{ width: '100%', fontSize: 16, color: 'var(--ink)', background: 'white', border: '1px solid var(--sand)', borderRadius: 6, padding: '3px 7px', outline: 'none', fontFamily: 'var(--font-display)' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 10, color: 'var(--ink-light)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>From</div>
+                    <Select
+                      value={transferForm.fromWalletId}
+                      onChange={(fromWalletId) => setTransferForm((f) => f ? { ...f, fromWalletId } : f)}
+                      options={wallets.map((w) => ({ value: w.id, label: `${w.name} (${w.currency})` }))}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, color: 'var(--ink-light)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>To</div>
+                    <Select
+                      value={transferForm.toWalletId}
+                      onChange={(toWalletId) => setTransferForm((f) => f ? { ...f, toWalletId } : f)}
+                      options={wallets.map((w) => ({ value: w.id, label: `${w.name} (${w.currency})` }))}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 10, color: 'var(--ink-light)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Category</div>
+                  <CategorySelect
+                    value={transferForm.categoryName}
+                    categories={categories}
+                    matchBy="name"
+                    size="sm"
+                    onSelect={(cat) => setTransferForm((f) => f ? { ...f, categoryName: cat.name } : f)}
+                    onCreate={(name) => setTransferForm((f) => f ? { ...f, categoryName: name } : f)}
+                  />
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 10, color: 'var(--ink-light)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</div>
+                  <DatePicker
+                    value={transferForm.date}
+                    onChange={(date) => setTransferForm((f) => f ? { ...f, date } : f)}
+                  />
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 10, color: 'var(--ink-light)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Description</div>
+                  <textarea
+                    value={transferForm.description}
+                    onChange={(e) => setTransferForm((f) => f ? { ...f, description: e.target.value } : f)}
+                    placeholder="Optional"
+                    rows={3}
+                    style={{ width: '100%', fontSize: 13, color: 'var(--ink)', background: 'white', border: '1px solid var(--sand)', borderRadius: 6, padding: '3px 7px', outline: 'none', fontFamily: 'var(--font-body)', resize: 'vertical' }}
+                  />
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 10, color: 'var(--ink-light)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tags</div>
+                  <TagMultiSelect
+                    value={transferForm.tagNames}
+                    onChange={(tagNames) => setTransferForm((f) => f ? { ...f, tagNames } : f)}
+                    allTags={allTags}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+                  <button className="btn btn-secondary btn-sm" style={{ fontSize: 12, padding: '3px 10px' }} onClick={() => setMode('input')} disabled={saving}>Cancel</button>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+                <button className="btn btn-primary btn-sm" style={{ fontSize: 12, padding: '3px 10px', display: 'inline-flex', alignItems: 'center', gap: 5 }} onClick={handleSaveTransfer} disabled={saving}>
+                  {saving && <span className="btn-spinner" />}
+                  <ArrowLeftRight size={13} />
+                  Save transfer
+                </button>
+              </div>
+              <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--ink-faint)' }}>
+                <span><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Edit text above</kbd> + Enter to re-parse</span>
+                <span style={{ marginLeft: 'auto' }}><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Esc</kbd> to go back</span>
+              </div>
+            </div>
+          )}
+
           {/* Navigation suggestions */}
           {mode === 'input' && (
             <div style={{ padding: '6px 8px 8px' }}>
@@ -762,7 +1006,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
                   </button>
                   <div style={{ height: 1, background: 'var(--cream-darker)', margin: '4px 4px 2px' }} />
                   <button
-                    onClick={openManualEntry}
+                    onClick={() => openManualEntry()}
                     onMouseEnter={() => setSelectedNavIndex(1)}
                     style={{
                       width: '100%',
@@ -845,7 +1089,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
                   )}
                   <div style={{ height: 1, background: 'var(--cream-darker)', margin: '4px 4px 2px' }} />
                   <button
-                    onClick={openManualEntry}
+                    onClick={() => openManualEntry()}
                     onMouseEnter={() => setSelectedNavIndex(navSuggestions.length + (text.trim() ? 1 : 0))}
                     style={{
                       width: '100%',

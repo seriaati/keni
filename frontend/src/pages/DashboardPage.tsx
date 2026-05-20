@@ -369,7 +369,7 @@ export function DashboardPage() {
                       {expense.description ?? expense.category.name}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--ink-faint)', display: 'flex', gap: 5, alignItems: 'center' }}>
-                      <span>{expense.category.name}</span>
+                      <span>{expense.is_transfer ? 'Transfer' : expense.category.name}</span>
                       {expense.children && expense.children.length > 0 && (
                         <>
                           <span>·</span>
@@ -383,8 +383,8 @@ export function DashboardPage() {
                       <span>{fmtRelative(expense.date)}</span>
                     </div>
                   </div>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: expense.type === 'income' ? 'var(--forest)' : 'var(--ink)', flexShrink: 0 }}>
-                    {expense.type === 'income' ? '+' : ''}{fmt(expense.amount, activeWallet.currency)}
+                  <div style={{ fontSize: 15, fontWeight: 600, color: expense.type === 'income' ? 'var(--forest)' : expense.is_transfer ? 'var(--rose)' : 'var(--ink)', flexShrink: 0 }}>
+                    {expense.type === 'income' ? '+' : expense.is_transfer ? '-' : ''}{fmt(expense.amount, activeWallet.currency)}
                   </div>
                 </Link>
               ))}

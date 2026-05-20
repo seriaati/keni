@@ -82,11 +82,23 @@ class ParsedRecurringResult:
 
 
 @dataclass
+class ParsedTransferResult:
+    amount: float
+    to_amount: float | None
+    from_wallet_id: str | None
+    to_wallet_id: str | None
+    description: str
+    date: str
+    ai_context: str
+
+
+@dataclass
 class ParsedTransactionsResult:
     result_type: str
     expenses: list[ParsedTransactionResult]
     group: ParsedGroupResult | None = None
     recurring: ParsedRecurringResult | None = None
+    transfer: ParsedTransferResult | None = None
     suggested_wallet_id: str | None = None
 
 
@@ -149,12 +161,13 @@ async def upsert_ai_provider(  # noqa: PLR0913, PLR0917
     return record
 
 
-async def parse_transactions_with_ai(  # noqa: PLR0912, PLR0914, PLR0915, C901
+async def parse_transactions_with_ai(  # noqa: PLR0912, PLR0913, PLR0914, PLR0915, PLR0917, C901
     user_id: uuid.UUID,
     text: str | None,
     images: list[tuple[str, str]],
     session: AsyncSession,
     timezone: str | None = None,
+    source_wallet_id: uuid.UUID | None = None,
 ) -> ParsedTransactionsResult:
     record = await get_ai_provider_record(user_id, session)
     if record is None:
@@ -320,6 +333,25 @@ async def parse_transactions_with_ai(  # noqa: PLR0912, PLR0914, PLR0915, C901
     if output.recurring is not None:
         enriched_recurring = _enrich_recurring(output.recurring)
 
+    def _wallet_id_from_name(name: str | None) -> str | None:
+        if name is None:
+            return None
+        return wallet_by_name.get(name.strip().lower())
+
+    enriched_transfer: ParsedTransferResult | None = None
+    if output.transfer is not None:
+        t = output.transfer
+        enriched_transfer = ParsedTransferResult(
+            amount=t.amount,
+            to_amount=t.to_amount,
+            from_wallet_id=_wallet_id_from_name(t.from_wallet_name)
+            or (str(source_wallet_id) if source_wallet_id is not None else None),
+            to_wallet_id=_wallet_id_from_name(t.to_wallet_name),
+            description=t.description,
+            date=t.date,
+            ai_context=t.ai_context,
+        )
+
     suggested_wallet_id: str | None = None
     if output.suggested_wallet_name:
         suggested_wallet_id = wallet_by_name.get(output.suggested_wallet_name.lower())
@@ -329,5 +361,6 @@ async def parse_transactions_with_ai(  # noqa: PLR0912, PLR0914, PLR0915, C901
         expenses=enriched_transactions,
         group=enriched_group,
         recurring=enriched_recurring,
+        transfer=enriched_transfer,
         suggested_wallet_id=suggested_wallet_id,
     )

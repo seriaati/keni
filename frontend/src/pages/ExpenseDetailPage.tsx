@@ -394,23 +394,29 @@ export function ExpenseDetailPage() {
     if (!walletId || !expenseId || !expense) return;
     setSaving(true);
     try {
-      const updated = await expensesApi.update(walletId, expenseId, {
+      const updatePayload = {
         amount: Number(form.amount),
         description: form.description || undefined,
         category_id: form.category_id,
         date: form.date ? new Date(form.date).toISOString() : undefined,
         tag_ids: form.tag_ids,
-        type: form.type,
+        ...(expense.is_transfer ? {} : { type: form.type }),
+      };
+      const updated = await expensesApi.update(walletId, expenseId, {
+        ...updatePayload,
       });
       const originalIds = expense.linked_transactions.map((l) => l.id);
       const pendingIds = pendingLinks.map((l) => l.id);
       const toAdd = pendingIds.filter((id) => !originalIds.includes(id));
-      const toRemove = originalIds.filter((id) => !pendingIds.includes(id));
+      const toRemove = originalIds.filter((id) => {
+        const linked = expense.linked_transactions.find((l) => l.id === id);
+        return !linked?.is_transfer && !pendingIds.includes(id);
+      });
       await Promise.all([
         ...toAdd.map((id) => transactionLinks.add(expenseId, id)),
         ...toRemove.map((id) => transactionLinks.remove(expenseId, id)),
       ]);
-      setExpense({ ...updated, linked_transactions: pendingLinks });
+      setExpense(expense.is_transfer ? updated : { ...updated, linked_transactions: pendingLinks });
       setEditing(false);
       toast(t('expenseDetail.toastUpdated'), 'success');
     } catch (e) {
@@ -441,6 +447,7 @@ export function ExpenseDetailPage() {
       category: transaction.category,
       type: transaction.type,
       amount: transaction.amount,
+      is_transfer: transaction.is_transfer,
       description: transaction.description,
       date: transaction.date,
       tags: transaction.tags,
@@ -449,7 +456,7 @@ export function ExpenseDetailPage() {
   };
 
   const handleUnlink = (targetId: string) => {
-    setPendingLinks((prev) => prev.filter((l) => l.id !== targetId));
+    setPendingLinks((prev) => prev.filter((l) => l.is_transfer || l.id !== targetId));
   };
 
   const handleAddTag = (id: string) => {
@@ -586,30 +593,32 @@ export function ExpenseDetailPage() {
           <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('expenseDetail.sectionAmount')}</div>
           {editing ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ display: 'flex', background: 'var(--cream)', borderRadius: 8, padding: 3, gap: 3, alignSelf: 'flex-start' }}>
-                {(['expense', 'income'] as const).map((typ) => (
-                  <button
-                    key={typ}
-                    type="button"
-                    onClick={() => setForm({ ...form, type: typ })}
-                    style={{
-                      padding: '5px 14px',
-                      borderRadius: 6,
-                      border: 'none',
-                      fontSize: 12,
-                      fontFamily: 'var(--font-body)',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      transition: 'background 0.15s, color 0.15s, box-shadow 0.15s',
-                      background: form.type === typ ? 'white' : 'transparent',
-                      color: form.type === typ ? (typ === 'income' ? 'var(--forest)' : 'var(--rose)') : 'var(--ink-faint)',
-                      boxShadow: form.type === typ ? 'var(--shadow-sm)' : 'none',
-                    }}
-                  >
-                    {typ.charAt(0).toUpperCase() + typ.slice(1)}
-                  </button>
-                ))}
-              </div>
+              {!expense.is_transfer && (
+                <div style={{ display: 'flex', background: 'var(--cream)', borderRadius: 8, padding: 3, gap: 3, alignSelf: 'flex-start' }}>
+                  {(['expense', 'income'] as const).map((typ) => (
+                    <button
+                      key={typ}
+                      type="button"
+                      onClick={() => setForm({ ...form, type: typ })}
+                      style={{
+                        padding: '5px 14px',
+                        borderRadius: 6,
+                        border: 'none',
+                        fontSize: 12,
+                        fontFamily: 'var(--font-body)',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        transition: 'background 0.15s, color 0.15s, box-shadow 0.15s',
+                        background: form.type === typ ? 'white' : 'transparent',
+                        color: form.type === typ ? (typ === 'income' ? 'var(--forest)' : 'var(--rose)') : 'var(--ink-faint)',
+                        boxShadow: form.type === typ ? 'var(--shadow-sm)' : 'none',
+                      }}
+                    >
+                      {typ.charAt(0).toUpperCase() + typ.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              )}
               <input
                 className="input"
                 type="number"
@@ -622,11 +631,11 @@ export function ExpenseDetailPage() {
           ) : (
             <div>
               <div style={{ fontSize: 32, fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>
-                {expense.type === 'income' ? '+' : ''}{fmt(expense.amount, currency)}
+                {expense.type === 'income' ? '+' : expense.is_transfer ? '-' : ''}{fmt(expense.amount, currency)}
               </div>
               {fxRate != null && user?.global_currency && (
                 <div style={{ fontSize: 14, color: 'var(--ink-mid)', marginTop: 4 }}>
-                  ≈ {expense.type === 'income' ? '+' : ''}{fmt(expense.amount * fxRate, user.global_currency)}
+                  ≈ {expense.type === 'income' ? '+' : expense.is_transfer ? '-' : ''}{fmt(expense.amount * fxRate, user.global_currency)}
                 </div>
               )}
             </div>
@@ -778,7 +787,7 @@ export function ExpenseDetailPage() {
           <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('expenseDetail.sectionLinked')}</div>
-              {editing && (
+              {editing && !expense.is_transfer && (
                 <button
                   onClick={() => setShowLinkPicker(true)}
                   style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--forest)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 6 }}
@@ -814,7 +823,7 @@ export function ExpenseDetailPage() {
                       <div style={{ fontSize: 14, fontWeight: 600, color: linked.type === 'income' ? 'var(--forest)' : 'var(--ink)', flexShrink: 0 }}>
                         {linked.type === 'income' ? '+' : '-'}{fmt(linked.amount, linkedWalletCurrency)}
                       </div>
-                      {editing && (
+                      {editing && !linked.is_transfer && (
                         <button
                           onClick={() => handleUnlink(linked.id)}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-faint)', padding: 2, borderRadius: 4, display: 'flex', alignItems: 'center' }}

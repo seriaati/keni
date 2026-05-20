@@ -22,6 +22,12 @@ from app.schemas.transaction import (
     TransactionListResponse,
     TransactionResponse,
 )
+from app.services.transfers import (
+    get_counterpart_transaction,
+    get_transfer_for_pair,
+    has_transfer_transaction,
+    is_transfer_transaction,
+)
 
 router = APIRouter(prefix="/api/transactions", tags=["transaction-links"])
 
@@ -73,6 +79,7 @@ async def _build_brief(transaction: Transaction, session: AsyncSession) -> Trans
         category=category_brief,
         type=transaction.type,
         amount=transaction.amount,
+        is_transfer=await is_transfer_transaction(session, transaction.id),
         description=transaction.description,
         date=transaction.date,
         tags=tags,
@@ -87,6 +94,7 @@ async def _build_response(transaction: Transaction, session: AsyncSession) -> Tr
         category=brief.category,
         type=brief.type,
         amount=brief.amount,
+        is_transfer=await is_transfer_transaction(session, transaction.id),
         description=brief.description,
         date=brief.date,
         ai_context=transaction.ai_context,
@@ -127,6 +135,9 @@ async def search_transactions(  # noqa: PLR0913, PLR0917
 
     if exclude_id is not None:
         query = query.where(Transaction.id != exclude_id)
+        counterpart = await get_counterpart_transaction(session, exclude_id)
+        if counterpart is not None:
+            query = query.where(Transaction.id != counterpart.id)
 
     if q:
         query = query.where(col(Transaction.description).ilike(f"%{q}%"))
@@ -153,6 +164,14 @@ async def add_link(
 
     await _assert_owned(transaction_id, current_user.id, session)
     await _assert_owned(body.target_transaction_id, current_user.id, session)
+
+    if await has_transfer_transaction(session, [transaction_id, body.target_transaction_id]):
+        msg = "Transfer transactions cannot be linked manually"
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+
+    if await get_transfer_for_pair(session, transaction_id, body.target_transaction_id) is not None:
+        msg = "Transfer transactions are linked automatically"
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
 
     id_a, id_b = _canonical(transaction_id, body.target_transaction_id)
 
@@ -182,6 +201,10 @@ async def remove_link(
 ) -> None:
     await _assert_owned(transaction_id, current_user.id, session)
     await _assert_owned(target_transaction_id, current_user.id, session)
+
+    if await has_transfer_transaction(session, [transaction_id, target_transaction_id]):
+        msg = "Transfer transactions cannot be unlinked manually"
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
 
     id_a, id_b = _canonical(transaction_id, target_transaction_id)
 

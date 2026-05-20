@@ -18,6 +18,7 @@ from app.models.tag import Tag
 from app.models.transaction import Transaction, TransactionTag
 from app.models.user import User
 from app.models.wallet import Wallet
+from app.services.transfers import get_transfer_transaction_ids
 
 router = APIRouter(prefix="/api/wallets/{wallet_id}/export", tags=["export"])
 
@@ -55,6 +56,7 @@ async def _build_transaction_rows(
 
     result = await session.exec(query)
     transactions = result.all()
+    transfer_ids = await get_transfer_transaction_ids(session, [t.id for t in transactions])
 
     rows = []
     for transaction in transactions:
@@ -78,6 +80,7 @@ async def _build_transaction_rows(
                 "type": transaction.type,
                 "category": category_name,
                 "amount": transaction.amount,
+                "is_transfer": transaction.id in transfer_ids,
                 "description": transaction.description or "",
                 "date": transaction.date.isoformat(),
                 "tags": ", ".join(tag_names),
@@ -126,6 +129,7 @@ async def export_transactions(  # noqa: PLR0913, PLR0917
                 "type",
                 "category",
                 "amount",
+                "is_transfer",
                 "description",
                 "date",
                 "tags",

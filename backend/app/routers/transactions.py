@@ -22,6 +22,7 @@ from app.schemas.ai_provider import (
     AITransactionGroupInfo,
     AITransactionItem,
     AITransactionsResponse,
+    AITransferItem,
     SuggestedTag,
     VoiceTransactionsResponse,
 )
@@ -35,13 +36,23 @@ from app.schemas.transaction import (
     TransactionResponse,
     TransactionSummary,
     TransactionUpdate,
+    TransferCreate,
 )
 from app.services.ai_transaction import parse_transactions_with_ai
 
 if TYPE_CHECKING:
-    from app.services.ai_transaction import ParsedTransactionResult
+    from app.services.ai_transaction import ParsedTransactionResult, ParsedTransferResult
 from app.services.category_tag import find_or_create_category, find_or_create_tag
 from app.services.pdf import extract_text_from_pdf
+from app.services.transfers import (
+    create_transfer_pair,
+    delete_transfer_pair,
+    exclude_transfer_transactions,
+    get_counterpart_transaction,
+    is_transfer_transaction,
+    replace_transaction_tags,
+    update_transfer_pair,
+)
 from app.services.voice import transcribe_audio
 
 router = APIRouter(prefix="/api/wallets/{wallet_id}/transactions", tags=["transactions"])
@@ -98,6 +109,7 @@ async def _build_linked_brief(
         category=category_brief,
         type=transaction.type,
         amount=transaction.amount,
+        is_transfer=await is_transfer_transaction(session, transaction.id),
         description=transaction.description,
         date=transaction.date,
         tags=tags,
@@ -146,6 +158,11 @@ async def _build_transaction_response(
         )
     )
     linked_transactions = [await _build_linked_brief(lt, session) for lt in linked_result.all()]
+    counterpart = await get_counterpart_transaction(session, transaction.id)
+    if counterpart is not None and all(
+        linked.id != counterpart.id for linked in linked_transactions
+    ):
+        linked_transactions.append(await _build_linked_brief(counterpart, session))
 
     return TransactionResponse(
         id=transaction.id,
@@ -153,6 +170,7 @@ async def _build_transaction_response(
         category=category_brief,
         type=transaction.type,
         amount=transaction.amount,
+        is_transfer=await is_transfer_transaction(session, transaction.id),
         description=transaction.description,
         date=transaction.date,
         ai_context=transaction.ai_context,
@@ -247,6 +265,20 @@ def _build_ai_transaction_item(parsed: ParsedTransactionResult) -> AITransaction
     )
 
 
+def _build_ai_transfer_item(parsed: ParsedTransferResult | None) -> AITransferItem | None:
+    if parsed is None:
+        return None
+    return AITransferItem(
+        amount=parsed.amount,
+        to_amount=parsed.to_amount,
+        from_wallet_id=parsed.from_wallet_id,
+        to_wallet_id=parsed.to_wallet_id,
+        description=parsed.description,
+        date=parsed.date,
+        ai_context=parsed.ai_context,
+    )
+
+
 @router.post("/ai", status_code=status.HTTP_201_CREATED)
 async def create_transaction_ai(  # noqa: PLR0913, PLR0917
     wallet_id: uuid.UUID,
@@ -282,7 +314,12 @@ async def create_transaction_ai(  # noqa: PLR0913, PLR0917
 
     timezone = current_user.timezone or x_timezone or None
     parsed = await parse_transactions_with_ai(
-        user_id=current_user.id, text=text, images=images, session=session, timezone=timezone
+        user_id=current_user.id,
+        text=text,
+        images=images,
+        session=session,
+        timezone=timezone,
+        source_wallet_id=wallet_id,
     )
 
     group: AITransactionGroupInfo | None = None
@@ -321,6 +358,7 @@ async def create_transaction_ai(  # noqa: PLR0913, PLR0917
         expenses=[_build_ai_transaction_item(e) for e in parsed.expenses],
         group=group,
         recurring=recurring,
+        transfer=_build_ai_transfer_item(parsed.transfer),
         suggested_wallet_id=parsed.suggested_wallet_id,
     )
 
@@ -346,7 +384,12 @@ async def create_transaction_voice(
 
     timezone = current_user.timezone or x_timezone or None
     parsed = await parse_transactions_with_ai(
-        user_id=current_user.id, text=transcript, images=[], session=session, timezone=timezone
+        user_id=current_user.id,
+        text=transcript,
+        images=[],
+        session=session,
+        timezone=timezone,
+        source_wallet_id=wallet_id,
     )
 
     group: AITransactionGroupInfo | None = None
@@ -386,6 +429,7 @@ async def create_transaction_voice(
         expenses=[_build_ai_transaction_item(e) for e in parsed.expenses],
         group=group,
         recurring=voice_recurring,
+        transfer=_build_ai_transfer_item(parsed.transfer),
         suggested_wallet_id=parsed.suggested_wallet_id,
     )
 
@@ -413,6 +457,62 @@ async def create_transaction_group(
     await session.commit()
     await session.refresh(parent)
     return await _build_transaction_response(parent, session)
+
+
+@router.post("/transfers", status_code=status.HTTP_201_CREATED)
+async def create_transfer(
+    wallet_id: uuid.UUID, body: TransferCreate, current_user: CurrentUser, session: DbDep
+) -> TransactionResponse:
+    from_wallet = await _get_wallet_or_404(wallet_id, current_user.id, session)
+    to_wallet = await _get_wallet_or_404(body.to_wallet_id, current_user.id, session)
+
+    if from_wallet.id == to_wallet.id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Transfer destination must be a different wallet",
+        )
+
+    if body.category_id is not None:
+        await _validate_category(body.category_id, current_user.id, session)
+        transfer_category_id = body.category_id
+    else:
+        transfer_category = await find_or_create_category(
+            user_id=current_user.id,
+            name=body.category_name or "Transfer",
+            session=session,
+            icon=body.category_icon or "arrow-left-right",
+        )
+        transfer_category_id = transfer_category.id
+
+    await _validate_tag_ids(body.tag_ids, current_user.id, session)
+    name_resolved_tag_ids: list[uuid.UUID] = []
+    for name in body.tag_names:
+        tag = await find_or_create_tag(user_id=current_user.id, name=name, session=session)
+        name_resolved_tag_ids.append(tag.id)
+    transfer_tag_ids = list({*body.tag_ids, *name_resolved_tag_ids})
+
+    transfer_date = body.date or datetime.now(UTC)
+    source_description = body.description or f"Transfer to {to_wallet.name}"
+    destination_description = body.description or f"Transfer from {from_wallet.name}"
+
+    source_transaction, _, _ = await create_transfer_pair(
+        session=session,
+        source_wallet_id=from_wallet.id,
+        destination_wallet_id=to_wallet.id,
+        category_id=transfer_category_id,
+        source_amount=body.amount,
+        destination_amount=body.to_amount,
+        description=body.description,
+        date=transfer_date,
+        source_description=source_description,
+        ai_context=body.ai_context,
+        destination_description=destination_description,
+        tag_ids=transfer_tag_ids,
+    )
+
+    await session.commit()
+    await session.refresh(source_transaction)
+    return await _build_transaction_response(source_transaction, session)
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -446,6 +546,7 @@ async def get_transaction_summary(
     if end_date:
         base_query = base_query.where(col(Transaction.date) <= end_date)
 
+    base_query = exclude_transfer_transactions(base_query)
     result = await session.exec(base_query)
     transactions = result.all()
 
@@ -587,35 +688,59 @@ async def update_transaction(
 ) -> TransactionResponse:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
     transaction = await _get_transaction_or_404(transaction_id, wallet_id, session)
+    updated_at = datetime.now(UTC)
+
+    if body.type is not None and await is_transfer_transaction(session, transaction.id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Transfer transaction type cannot be changed",
+        )
 
     if body.category_id is not None:
         await _validate_category(body.category_id, current_user.id, session)
-        transaction.category_id = body.category_id
-    if body.type is not None:
-        transaction.type = body.type
-    if body.amount is not None:
-        transaction.amount = body.amount
-    if body.description is not None:
-        transaction.description = body.description
-    if body.date is not None:
-        transaction.date = body.date
-
-    transaction.updated_at = datetime.now(UTC)
-
     if body.tag_ids is not None:
         await _validate_tag_ids(body.tag_ids, current_user.id, session)
-        existing = await session.exec(
-            select(TransactionTag).where(col(TransactionTag.transaction_id) == transaction.id)
-        )
-        for tt in existing.all():
-            await session.delete(tt)
-        for tag_id in body.tag_ids:
-            session.add(TransactionTag(transaction_id=transaction.id, tag_id=tag_id))
 
-    session.add(transaction)
+    transfer_updated = await update_transfer_pair(
+        session=session,
+        transaction=transaction,
+        amount=body.amount,
+        category_id=body.category_id,
+        description=body.description,
+        date=body.date,
+        tag_ids=body.tag_ids,
+        updated_at=updated_at,
+    )
+
+    if not transfer_updated:
+        if body.category_id is not None:
+            transaction.category_id = body.category_id
+        if body.type is not None:
+            transaction.type = body.type
+        if body.amount is not None:
+            transaction.amount = body.amount
+        if body.description is not None:
+            transaction.description = body.description
+        if body.date is not None:
+            transaction.date = body.date
+
+        transaction.updated_at = updated_at
+
+        if body.tag_ids is not None:
+            await replace_transaction_tags(session, transaction, body.tag_ids)
+
+        session.add(transaction)
+
     await session.commit()
-    await session.refresh(transaction)
-    return await _build_transaction_response(transaction, session)
+    result = await session.exec(
+        select(Transaction).where(
+            Transaction.id == transaction_id, Transaction.wallet_id == wallet_id
+        )
+    )
+    updated_transaction = result.first()
+    if updated_transaction is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
+    return await _build_transaction_response(updated_transaction, session)
 
 
 @router.delete("/{transaction_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -624,12 +749,5 @@ async def delete_transaction(
 ) -> None:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
     transaction = await _get_transaction_or_404(transaction_id, wallet_id, session)
-
-    existing = await session.exec(
-        select(TransactionTag).where(col(TransactionTag.transaction_id) == transaction.id)
-    )
-    for tt in existing.all():
-        await session.delete(tt)
-
-    await session.delete(transaction)
+    await delete_transfer_pair(session, transaction)
     await session.commit()

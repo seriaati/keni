@@ -1,5 +1,5 @@
 import { memo, useRef } from 'react';
-import { Pencil, TrendingDown, TrendingUp, Trash2, WandSparkles, Wallet } from 'lucide-react';
+import { ArrowLeftRight, Pencil, TrendingDown, TrendingUp, Trash2, WandSparkles, Wallet } from 'lucide-react';
 import type { CategoryResponse, TagResponse, WalletResponse } from '../../lib/types';
 import { fmt, fmtDate } from '../../lib/utils';
 import { DatePicker } from '../ui/DatePicker';
@@ -23,6 +23,7 @@ export const ExpenseCard = memo(function ExpenseCard({
   wallets,
   selectedWalletId,
   onWalletChange,
+  onTransferClick,
 }: {
   expense: EditableExpense;
   onChange: (e: EditableExpense) => void;
@@ -37,6 +38,7 @@ export const ExpenseCard = memo(function ExpenseCard({
   wallets?: WalletResponse[];
   selectedWalletId?: string | null;
   onWalletChange?: (id: string) => void;
+  onTransferClick?: () => void;
 }) {
   const amountRef = useRef<HTMLInputElement>(null);
 
@@ -112,6 +114,16 @@ export const ExpenseCard = memo(function ExpenseCard({
             >
               <TrendingUp size={12} /> Income
             </button>
+            {onTransferClick && (
+              <button
+                type="button"
+                className="tab"
+                onClick={onTransferClick}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              >
+                <ArrowLeftRight size={12} /> Transfer
+              </button>
+            )}
           </div>
         </div>
       )}

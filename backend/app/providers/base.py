@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -47,12 +47,92 @@ class ParsedRecurringTransaction(BaseModel):
     suggested_icon: str | None = None
 
 
+class ParsedTransfer(BaseModel):
+    amount: float
+    to_amount: float | None = None
+    from_wallet_name: str | None = None
+    to_wallet_name: str | None = None
+    description: str
+    date: str
+    ai_context: str
+
+
 class ParsedTransactionOutput(BaseModel):
-    result_type: Literal["single", "multiple", "group", "recurring"]
+    result_type: Literal["single", "multiple", "group", "recurring", "transfer"]
     expenses: list[ParsedTransaction]
     group: ParsedTransactionGroupInfo | None = None
     recurring: ParsedRecurringTransaction | None = None
+    transfer: ParsedTransfer | None = None
     suggested_wallet_name: str | None = None
+
+    @model_validator(mode="after")
+    def validate_result_shape(self) -> ParsedTransactionOutput:  # noqa: C901, PLR0912, PLR0915
+        if self.result_type == "transfer":
+            if self.transfer is None:
+                msg = "transfer result_type requires transfer"
+                raise ValueError(msg)
+            if self.expenses:
+                msg = "transfer result_type requires empty expenses"
+                raise ValueError(msg)
+            if self.group is not None:
+                msg = "transfer result_type requires null group"
+                raise ValueError(msg)
+            if self.recurring is not None:
+                msg = "transfer result_type requires null recurring"
+                raise ValueError(msg)
+        elif self.result_type == "recurring":
+            if self.recurring is None:
+                msg = "recurring result_type requires recurring"
+                raise ValueError(msg)
+            if self.expenses:
+                msg = "recurring result_type requires empty expenses"
+                raise ValueError(msg)
+            if self.group is not None:
+                msg = "recurring result_type requires null group"
+                raise ValueError(msg)
+            if self.transfer is not None:
+                msg = "recurring result_type requires null transfer"
+                raise ValueError(msg)
+        elif self.result_type == "single":
+            if len(self.expenses) != 1:
+                msg = "single result_type requires exactly one expense"
+                raise ValueError(msg)
+            if self.group is not None:
+                msg = "single result_type requires null group"
+                raise ValueError(msg)
+            if self.recurring is not None:
+                msg = "single result_type requires null recurring"
+                raise ValueError(msg)
+            if self.transfer is not None:
+                msg = "single result_type requires null transfer"
+                raise ValueError(msg)
+        elif self.result_type == "multiple":
+            if len(self.expenses) < 2:
+                msg = "multiple result_type requires at least two expenses"
+                raise ValueError(msg)
+            if self.group is not None:
+                msg = "multiple result_type requires null group"
+                raise ValueError(msg)
+            if self.recurring is not None:
+                msg = "multiple result_type requires null recurring"
+                raise ValueError(msg)
+            if self.transfer is not None:
+                msg = "multiple result_type requires null transfer"
+                raise ValueError(msg)
+        elif self.result_type == "group":
+            if self.group is None:
+                msg = "group result_type requires group"
+                raise ValueError(msg)
+            if len(self.expenses) < 1:
+                msg = "group result_type requires at least one expense"
+                raise ValueError(msg)
+            if self.recurring is not None:
+                msg = "group result_type requires null recurring"
+                raise ValueError(msg)
+            if self.transfer is not None:
+                msg = "group result_type requires null transfer"
+                raise ValueError(msg)
+        return self
 
 
 @dataclass
@@ -94,6 +174,8 @@ line items) — only use "group" when there is clear context tying the items tog
 NEVER infer groups from coincidental or unrelated purchases
 - "recurring": user describes a repeating transaction with explicit or implied periodicity \
 (e.g. "Netflix monthly", "rent every month", "gym membership $50/mo", "weekly grocery budget $100")
+- "transfer": user describes moving money between the user's own wallets/accounts \
+(e.g. "transfer 200 from checking to savings", "move 500 USD to cash wallet")
 
 For "group" result_type:
 - The `group` field must be filled with the parent transaction metadata \
@@ -115,6 +197,18 @@ For "recurring" result_type:
 - `next_due`: infer the next occurrence date in ISO 8601 (YYYY-MM-DD). If user specifies a \
 start date, use that. If unspecified: use the 1st of next month for monthly, next Monday for \
 weekly, tomorrow for daily, next year's current month/day for yearly
+
+For "transfer" result_type:
+- The `transfer` field must be filled; `expenses` must be empty; `group` and `recurring` must be null
+- Use transfers only for moving money between the user's own wallets/accounts, not payments to merchants
+- `amount` is the amount leaving the source wallet
+- `to_amount` is only needed when the destination wallet receives a different amount, such as a \
+currency conversion; otherwise set it to null
+- `from_wallet_name` and `to_wallet_name` must match one of the available wallet names when the \
+input clearly identifies them; otherwise set the unclear side to null
+- `description` should be concise, e.g. "Transfer to Savings"
+- `date`: use ISO 8601 format YYYY-MM-DD; use today's date if not specified
+- `ai_context`: brief summary of why this is a transfer and how wallets were selected
 
 Rules for each transaction item (applies to every item in expenses[], group, and recurring):
 - amount MUST always be a strictly positive number — NEVER zero or negative under any \
@@ -169,6 +263,10 @@ Guidelines:
 - Focus on actionable financial insights and tips when relevant
 - Use the provided tools to fetch the data you need to answer the question accurately
 - Call tools as many times as needed to gather sufficient information before responding
+- Transfers are internal money movement between the user's own wallets. Do not count transfers as
+  spending or income unless the user explicitly asks about transfers.
+- When creating a transfer, use the transfer-specific tool instead of creating separate income and
+  expense transactions.
 - If the data doesn't contain enough information to answer, say so honestly
 - Do not make up transaction data that isn't returned by the tools
 - Respond in plain text; do not use markdown formatting

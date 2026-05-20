@@ -28,6 +28,15 @@ from app.models.user import User
 from app.models.wallet import Wallet
 from app.services.category_tag import find_or_create_category, find_or_create_tag
 from app.services.mcp_oauth_provider import KeniOAuthProvider
+from app.services.transfers import (
+    create_transfer_pair,
+    delete_transfer_pair,
+    exclude_transfer_transactions,
+    get_transfer_transaction_ids,
+    is_transfer_transaction,
+    replace_transaction_tags,
+    update_transfer_pair,
+)
 
 if TYPE_CHECKING:
     from app.services.mcp_oauth_provider import KeniAccessToken
@@ -114,13 +123,14 @@ async def _get_transaction_tags(transaction_id: uuid.UUID, session: Any) -> list
 
 
 def _transaction_to_dict(
-    t: Transaction, cat: Category | None, tags: list[dict[str, Any]]
+    t: Transaction, cat: Category | None, tags: list[dict[str, Any]], is_transfer: bool
 ) -> dict[str, Any]:
     return {
         "id": str(t.id),
         "wallet_id": str(t.wallet_id),
         "type": t.type,
         "amount": t.amount,
+        "is_transfer": is_transfer,
         "description": t.description,
         "date": t.date.isoformat(),
         "category": cat.name if cat else "Unknown",
@@ -288,13 +298,14 @@ async def _fetch_transactions(  # noqa: PLR0911, PLR0912, PLR0914
         query = query.offset((page - 1) * page_size).limit(page_size)
         result = await session.exec(query)
         transactions = result.all()
+        transfer_ids = await get_transfer_transaction_ids(session, [t.id for t in transactions])
 
         rows = []
         for t in transactions:
             cat_result = await session.exec(select(Category).where(Category.id == t.category_id))
             cat = cat_result.first()
             tags = await _get_transaction_tags(t.id, session)
-            rows.append(_transaction_to_dict(t, cat, tags))
+            rows.append(_transaction_to_dict(t, cat, tags, t.id in transfer_ids))
 
         return {"items": rows, "total": int(total), "page": page, "page_size": page_size}
     return "Database error"
@@ -362,7 +373,7 @@ async def get_transaction(wallet_id: str, transaction_id: str) -> dict[str, Any]
         cat_result = await session.exec(select(Category).where(Category.id == t.category_id))
         cat = cat_result.first()
         tags = await _get_transaction_tags(t.id, session)
-        return _transaction_to_dict(t, cat, tags)
+        return _transaction_to_dict(t, cat, tags, await is_transfer_transaction(session, t.id))
     return {"error": "Database error"}
 
 
@@ -392,6 +403,7 @@ async def _compute_summary(params: GetSummaryInput, user_id: uuid.UUID) -> dict[
         if err:
             return err
 
+        query = exclude_transfer_transactions(query)
         result = await session.exec(query)
         transactions = result.all()
 
@@ -478,6 +490,176 @@ async def get_summary(params: GetSummaryInput) -> dict[str, Any]:
     """
     user = await _get_authenticated_user()
     result = await _compute_summary(params, user.id)
+    if isinstance(result, str):
+        return {"error": result}
+    return result
+
+
+@dataclass
+class CreateTransferInput:
+    source_wallet_id: str
+    destination_wallet_id: str
+    amount: float
+    category_id: str | None = None
+    category_name: str | None = None
+    category_icon: str | None = None
+    description: str | None = None
+    date: str | None = None
+    ai_context: str | None = None
+    tag_ids: list[str] = field(default_factory=list)
+    tag_names: list[str] = field(default_factory=list)
+    destination_amount: float | None = None
+
+
+async def _insert_transfer(  # noqa: C901, PLR0911, PLR0912, PLR0914
+    params: CreateTransferInput, user_id: uuid.UUID
+) -> dict[str, Any] | str:
+    s_w_id = _parse_uuid(params.source_wallet_id, "source_wallet_id")
+    if isinstance(s_w_id, str):
+        return s_w_id
+    d_w_id = _parse_uuid(params.destination_wallet_id, "destination_wallet_id")
+    if isinstance(d_w_id, str):
+        return d_w_id
+
+    if s_w_id == d_w_id:
+        return "Source and destination wallets must be different"
+
+    if params.category_id and params.category_name:
+        return "Provide either category_id or category_name, not both"
+
+    transaction_date: datetime = datetime.now(UTC)
+    if params.date:
+        parsed_dt = _parse_dt(params.date, "date")
+        if isinstance(parsed_dt, str):
+            return parsed_dt
+        transaction_date = parsed_dt
+
+    async for session in get_session():
+        source_wallet_result = await session.exec(
+            select(Wallet).where(Wallet.id == s_w_id, Wallet.user_id == user_id)
+        )
+        source_wallet = source_wallet_result.first()
+        if not source_wallet:
+            return "Source wallet not found"
+
+        destination_wallet_result = await session.exec(
+            select(Wallet).where(Wallet.id == d_w_id, Wallet.user_id == user_id)
+        )
+        destination_wallet = destination_wallet_result.first()
+        if not destination_wallet:
+            return "Destination wallet not found"
+
+        if params.category_id:
+            c_id = _parse_uuid(params.category_id, "category_id")
+            if isinstance(c_id, str):
+                return c_id
+            cat_result = await session.exec(
+                select(Category).where(Category.id == c_id, Category.user_id == user_id)
+            )
+            cat = cat_result.first()
+            if not cat:
+                return "Category not found"
+            resolved_category_id = c_id
+        else:
+            cat = await find_or_create_category(
+                user_id=user_id,
+                name=params.category_name or "Transfer",
+                session=session,
+                icon=params.category_icon or "arrow-left-right",
+            )
+            resolved_category_id = cat.id
+
+        all_tag_ids: list[uuid.UUID] = []
+        for tid in params.tag_ids:
+            parsed_tid = _parse_uuid(tid, "tag_id")
+            if isinstance(parsed_tid, str):
+                return parsed_tid
+            tag_check = await session.exec(
+                select(Tag).where(Tag.id == parsed_tid, Tag.user_id == user_id)
+            )
+            if not tag_check.first():
+                return f"Tag {tid} not found"
+            all_tag_ids.append(parsed_tid)
+
+        for name in params.tag_names:
+            tag = await find_or_create_tag(user_id=user_id, name=name, session=session)
+            if tag.id not in all_tag_ids:
+                all_tag_ids.append(tag.id)
+
+        if params.amount <= 0:
+            return "Amount must be positive"
+        if params.destination_amount is not None and params.destination_amount <= 0:
+            return "Destination amount must be positive"
+
+        source_description = params.description or f"Transfer to {destination_wallet.name}"
+        destination_description = params.description or f"Transfer from {source_wallet.name}"
+
+        source_transaction, destination_transaction, transfer = await create_transfer_pair(
+            session=session,
+            source_wallet_id=s_w_id,
+            destination_wallet_id=d_w_id,
+            category_id=resolved_category_id,
+            source_amount=params.amount,
+            destination_amount=params.destination_amount,
+            description=params.description,
+            date=transaction_date,
+            source_description=source_description,
+            ai_context=params.ai_context,
+            destination_description=destination_description,
+            tag_ids=all_tag_ids,
+        )
+
+        await session.commit()
+        await session.refresh(source_transaction)
+        await session.refresh(destination_transaction)
+
+        source_tags = await _get_transaction_tags(source_transaction.id, session)
+        dest_tags = await _get_transaction_tags(destination_transaction.id, session)
+
+        return {
+            "source_transaction": _transaction_to_dict(source_transaction, cat, source_tags, True),
+            "destination_transaction": _transaction_to_dict(
+                destination_transaction, cat, dest_tags, True
+            ),
+            "transfer": {
+                "id": str(transfer.id),
+                "source_wallet_id": str(transfer.source_wallet_id),
+                "destination_wallet_id": str(transfer.destination_wallet_id),
+                "source_amount": transfer.source_amount,
+                "destination_amount": transfer.destination_amount,
+                "description": transfer.description,
+                "date": transfer.date.isoformat(),
+                "created_at": transfer.created_at.isoformat(),
+                "updated_at": transfer.updated_at.isoformat(),
+            },
+        }
+    return "Database error"
+
+
+@mcp.tool()
+async def create_transfer(params: CreateTransferInput) -> dict[str, Any]:
+    """
+    Create a new transfer record between two wallets.
+
+    A transfer creates two transactions: an expense in the source wallet and an income in the
+    destination wallet. Both transactions are linked together as a transfer pair.
+
+    Args:
+        params.source_wallet_id: UUID of the source wallet (where money leaves).
+        params.destination_wallet_id: UUID of the destination wallet (where money arrives).
+        params.amount: Amount to transfer (must be positive).
+        params.category_id: UUID of an existing category (mutually exclusive with category_name).
+        params.category_name: Name of the category — matched case-insensitively or created if new.
+        params.category_icon: Icon name for a new category (ignored if category already exists).
+        params.description: Optional description of the transfer.
+        params.ai_context: Optional context/notes about this transfer.
+        params.date: ISO 8601 date string (defaults to now if omitted).
+        params.tag_ids: List of existing tag UUIDs to attach to both transactions.
+        params.tag_names: List of tag names — matched case-insensitively or created if new.
+        params.destination_amount: Optional amount received in destination wallet (for currency conversion).
+    """
+    user = await _get_authenticated_user()
+    result = await _insert_transfer(params, user.id)
     if isinstance(result, str):
         return {"error": result}
     return result
@@ -581,7 +763,7 @@ async def _insert_transaction(  # noqa: C901, PLR0911, PLR0912
         await session.refresh(transaction)
 
         tags = [{"id": str(tid), "name": None, "color": None} for tid in all_tag_ids]
-        return _transaction_to_dict(transaction, cat, tags)
+        return _transaction_to_dict(transaction, cat, tags, False)
     return "Database error"
 
 
@@ -631,7 +813,7 @@ class UpdateTransactionInput:
 
 
 @mcp.tool()
-async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]:  # noqa: C901, PLR0911, PLR0912
+async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]:  # noqa: C901, PLR0911, PLR0912, PLR0914, PLR0915
     """
     Update an existing transaction.
 
@@ -676,33 +858,31 @@ async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]: 
         if not t:
             return {"error": "Transaction not found"}
 
+        if params.type is not None and await is_transfer_transaction(session, t.id):
+            return {"error": "Transfer transaction type cannot be changed"}
+
+        c_id: uuid.UUID | None = None
         if params.category_id is not None:
-            c_id = _parse_uuid(params.category_id, "category_id")
-            if isinstance(c_id, str):
-                return {"error": c_id}
+            parsed_category_id = _parse_uuid(params.category_id, "category_id")
+            if isinstance(parsed_category_id, str):
+                return {"error": parsed_category_id}
+            c_id = parsed_category_id
             cat_result = await session.exec(
                 select(Category).where(Category.id == c_id, Category.user_id == user.id)
             )
             if not cat_result.first():
                 return {"error": "Category not found"}
-            t.category_id = c_id
 
-        if params.type is not None:
-            t.type = params.type
-        if params.amount is not None:
-            t.amount = params.amount
-        if params.description is not None:
-            t.description = params.description
+        parsed_dt: datetime | None = None
         if params.date is not None:
-            parsed_dt = _parse_dt(params.date, "date")
-            if isinstance(parsed_dt, str):
-                return {"error": parsed_dt}
-            t.date = parsed_dt
+            parsed_date = _parse_dt(params.date, "date")
+            if isinstance(parsed_date, str):
+                return {"error": parsed_date}
+            parsed_dt = parsed_date
 
-        t.updated_at = datetime.now(UTC)
-
+        new_tag_ids: list[uuid.UUID] | None = None
         if params.tag_ids is not None:
-            new_tag_ids: list[uuid.UUID] = []
+            new_tag_ids = []
             for tid in params.tag_ids:
                 parsed_tid = _parse_uuid(tid, "tag_id")
                 if isinstance(parsed_tid, str):
@@ -714,22 +894,41 @@ async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]: 
                     return {"error": f"Tag {tid} not found"}
                 new_tag_ids.append(parsed_tid)
 
-            existing = await session.exec(
-                select(TransactionTag).where(col(TransactionTag.transaction_id) == t.id)
-            )
-            for tt in existing.all():
-                await session.delete(tt)
-            for tag_id in new_tag_ids:
-                session.add(TransactionTag(transaction_id=t.id, tag_id=tag_id))
+        updated_at = datetime.now(UTC)
+        transfer_updated = await update_transfer_pair(
+            session=session,
+            transaction=t,
+            amount=params.amount,
+            category_id=c_id,
+            description=params.description,
+            date=parsed_dt,
+            tag_ids=new_tag_ids,
+            updated_at=updated_at,
+        )
 
-        session.add(t)
+        if not transfer_updated:
+            if c_id is not None:
+                t.category_id = c_id
+            if params.type is not None:
+                t.type = params.type
+            if params.amount is not None:
+                t.amount = params.amount
+            if params.description is not None:
+                t.description = params.description
+            if parsed_dt is not None:
+                t.date = parsed_dt
+            t.updated_at = updated_at
+            if new_tag_ids is not None:
+                await replace_transaction_tags(session, t, new_tag_ids)
+            session.add(t)
+
         await session.commit()
         await session.refresh(t)
 
         cat_result = await session.exec(select(Category).where(Category.id == t.category_id))
         cat = cat_result.first()
         tags = await _get_transaction_tags(t.id, session)
-        return _transaction_to_dict(t, cat, tags)
+        return _transaction_to_dict(t, cat, tags, await is_transfer_transaction(session, t.id))
     return {"error": "Database error"}
 
 
@@ -767,24 +966,9 @@ async def delete_transaction(wallet_id: str, transaction_id: str) -> dict[str, A
         if not t:
             return {"error": "Transaction not found"}
 
-        existing_tags = await session.exec(
-            select(TransactionTag).where(col(TransactionTag.transaction_id) == t.id)
-        )
-        for tt in existing_tags.all():
-            await session.delete(tt)
-
-        children = await session.exec(select(Transaction).where(col(Transaction.group_id) == t.id))
-        for child in children.all():
-            child_tags = await session.exec(
-                select(TransactionTag).where(col(TransactionTag.transaction_id) == child.id)
-            )
-            for tt in child_tags.all():
-                await session.delete(tt)
-            await session.delete(child)
-
-        await session.delete(t)
+        deleted = await delete_transfer_pair(session, t)
         await session.commit()
-        return {"deleted": transaction_id}
+        return {"deleted": [str(transaction.id) for transaction in deleted]}
     return {"error": "Database error"}
 
 
@@ -824,6 +1008,7 @@ async def get_spending_summary(params: GetSpendingSummaryInput) -> dict[str, Any
         if err:
             return {"error": err}
 
+        query = exclude_transfer_transactions(query)
         result = await session.exec(query)
         txns = result.all()
 
@@ -887,6 +1072,7 @@ async def get_category_breakdown(params: GetCategoryBreakdownInput) -> dict[str,
         if err:
             return {"error": err}
 
+        query = exclude_transfer_transactions(query)
         result = await session.exec(query)
         txns = result.all()
 
@@ -962,6 +1148,7 @@ async def get_monthly_trend(params: GetMonthlyTrendInput) -> dict[str, Any]:
         if err:
             return {"error": err}
 
+        query = exclude_transfer_transactions(query)
         result = await session.exec(query.order_by(col(Transaction.date).desc()))
         txns = result.all()
 

@@ -394,8 +394,8 @@ function ExpenseRow({
 }) {
   const convertedAmount = fxRate != null ? expense.amount * fxRate : null;
   const hasConversion = convertedAmount != null && globalCurrency != null;
-  const sign = expense.type === 'income' ? '+' : '';
-  const amountColor = expense.type === 'income' ? 'var(--forest)' : 'var(--ink)';
+  const sign = expense.type === 'income' ? '+' : (expense.is_transfer ? '-' : '');
+  const amountColor = expense.type === 'income' ? 'var(--forest)' : (expense.is_transfer ? 'var(--rose)' : 'var(--ink)');
 
   return (
     <Link
@@ -427,7 +427,7 @@ function ExpenseRow({
         </div>
         <div style={{ fontSize: 12, color: 'var(--ink-faint)', display: 'flex', gap: 6, alignItems: 'center', overflow: 'hidden', flexWrap: 'nowrap' }}>
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>
-            {expense.category.name}
+            {expense.is_transfer ? 'Transfer' : expense.category.name}
           </span>
           {expense.children && expense.children.length > 0 && (
             <>

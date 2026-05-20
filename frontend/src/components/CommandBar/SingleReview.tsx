@@ -14,6 +14,7 @@ export function SingleReview({
   wallets,
   selectedWalletId,
   onWalletChange,
+  onTransferClick,
 }: {
   expense: EditableExpense;
   onChange: (e: EditableExpense) => void;
@@ -25,11 +26,12 @@ export function SingleReview({
   wallets: WalletResponse[];
   selectedWalletId: string | null;
   onWalletChange: (id: string) => void;
+  onTransferClick?: () => void;
 }) {
   const isIncome = expense.type === 'income';
   return (
     <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <ExpenseCard expense={expense} onChange={onChange} currency={activeWalletCurrency} categories={categories} allTags={allTags} wallets={wallets} selectedWalletId={selectedWalletId} onWalletChange={onWalletChange} />
+      <ExpenseCard expense={expense} onChange={onChange} currency={activeWalletCurrency} categories={categories} allTags={allTags} wallets={wallets} selectedWalletId={selectedWalletId} onWalletChange={onWalletChange} onTransferClick={onTransferClick} />
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4 }}>
         <button
           className="btn btn-primary btn-sm"

@@ -13,6 +13,7 @@ from app.models.transaction import Transaction
 from app.models.user import User
 from app.models.wallet import Wallet
 from app.schemas.wallet import WalletCreate, WalletResponse, WalletSummary, WalletUpdate
+from app.services.transfers import delete_transfers_for_wallet, exclude_transfer_transactions
 
 router = APIRouter(prefix="/api/wallets", tags=["wallets"])
 
@@ -66,36 +67,58 @@ async def get_wallet(
     wallet = await _get_wallet_or_404(wallet_id, current_user.id, session)
 
     expense_total_result = await session.exec(
-        select(func.coalesce(func.sum(Transaction.amount), 0.0)).where(
-            Transaction.wallet_id == wallet_id, Transaction.type == "expense"
+        exclude_transfer_transactions(
+            select(func.coalesce(func.sum(Transaction.amount), 0.0)).where(
+                Transaction.wallet_id == wallet_id, Transaction.type == "expense"
+            )
         )
     )
     total_expenses = expense_total_result.one()
 
     expense_count_result = await session.exec(
         select(func.count()).select_from(
-            select(Transaction)
-            .where(Transaction.wallet_id == wallet_id, Transaction.type == "expense")
-            .subquery()
+            exclude_transfer_transactions(
+                select(Transaction).where(
+                    Transaction.wallet_id == wallet_id, Transaction.type == "expense"
+                )
+            ).subquery()
         )
     )
     expense_count = expense_count_result.one()
 
     income_total_result = await session.exec(
-        select(func.coalesce(func.sum(Transaction.amount), 0.0)).where(
-            Transaction.wallet_id == wallet_id, Transaction.type == "income"
+        exclude_transfer_transactions(
+            select(func.coalesce(func.sum(Transaction.amount), 0.0)).where(
+                Transaction.wallet_id == wallet_id, Transaction.type == "income"
+            )
         )
     )
     total_income = income_total_result.one()
 
     income_count_result = await session.exec(
         select(func.count()).select_from(
-            select(Transaction)
-            .where(Transaction.wallet_id == wallet_id, Transaction.type == "income")
-            .subquery()
+            exclude_transfer_transactions(
+                select(Transaction).where(
+                    Transaction.wallet_id == wallet_id, Transaction.type == "income"
+                )
+            ).subquery()
         )
     )
     income_count = income_count_result.one()
+
+    balance_result = await session.exec(
+        select(func.coalesce(func.sum(Transaction.amount), 0.0)).where(
+            Transaction.wallet_id == wallet_id, Transaction.type == "income"
+        )
+    )
+    balance_income = balance_result.one()
+
+    balance_expense_result = await session.exec(
+        select(func.coalesce(func.sum(Transaction.amount), 0.0)).where(
+            Transaction.wallet_id == wallet_id, Transaction.type == "expense"
+        )
+    )
+    balance_expenses = balance_expense_result.one()
 
     return WalletSummary(
         id=wallet.id,
@@ -107,7 +130,7 @@ async def get_wallet(
         expense_count=int(expense_count),
         total_income=float(total_income),
         income_count=int(income_count),
-        balance=float(total_income) - float(total_expenses),
+        balance=float(balance_income) - float(balance_expenses),
     )
 
 
@@ -131,5 +154,6 @@ async def update_wallet(
 @router.delete("/{wallet_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_wallet(wallet_id: uuid.UUID, current_user: CurrentUser, session: DbDep) -> None:
     wallet = await _get_wallet_or_404(wallet_id, current_user.id, session)
+    await delete_transfers_for_wallet(session, wallet_id)
     await session.delete(wallet)
     await session.commit()
