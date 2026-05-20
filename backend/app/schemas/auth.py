@@ -30,7 +30,7 @@ class TokenResponse(BaseModel):
 class UserResponse(BaseModel):
     id: uuid.UUID
     username: str
-    display_name: str
+    display_name: str | None = None
     is_admin: bool
     created_at: datetime
     timezone: str | None = None
