@@ -15,7 +15,7 @@ class User(SQLModel, table=True):
     )
     username: str = Field(unique=True, index=True, max_length=50)
     password_hash: str
-    display_name: str = Field(max_length=100)
+    display_name: str | None = Field(default=None, max_length=100)
     is_admin: bool = Field(default=False)
     timezone: str | None = Field(default=None, max_length=50)
     custom_ai_prompt: str | None = Field(default=None, max_length=500)
