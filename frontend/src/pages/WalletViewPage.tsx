@@ -1,12 +1,15 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams, useSearchParams, useOutletContext } from 'react-router-dom';
-import { ArrowLeftRight, Download, Filter, Layers, Search, SortAsc, SortDesc, X } from 'lucide-react';
+import { Link, useParams, useSearchParams, useOutletContext, useNavigate } from 'react-router-dom';
+import { ArrowLeftRight, Command, Download, Filter, FolderOpen, Layers, Search, SortAsc, SortDesc, Tag, Trash2, X } from 'lucide-react';
 import { expenses as expensesApi, categories as categoriesApi, wallets as walletsApi, tags as tagsApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/Toast';
 import { Select } from '../components/ui/Select';
 import { DatePicker } from '../components/ui/DatePicker';
+import { Modal } from '../components/ui/Modal';
+import { CategorySelect } from '../components/ui/CategorySelect';
 import type { CategoryResponse, TransactionListResponse, TransactionResponse, TagResponse, WalletSummary } from '../lib/types';
 import { fmt, fmtRelative } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
@@ -31,6 +34,7 @@ export function WalletViewPage() {
   const toast = useToast();
   const { user } = useAuth();
   const { expenseAddedKey } = useOutletContext<LayoutOutletContext>();
+  const navigate = useNavigate();
 
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
   const [fxRate, setFxRate] = useState<number | null>(null);
@@ -38,6 +42,25 @@ export function WalletViewPage() {
   const [showConverted, setShowConverted] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+
+  // --- Bulk selection state ---
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isSelecting, setIsSelecting] = useState(false);
+  const lastClickedIndexRef = useRef<number>(-1);
+
+  // --- Bulk delete modal ---
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  // --- Bulk actions bar ---
+  const [showActionsBar, setShowActionsBar] = useState(false);
+
+  // --- Bulk edit modal ---
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [bulkEditCategoryId, setBulkEditCategoryId] = useState('');
+  const [bulkAddTagIds, setBulkAddTagIds] = useState<Set<string>>(new Set());
+  const [bulkRemoveTagIds, setBulkRemoveTagIds] = useState<Set<string>>(new Set());
+  const [bulkUpdating, setBulkUpdating] = useState(false);
 
   const handleToggleConverted = () => {
     if (switching) return;
@@ -117,6 +140,13 @@ export function WalletViewPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Clear selection when page data changes
+  useEffect(() => {
+    setSelectedIds(new Set());
+    setIsSelecting(false);
+    lastClickedIndexRef.current = -1;
+  }, [data]);
+
   useEffect(() => {
     const globalCurrency = user?.global_currency;
     const walletCurrency = wallet?.currency;
@@ -145,13 +175,361 @@ export function WalletViewPage() {
 
   const toggleTag = (id: string) => {
     const next = selectedTagIds.includes(id)
-      ? selectedTagIds.filter((t) => t !== id)
+      ? selectedTagIds.filter((tId) => tId !== id)
       : [...selectedTagIds, id];
     setParam({ tag_ids: next, page: null });
   };
 
+  // --- Bulk selection handlers ---
+  const handleSelect = useCallback((id: string, e: React.MouseEvent) => {
+    const items = data?.items ?? [];
+    const clickedIndex = items.findIndex((item) => item.id === id);
+
+    if (!isSelecting) {
+      // Enter selecting mode
+      setIsSelecting(true);
+      setSelectedIds(new Set([id]));
+      lastClickedIndexRef.current = clickedIndex;
+      return;
+    }
+
+    if (!isMobile && e.shiftKey && lastClickedIndexRef.current >= 0) {
+      // Shift-click: select range
+      const from = Math.min(lastClickedIndexRef.current, clickedIndex);
+      const to = Math.max(lastClickedIndexRef.current, clickedIndex);
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        for (let i = from; i <= to; i++) {
+          next.add(items[i].id);
+        }
+        return next;
+      });
+    } else {
+      // Toggle single item
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+        // Exit selecting mode if nothing selected
+        if (next.size === 0) {
+          setIsSelecting(false);
+        }
+        return next;
+      });
+    }
+    lastClickedIndexRef.current = clickedIndex;
+  }, [data, isSelecting, isMobile]);
+
+  const handleSelectAll = useCallback(() => {
+    if (!data) return;
+    setSelectedIds(new Set(data.items.map((item) => item.id)));
+    setIsSelecting(true);
+  }, [data]);
+
+  const handleDeselectAll = () => {
+    setSelectedIds(new Set());
+    setIsSelecting(false);
+    lastClickedIndexRef.current = -1;
+  };
+
+  // Ctrl+A / Cmd+A selects all items on the current page (works even before entering select mode)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        e.preventDefault();
+        handleSelectAll();
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [handleSelectAll]);
+
+  // --- Bulk delete ---
+  const handleBulkDelete = async () => {
+    if (!walletId || selectedIds.size === 0) return;
+    setBulkDeleting(true);
+    try {
+      await expensesApi.bulkDelete(walletId, Array.from(selectedIds));
+      const count = selectedIds.size;
+      const plural = count === 1 ? '' : 's';
+      toast(t('walletView.bulkDeleteToast', { count, plural }), 'success');
+      setShowDeleteModal(false);
+      handleDeselectAll();
+      await load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : t('common.failed'), 'error');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  // --- Bulk edit ---
+  const openEditModal = () => {
+    setBulkEditCategoryId('');
+    setBulkAddTagIds(new Set());
+    setBulkRemoveTagIds(new Set());
+    setShowEditModal(true);
+  };
+
+  const toggleAddTag = (id: string) => {
+    setBulkAddTagIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+    // Remove from remove-set if added
+    setBulkRemoveTagIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  };
+
+  const toggleRemoveTag = (id: string) => {
+    setBulkRemoveTagIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+    // Remove from add-set if toggled into remove
+    setBulkAddTagIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  };
+
+  const handleBulkUpdate = async () => {
+    if (!walletId || selectedIds.size === 0) return;
+    const payload: {
+      transaction_ids: string[];
+      category_id?: string;
+      add_tag_ids?: string[];
+      remove_tag_ids?: string[];
+    } = { transaction_ids: Array.from(selectedIds) };
+    if (bulkEditCategoryId) payload.category_id = bulkEditCategoryId;
+    if (bulkAddTagIds.size > 0) payload.add_tag_ids = Array.from(bulkAddTagIds);
+    if (bulkRemoveTagIds.size > 0) payload.remove_tag_ids = Array.from(bulkRemoveTagIds);
+
+    if (!payload.category_id && !payload.add_tag_ids && !payload.remove_tag_ids) {
+      toast(t('walletView.bulkEditNoChange'), 'error');
+      return;
+    }
+
+    setBulkUpdating(true);
+    try {
+      const res = await expensesApi.bulkUpdate(walletId, payload);
+      const count = res.updated_count;
+      const plural = count === 1 ? '' : 's';
+      toast(t('walletView.bulkUpdateToast', { count, plural }), 'success');
+      setShowEditModal(false);
+      handleDeselectAll();
+      await load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : t('common.failed'), 'error');
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
   const hasFilters = search || categoryId || selectedTagIds.length > 0 || startDate || endDate || minAmount || maxAmount;
+  const selCount = selectedIds.size;
+
+  // Bulk action toolbar (floating, Linear-style)
+  const bulkToolbar = selCount > 0 ? (
+    <div
+      role="toolbar"
+      aria-label={t('walletView.bulkSelected', { count: selCount })}
+      style={{
+        position: 'fixed',
+        bottom: isMobile
+          ? 'calc(60px + env(safe-area-inset-bottom, 0px) + 8px)'
+          : '24px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 500,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        background: 'white',
+        border: '1px solid var(--cream-darker)',
+        borderRadius: 100,
+        padding: '6px 8px',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', padding: '0 4px 0 6px' }}>
+        {t('walletView.bulkSelected', { count: selCount })}
+      </span>
+      <button
+        className="btn btn-secondary btn-sm"
+        style={{ borderRadius: 100, fontSize: 13, padding: '5px 10px', display: 'flex', alignItems: 'center', gap: 5 }}
+        onClick={() => setShowActionsBar((v) => !v)}
+      >
+        <Command size={13} />
+        {t('walletView.bulkActions')}
+      </button>
+      <div style={{ width: 1, height: 18, background: 'var(--cream-darker)', flexShrink: 0 }} />
+      <button
+        className="btn btn-ghost btn-sm"
+        style={{ borderRadius: 100, padding: '5px 8px', lineHeight: 0, border: '1px solid var(--cream-darker)' }}
+        onClick={handleDeselectAll}
+        title={t('walletView.bulkDeselectAll')}
+      >
+        <X size={14} />
+      </button>
+    </div>
+  ) : null;
+
+  // Bulk delete confirmation modal
+  const deleteModal = (
+    <Modal
+      open={showDeleteModal}
+      onClose={() => setShowDeleteModal(false)}
+      title={t('walletView.bulkDeleteConfirmTitle')}
+      footer={
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button className="btn btn-ghost btn-md" onClick={() => setShowDeleteModal(false)}>
+            {t('common.cancel')}
+          </button>
+          <button
+            className="btn btn-md"
+            style={{ background: 'var(--rose)', color: 'white', border: 'none' }}
+            onClick={handleBulkDelete}
+            disabled={bulkDeleting}
+          >
+            {bulkDeleting ? '…' : t('walletView.bulkDelete')}
+          </button>
+        </div>
+      }
+    >
+      <p style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.5 }}>
+        {t('walletView.bulkDeleteConfirmBody', { count: selCount, plural: selCount === 1 ? '' : 's' })}
+      </p>
+    </Modal>
+  );
+
+  // Bulk edit modal
+  const editCategoryObj = categories.find((c) => c.id === bulkEditCategoryId) ?? null;
+  const editModal = (
+    <Modal
+      open={showEditModal}
+      onClose={() => setShowEditModal(false)}
+      title={t('walletView.bulkEditTitle', { count: selCount, plural: selCount === 1 ? '' : 's' })}
+      size="md"
+      footer={
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button className="btn btn-ghost btn-md" onClick={() => setShowEditModal(false)}>
+            {t('common.cancel')}
+          </button>
+          <button
+            className="btn btn-primary btn-md"
+            onClick={handleBulkUpdate}
+            disabled={bulkUpdating}
+          >
+            {bulkUpdating ? '…' : t('walletView.bulkEditApply')}
+          </button>
+        </div>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Category section */}
+        <div className="input-group">
+          <label className="input-label">{t('walletView.bulkEditCategoryLabel')}</label>
+          <CategorySelect
+            value={editCategoryObj?.name ?? ''}
+            categories={categories}
+            onSelect={(cat) => setBulkEditCategoryId(cat.id)}
+            matchBy="name"
+            size="md"
+          />
+          {bulkEditCategoryId && (
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ marginTop: 4, fontSize: 12 }}
+              onClick={() => setBulkEditCategoryId('')}
+            >
+              <X size={12} /> {t('walletView.bulkEditCategoryPlaceholder')}
+            </button>
+          )}
+        </div>
+
+        {/* Add tags section */}
+        {allTags.length > 0 && (
+          <div className="input-group">
+            <label className="input-label">{t('walletView.bulkEditAddTagsLabel')}</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {allTags.map((tag) => {
+                const active = bulkAddTagIds.has(tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    onClick={() => toggleAddTag(tag.id)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      padding: '3px 10px',
+                      borderRadius: 100,
+                      fontSize: 12,
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      border: `1.5px solid ${tag.color ? (active ? tag.color : `${tag.color}50`) : 'var(--cream-darker)'}`,
+                      background: active ? (tag.color ?? 'var(--ink)') : (tag.color ? `${tag.color}14` : 'var(--cream-dark)'),
+                      color: active ? 'white' : 'var(--ink-mid)',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: active ? 'white' : (tag.color ?? 'var(--sand-dark)'), flexShrink: 0 }} />
+                    {tag.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Remove tags section */}
+        {allTags.length > 0 && (
+          <div className="input-group">
+            <label className="input-label">{t('walletView.bulkEditRemoveTagsLabel')}</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {allTags.map((tag) => {
+                const active = bulkRemoveTagIds.has(tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    onClick={() => toggleRemoveTag(tag.id)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      padding: '3px 10px',
+                      borderRadius: 100,
+                      fontSize: 12,
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      border: `1.5px solid ${active ? 'var(--rose)' : 'var(--cream-darker)'}`,
+                      background: active ? 'var(--rose)' : 'var(--cream-dark)',
+                      color: active ? 'white' : 'var(--ink-mid)',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {tag.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
 
   return (
     <div className="animate-fade-in">
@@ -310,6 +688,8 @@ export function WalletViewPage() {
         </div>
       ) : (
         <>
+
+
           {isMobile && fxRate != null && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
               <button
@@ -335,6 +715,10 @@ export function WalletViewPage() {
                 isMobile={isMobile}
                 showConverted={showConverted}
                 switching={switching}
+                isSelected={selectedIds.has(expense.id)}
+                isSelecting={isSelecting}
+                onSelect={handleSelect}
+                onNavigate={navigate}
               />
             ))}
           </div>
@@ -367,6 +751,18 @@ export function WalletViewPage() {
           </p>
         </>
       )}
+
+      {bulkToolbar}
+      {deleteModal}
+      {editModal}
+      <BulkActionsBar
+        open={showActionsBar}
+        onClose={() => setShowActionsBar(false)}
+        isMobile={isMobile}
+        onDeleteSelected={() => { setShowActionsBar(false); setShowDeleteModal(true); }}
+        onEditCategory={() => { setShowActionsBar(false); openEditModal(); }}
+        onEditLabels={() => { setShowActionsBar(false); openEditModal(); }}
+      />
     </div>
   );
 }
@@ -381,6 +777,10 @@ function ExpenseRow({
   isMobile,
   showConverted,
   switching,
+  isSelected,
+  isSelecting,
+  onSelect,
+  onNavigate,
 }: {
   expense: TransactionResponse;
   currency: string;
@@ -391,27 +791,80 @@ function ExpenseRow({
   isMobile: boolean;
   showConverted: boolean;
   switching: boolean;
+  isSelected: boolean;
+  isSelecting: boolean;
+  onSelect: (id: string, e: React.MouseEvent) => void;
+  onNavigate: (path: string) => void;
 }) {
   const convertedAmount = fxRate != null ? expense.amount * fxRate : null;
   const hasConversion = convertedAmount != null && globalCurrency != null;
   const sign = expense.type === 'income' ? '+' : '';
   const amountColor = expense.type === 'income' ? 'var(--forest)' : 'var(--ink)';
 
-  return (
-    <Link
-      to={`/wallets/${walletId}/expenses/${expense.id}`}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: '12px 16px',
-        textDecoration: 'none',
-        borderBottom: isLast ? 'none' : '1px solid var(--cream)',
-        transition: 'background 0.1s',
-      }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--cream)')}
-      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-    >
+  // Long-press state for mobile multi-select entry
+  const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pressStartPosRef = useRef<{ x: number; y: number } | null>(null);
+  // Track whether a long-press fired so the pointerUp click is suppressed
+  const longPressDidFireRef = useRef(false);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (!isMobile) return;
+    longPressDidFireRef.current = false;
+    pressStartPosRef.current = { x: e.clientX, y: e.clientY };
+    pressTimerRef.current = setTimeout(() => {
+      pressTimerRef.current = null;
+      longPressDidFireRef.current = true;
+      onSelect(expense.id, e as unknown as React.MouseEvent);
+    }, 500);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!pressStartPosRef.current) return;
+    const dx = e.clientX - pressStartPosRef.current.x;
+    const dy = e.clientY - pressStartPosRef.current.y;
+    if (Math.sqrt(dx * dx + dy * dy) > 5) {
+      if (pressTimerRef.current) {
+        clearTimeout(pressTimerRef.current);
+        pressTimerRef.current = null;
+      }
+    }
+  };
+
+  const handlePointerUp = () => {
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
+    }
+    pressStartPosRef.current = null;
+  };
+
+  const rowContent = (
+    <>
+      {/* Checkbox — visible when selecting */}
+      <div
+        style={{
+          width: isSelecting ? 20 : 0,
+          height: 20,
+          borderRadius: '50%',
+          border: isSelecting ? (isSelected ? 'none' : '2px solid var(--ink-mid)') : 'none',
+          background: isSelected ? 'var(--forest)' : 'transparent',
+          flexShrink: 0,
+          transition: 'width 0.15s, opacity 0.15s',
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginRight: isSelecting ? 0 : -4,
+          opacity: isSelecting ? 1 : 0,
+        }}
+      >
+        {isSelected && (
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+      </div>
+
       <CategoryIcon
         iconName={expense.category.icon}
         color={expense.category.color}
@@ -485,6 +938,229 @@ function ExpenseRow({
           </>
         )}
       </div>
+    </>
+  );
+
+  const sharedStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    padding: '12px 16px',
+    textDecoration: 'none',
+    borderBottom: isLast ? 'none' : '1px solid var(--cream)',
+    transition: 'background 0.1s',
+    background: isSelected ? 'var(--cream)' : 'transparent',
+    cursor: isSelecting ? 'default' : 'pointer',
+    userSelect: 'none' as const,
+  };
+
+  if (isMobile) {
+    // On mobile: render as div so pointer events work for long-press
+    // Navigate programmatically on short tap; toggle on tap when selecting
+    return (
+      <div
+        role="row"
+        aria-selected={isSelected}
+        style={sharedStyle}
+        onClick={(e) => {
+          if (longPressDidFireRef.current) {
+            longPressDidFireRef.current = false;
+            return;
+          }
+          if (isSelecting) {
+            onSelect(expense.id, e);
+          } else {
+            onNavigate(`/wallets/${walletId}/expenses/${expense.id}`);
+          }
+        }}
+        onMouseEnter={(e) => {
+          if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'var(--cream)';
+        }}
+        onMouseLeave={(e) => {
+          if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'transparent';
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+      >
+        {rowContent}
+      </div>
+    );
+  }
+
+  if (isSelecting) {
+    // On desktop in selecting mode: render as div (no Link navigation)
+    return (
+      <div
+        role="row"
+        aria-selected={isSelected}
+        style={sharedStyle}
+        onClick={(e) => onSelect(expense.id, e)}
+        onMouseEnter={(e) => {
+          if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'var(--cream)';
+        }}
+        onMouseLeave={(e) => {
+          if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'transparent';
+        }}
+      >
+        {rowContent}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      to={`/wallets/${walletId}/expenses/${expense.id}`}
+      style={sharedStyle}
+      onClick={(e) => {
+        if (e.ctrlKey || e.metaKey || e.shiftKey) {
+          e.preventDefault();
+          onSelect(expense.id, e);
+        }
+      }}
+      onMouseEnter={(e) => {
+        if (!isSelected) e.currentTarget.style.background = 'var(--cream)';
+      }}
+      onMouseLeave={(e) => {
+        if (!isSelected) e.currentTarget.style.background = 'transparent';
+      }}
+    >
+      {rowContent}
     </Link>
+  );
+}
+
+function BulkActionsBar({
+  open,
+  onClose,
+  isMobile,
+  onDeleteSelected,
+  onEditCategory,
+  onEditLabels,
+}: {
+  open: boolean;
+  onClose: () => void;
+  isMobile: boolean;
+  onDeleteSelected: () => void;
+  onEditCategory: () => void;
+  onEditLabels: () => void;
+}) {
+  const { t } = useTranslation();
+  const [query, setQuery] = useState('');
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const actions = [
+    { id: 'delete', label: t('walletView.bulkActionDelete'), icon: Trash2, danger: true, execute: onDeleteSelected },
+    { id: 'editCategory', label: t('walletView.bulkActionEditCategory'), icon: FolderOpen, danger: false, execute: onEditCategory },
+    { id: 'editLabels', label: t('walletView.bulkActionEditLabels'), icon: Tag, danger: false, execute: onEditLabels },
+  ];
+
+  const filtered = actions.filter(
+    (a) => !query || a.label.toLowerCase().includes(query.toLowerCase()),
+  );
+
+  useEffect(() => {
+    if (open) {
+      setQuery('');
+      setHighlightedIndex(0);
+      setTimeout(() => inputRef.current?.focus(), 20);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); setHighlightedIndex((i) => Math.min(i + 1, filtered.length - 1)); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); setHighlightedIndex((i) => Math.max(i - 1, 0)); return; }
+      if (e.key === 'Enter' && filtered[highlightedIndex]) { filtered[highlightedIndex].execute(); onClose(); }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open, onClose, filtered, highlightedIndex]);
+
+  if (!open) return null;
+
+  const panelBottom = isMobile
+    ? 'calc(60px + env(safe-area-inset-bottom, 0px) + 62px)'
+    : '80px';
+
+  return createPortal(
+    <>
+      {/* Click-away backdrop */}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 550 }} onClick={onClose} />
+      {/* Positioning shell (holds translateX) */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: panelBottom,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 551,
+          width: 300,
+        }}
+      >
+        {/* Animated panel */}
+        <div
+          className="animate-fade-in"
+          style={{
+            background: 'white',
+            borderRadius: 14,
+            border: '1px solid var(--cream-darker)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06)',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Search input */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: '1px solid var(--cream-darker)' }}>
+            <Command size={13} style={{ color: 'var(--ink-faint)', flexShrink: 0 }} />
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setHighlightedIndex(0); }}
+              placeholder={t('walletView.bulkActionsSearchPlaceholder')}
+              style={{ flex: 1, border: 'none', outline: 'none', fontSize: 13, fontFamily: 'var(--font-body)', background: 'transparent', color: 'var(--ink)' }}
+            />
+          </div>
+
+          {/* Actions list */}
+          <div style={{ padding: 4 }}>
+            {filtered.length === 0 ? (
+              <div style={{ padding: '10px 12px', fontSize: 13, color: 'var(--ink-faint)', textAlign: 'center' }}>
+                {t('walletView.bulkActionsEmpty')}
+              </div>
+            ) : filtered.map((action, i) => (
+              <button
+                key={action.id}
+                onClick={() => { action.execute(); onClose(); }}
+                onMouseEnter={() => setHighlightedIndex(i)}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '9px 10px',
+                  borderRadius: 8,
+                  background: i === highlightedIndex ? 'var(--cream)' : 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontFamily: 'var(--font-body)',
+                  color: action.danger ? 'var(--rose)' : 'var(--ink)',
+                  textAlign: 'left',
+                  transition: 'background 0.1s',
+                }}
+              >
+                <action.icon size={14} style={{ flexShrink: 0 }} />
+                {action.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </>,
+    document.body,
   );
 }
