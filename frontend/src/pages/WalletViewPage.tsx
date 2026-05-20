@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useParams, useSearchParams, useOutletContext, useNavigate } from 'react-router-dom';
-import { ArrowLeftRight, Command, Download, Filter, FolderOpen, Layers, Search, SortAsc, SortDesc, Tag, Trash2, X } from 'lucide-react';
+import { ArrowLeftRight, Check, Command, Download, Filter, FolderOpen, Layers, Plus, Search, SortAsc, SortDesc, Tag, Trash2, X } from 'lucide-react';
 import { expenses as expensesApi, categories as categoriesApi, wallets as walletsApi, tags as tagsApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/Toast';
@@ -10,7 +10,7 @@ import { Select } from '../components/ui/Select';
 import { DatePicker } from '../components/ui/DatePicker';
 import { Modal } from '../components/ui/Modal';
 import { CategorySelect } from '../components/ui/CategorySelect';
-import type { CategoryResponse, TransactionListResponse, TransactionResponse, TagResponse, WalletSummary } from '../lib/types';
+import type { CategoryResponse, TransactionListResponse, TransactionResponse, TagResponse, TagBrief, WalletSummary } from '../lib/types';
 import { fmt, fmtRelative } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
 import { getExchangeRate } from '../lib/fx';
@@ -55,9 +55,13 @@ export function WalletViewPage() {
   // --- Bulk actions bar ---
   const [showActionsBar, setShowActionsBar] = useState(false);
 
-  // --- Bulk edit modal ---
-  const [showEditModal, setShowEditModal] = useState(false);
+  // --- Bulk edit modals ---
+  const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
+  const [showEditLabelModal, setShowEditLabelModal] = useState(false);
   const [bulkEditCategoryId, setBulkEditCategoryId] = useState('');
+  const [isCreatingTag, setIsCreatingTag] = useState(false);
+  const [newTagName, setNewTagName] = useState('');
+  const newTagInputRef = useRef<HTMLInputElement>(null);
   const [bulkAddTagIds, setBulkAddTagIds] = useState<Set<string>>(new Set());
   const [bulkRemoveTagIds, setBulkRemoveTagIds] = useState<Set<string>>(new Set());
   const [bulkUpdating, setBulkUpdating] = useState(false);
@@ -271,11 +275,31 @@ export function WalletViewPage() {
   };
 
   // --- Bulk edit ---
-  const openEditModal = () => {
+  const openEditCategoryModal = () => {
     setBulkEditCategoryId('');
+    setShowEditCategoryModal(true);
+  };
+
+  const openEditLabelModal = () => {
     setBulkAddTagIds(new Set());
     setBulkRemoveTagIds(new Set());
-    setShowEditModal(true);
+    setIsCreatingTag(false);
+    setNewTagName('');
+    setShowEditLabelModal(true);
+  };
+
+  const handleCreateTag = async () => {
+    const name = newTagName.trim();
+    if (!name) { setIsCreatingTag(false); setNewTagName(''); return; }
+    try {
+      const tag = await tagsApi.create({ name });
+      setAllTags((prev) => [...prev, tag]);
+      setBulkAddTagIds((prev) => { const next = new Set(prev); next.add(tag.id); return next; });
+      setIsCreatingTag(false);
+      setNewTagName('');
+    } catch (e) {
+      toast(e instanceof Error ? e.message : t('common.failed'), 'error');
+    }
   };
 
   const toggleAddTag = (id: string) => {
@@ -329,7 +353,8 @@ export function WalletViewPage() {
       const count = res.updated_count;
       const plural = count === 1 ? '' : 's';
       toast(t('walletView.bulkUpdateToast', { count, plural }), 'success');
-      setShowEditModal(false);
+      setShowEditCategoryModal(false);
+      setShowEditLabelModal(false);
       handleDeselectAll();
       await load();
     } catch (e) {
@@ -342,6 +367,17 @@ export function WalletViewPage() {
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
   const hasFilters = search || categoryId || selectedTagIds.length > 0 || startDate || endDate || minAmount || maxAmount;
   const selCount = selectedIds.size;
+
+  const selectedTransactionTags = useMemo(() => {
+    if (!data) return [] as TagBrief[];
+    const seen = new Map<string, TagBrief>();
+    for (const item of data.items) {
+      if (selectedIds.has(item.id)) {
+        for (const tag of item.tags) seen.set(tag.id, tag);
+      }
+    }
+    return [...seen.values()];
+  }, [data, selectedIds]);
 
   // Bulk action toolbar (floating, Linear-style)
   const bulkToolbar = selCount > 0 ? (
@@ -418,17 +454,61 @@ export function WalletViewPage() {
     </Modal>
   );
 
-  // Bulk edit modal
+  // Bulk edit category modal
   const editCategoryObj = categories.find((c) => c.id === bulkEditCategoryId) ?? null;
-  const editModal = (
+  const editCategoryModal = (
     <Modal
-      open={showEditModal}
-      onClose={() => setShowEditModal(false)}
+      open={showEditCategoryModal}
+      onClose={() => setShowEditCategoryModal(false)}
       title={t('walletView.bulkEditTitle', { count: selCount, plural: selCount === 1 ? '' : 's' })}
       size="md"
       footer={
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button className="btn btn-ghost btn-md" onClick={() => setShowEditModal(false)}>
+          <button className="btn btn-ghost btn-md" onClick={() => setShowEditCategoryModal(false)}>
+            {t('common.cancel')}
+          </button>
+          <button
+            className="btn btn-primary btn-md"
+            onClick={handleBulkUpdate}
+            disabled={bulkUpdating}
+          >
+            {bulkUpdating ? '…' : t('walletView.bulkEditApply')}
+          </button>
+        </div>
+      }
+    >
+      <div className="input-group">
+        <label className="input-label">{t('walletView.bulkEditCategoryLabel')}</label>
+        <CategorySelect
+          value={editCategoryObj?.name ?? ''}
+          categories={categories}
+          onSelect={(cat) => setBulkEditCategoryId(cat.id)}
+          matchBy="name"
+          size="md"
+        />
+        {bulkEditCategoryId && (
+          <button
+            className="btn btn-ghost btn-sm"
+            style={{ marginTop: 4, fontSize: 12 }}
+            onClick={() => setBulkEditCategoryId('')}
+          >
+            <X size={12} /> {t('walletView.bulkEditCategoryPlaceholder')}
+          </button>
+        )}
+      </div>
+    </Modal>
+  );
+
+  // Bulk edit labels modal
+  const editLabelsModal = (
+    <Modal
+      open={showEditLabelModal}
+      onClose={() => setShowEditLabelModal(false)}
+      title={t('walletView.bulkEditTitle', { count: selCount, plural: selCount === 1 ? '' : 's' })}
+      size="md"
+      footer={
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button className="btn btn-ghost btn-md" onClick={() => setShowEditLabelModal(false)}>
             {t('common.cancel')}
           </button>
           <button
@@ -442,86 +522,95 @@ export function WalletViewPage() {
       }
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {/* Category section */}
+        {/* Add tags section */}
         <div className="input-group">
-          <label className="input-label">{t('walletView.bulkEditCategoryLabel')}</label>
-          <CategorySelect
-            value={editCategoryObj?.name ?? ''}
-            categories={categories}
-            onSelect={(cat) => setBulkEditCategoryId(cat.id)}
-            matchBy="name"
-            size="md"
-          />
-          {bulkEditCategoryId && (
-            <button
-              className="btn btn-ghost btn-sm"
-              style={{ marginTop: 4, fontSize: 12 }}
-              onClick={() => setBulkEditCategoryId('')}
-            >
-              <X size={12} /> {t('walletView.bulkEditCategoryPlaceholder')}
-            </button>
-          )}
+          <label className="input-label">{t('walletView.bulkEditAddTagsLabel')}</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {/* Inline create-tag pill */}
+            {isCreatingTag ? (
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '3px 10px', borderRadius: 100, fontSize: 12, fontWeight: 500,
+                border: '1.5px solid var(--forest)', background: 'white',
+              }}>
+                <Plus size={11} style={{ color: 'var(--forest)', flexShrink: 0 }} />
+                <input
+                  ref={newTagInputRef}
+                  value={newTagName}
+                  onChange={(e) => setNewTagName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); void handleCreateTag(); }
+                    if (e.key === 'Escape') { setIsCreatingTag(false); setNewTagName(''); }
+                  }}
+                  onBlur={() => { if (!newTagName.trim()) { setIsCreatingTag(false); setNewTagName(''); } }}
+                  placeholder={t('walletView.bulkEditCreateTagPlaceholder')}
+                  style={{ border: 'none', outline: 'none', fontSize: 12, fontFamily: 'var(--font-body)', background: 'transparent', color: 'var(--ink)', width: 80 }}
+                />
+              </div>
+            ) : (
+              <button
+                onClick={() => { setIsCreatingTag(true); setNewTagName(''); setTimeout(() => newTagInputRef.current?.focus(), 20); }}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '3px 10px', borderRadius: 100, fontSize: 12, fontWeight: 500,
+                  cursor: 'pointer', border: '1.5px dashed var(--cream-darker)',
+                  background: 'transparent', color: 'var(--ink-faint)', transition: 'all 0.15s',
+                }}
+              >
+                <Plus size={11} />
+                {t('walletView.bulkEditCreateTag')}
+              </button>
+            )}
+            {allTags.map((tag) => {
+              const active = bulkAddTagIds.has(tag.id);
+              return (
+                <button
+                  key={tag.id}
+                  onClick={() => toggleAddTag(tag.id)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '3px 10px', borderRadius: 100, fontSize: 12,
+                    fontWeight: active ? 600 : 500,
+                    cursor: 'pointer', transition: 'all 0.15s',
+                    border: `1.5px solid ${tag.color ? (active ? tag.color : `${tag.color}50`) : (active ? 'var(--ink-light)' : 'var(--cream-darker)')}`,
+                    background: tag.color ? `${tag.color}14` : 'var(--cream-dark)',
+                    color: active ? 'var(--ink)' : 'var(--ink-mid)',
+                  }}
+                >
+                  {active
+                    ? <Check size={13} strokeWidth={2.1} style={{ color: tag.color ?? 'var(--ink)', flexShrink: 0, display: 'block' }} />
+                    : <span style={{ width: 6, height: 6, borderRadius: '50%', background: tag.color ?? 'var(--sand-dark)', flexShrink: 0 }} />
+                  }
+                  {tag.name}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Add tags section */}
-        {allTags.length > 0 && (
-          <div className="input-group">
-            <label className="input-label">{t('walletView.bulkEditAddTagsLabel')}</label>
+        {/* Remove tags section — only shows tags present on the selected transactions */}
+        <div className="input-group">
+          <label className="input-label">{t('walletView.bulkEditRemoveTagsLabel')}</label>
+          {selectedTransactionTags.length === 0 ? (
+            <p style={{ fontSize: 13, color: 'var(--ink-faint)', margin: 0 }}>
+              {t('walletView.bulkEditRemoveTagsEmpty')}
+            </p>
+          ) : (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {allTags.map((tag) => {
-                const active = bulkAddTagIds.has(tag.id);
-                return (
-                  <button
-                    key={tag.id}
-                    onClick={() => toggleAddTag(tag.id)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 5,
-                      padding: '3px 10px',
-                      borderRadius: 100,
-                      fontSize: 12,
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      border: `1.5px solid ${tag.color ? (active ? tag.color : `${tag.color}50`) : 'var(--cream-darker)'}`,
-                      background: active ? (tag.color ?? 'var(--ink)') : (tag.color ? `${tag.color}14` : 'var(--cream-dark)'),
-                      color: active ? 'white' : 'var(--ink-mid)',
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: active ? 'white' : (tag.color ?? 'var(--sand-dark)'), flexShrink: 0 }} />
-                    {tag.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Remove tags section */}
-        {allTags.length > 0 && (
-          <div className="input-group">
-            <label className="input-label">{t('walletView.bulkEditRemoveTagsLabel')}</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {allTags.map((tag) => {
+              {selectedTransactionTags.map((tag) => {
                 const active = bulkRemoveTagIds.has(tag.id);
                 return (
                   <button
                     key={tag.id}
                     onClick={() => toggleRemoveTag(tag.id)}
                     style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 5,
-                      padding: '3px 10px',
-                      borderRadius: 100,
-                      fontSize: 12,
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      border: `1.5px solid ${active ? 'var(--rose)' : 'var(--cream-darker)'}`,
-                      background: active ? 'var(--rose)' : 'var(--cream-dark)',
-                      color: active ? 'white' : 'var(--ink-mid)',
-                      transition: 'all 0.15s',
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      padding: '3px 10px', borderRadius: 100, fontSize: 12, fontWeight: 500,
+                      cursor: 'pointer', transition: 'all 0.15s',
+                      border: `1.5px solid ${tag.color ? `${tag.color}50` : 'var(--cream-darker)'}`,
+                      background: tag.color ? `${tag.color}14` : 'var(--cream-dark)',
+                      color: 'var(--ink-mid)',
+                      textDecoration: active ? 'line-through' : 'none',
                     }}
                   >
                     {tag.name}
@@ -529,8 +618,8 @@ export function WalletViewPage() {
                 );
               })}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </Modal>
   );
@@ -766,14 +855,15 @@ export function WalletViewPage() {
 
       {bulkToolbar}
       {deleteModal}
-      {editModal}
+      {editCategoryModal}
+      {editLabelsModal}
       <BulkActionsBar
         open={showActionsBar}
         onClose={() => setShowActionsBar(false)}
         isMobile={isMobile}
         onDeleteSelected={() => { setShowActionsBar(false); setShowDeleteModal(true); }}
-        onEditCategory={() => { setShowActionsBar(false); openEditModal(); }}
-        onEditLabels={() => { setShowActionsBar(false); openEditModal(); }}
+        onEditCategory={() => { setShowActionsBar(false); openEditCategoryModal(); }}
+        onEditLabels={() => { setShowActionsBar(false); openEditLabelModal(); }}
       />
     </div>
   );
@@ -1058,9 +1148,7 @@ function BulkActionsBar({
   onEditLabels: () => void;
 }) {
   const { t } = useTranslation();
-  const [query, setQuery] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const actions = [
     { id: 'delete', label: t('walletView.bulkActionDelete'), icon: Trash2, danger: true, execute: onDeleteSelected },
@@ -1068,29 +1156,21 @@ function BulkActionsBar({
     { id: 'editLabels', label: t('walletView.bulkActionEditLabels'), icon: Tag, danger: false, execute: onEditLabels },
   ];
 
-  const filtered = actions.filter(
-    (a) => !query || a.label.toLowerCase().includes(query.toLowerCase()),
-  );
-
   useEffect(() => {
-    if (open) {
-      setQuery('');
-      setHighlightedIndex(0);
-      setTimeout(() => inputRef.current?.focus(), 20);
-    }
+    if (open) setHighlightedIndex(0);
   }, [open]);
 
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { onClose(); return; }
-      if (e.key === 'ArrowDown') { e.preventDefault(); setHighlightedIndex((i) => Math.min(i + 1, filtered.length - 1)); return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); setHighlightedIndex((i) => Math.min(i + 1, actions.length - 1)); return; }
       if (e.key === 'ArrowUp') { e.preventDefault(); setHighlightedIndex((i) => Math.max(i - 1, 0)); return; }
-      if (e.key === 'Enter' && filtered[highlightedIndex]) { filtered[highlightedIndex].execute(); onClose(); }
+      if (e.key === 'Enter' && actions[highlightedIndex]) { actions[highlightedIndex].execute(); onClose(); }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [open, onClose, filtered, highlightedIndex]);
+  }, [open, onClose, actions, highlightedIndex]);
 
   if (!open) return null;
 
@@ -1110,7 +1190,7 @@ function BulkActionsBar({
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 551,
-          width: 300,
+          width: 260,
         }}
       >
         {/* Animated panel */}
@@ -1124,25 +1204,8 @@ function BulkActionsBar({
             overflow: 'hidden',
           }}
         >
-          {/* Search input */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: '1px solid var(--cream-darker)' }}>
-            <Command size={13} style={{ color: 'var(--ink-faint)', flexShrink: 0 }} />
-            <input
-              ref={inputRef}
-              value={query}
-              onChange={(e) => { setQuery(e.target.value); setHighlightedIndex(0); }}
-              placeholder={t('walletView.bulkActionsSearchPlaceholder')}
-              style={{ flex: 1, border: 'none', outline: 'none', fontSize: 13, fontFamily: 'var(--font-body)', background: 'transparent', color: 'var(--ink)' }}
-            />
-          </div>
-
-          {/* Actions list */}
           <div style={{ padding: 4 }}>
-            {filtered.length === 0 ? (
-              <div style={{ padding: '10px 12px', fontSize: 13, color: 'var(--ink-faint)', textAlign: 'center' }}>
-                {t('walletView.bulkActionsEmpty')}
-              </div>
-            ) : filtered.map((action, i) => (
+            {actions.map((action, i) => (
               <button
                 key={action.id}
                 onClick={() => { action.execute(); onClose(); }}

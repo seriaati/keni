@@ -256,12 +256,13 @@
     "bulkEditRemoveTagsLabel": "移除標籤",
     "bulkEditApply": "套用",
     "bulkEditNoChange": "未選取任何變更",
+    "bulkEditCreateTag": "新增標籤",
+    "bulkEditCreateTagPlaceholder": "標籤名稱…",
+    "bulkEditRemoveTagsEmpty": "所選交易沒有標籤可移除",
     "bulkActions": "動作",
     "bulkActionDelete": "刪除所選",
     "bulkActionEditCategory": "編輯類別",
-    "bulkActionEditLabels": "編輯標籤",
-    "bulkActionsSearchPlaceholder": "搜尋動作…",
-    "bulkActionsEmpty": "無符合的動作"
+    "bulkActionEditLabels": "編輯標籤"
   },
   "expenseDetail": {
     "title": "交易詳情",
