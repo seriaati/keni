@@ -8,6 +8,7 @@ class AIProviderUpsert(BaseModel):
     api_key: str | None = Field(default=None, min_length=1)
     model: str = Field(default="claude-opus-4-5", min_length=1)
     chat_model: str | None = Field(default=None)
+    base_url: str | None = Field(default=None, max_length=500)
     ocr_enabled: bool = True
 
 
@@ -15,6 +16,7 @@ class AIProviderResponse(BaseModel):
     provider: str
     model: str
     chat_model: str | None
+    base_url: str | None
     api_key_masked: str
     ocr_enabled: bool
 

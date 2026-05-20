@@ -117,7 +117,9 @@ async def upsert_ai_provider(  # noqa: PLR0913, PLR0917
     session: AsyncSession,
     ocr_enabled: bool = True,
     chat_model: str | None = None,
+    base_url: str | None = None,
 ) -> AIProvider:
+    normalized_base_url = base_url.strip() if base_url else None
     record = await get_ai_provider_record(user_id, session)
     if record is None:
         if not api_key:
@@ -130,6 +132,7 @@ async def upsert_ai_provider(  # noqa: PLR0913, PLR0917
             model=model,
             ocr_enabled=ocr_enabled,
             chat_model=chat_model,
+            base_url=normalized_base_url,
         )
     else:
         record.provider = provider
@@ -138,6 +141,7 @@ async def upsert_ai_provider(  # noqa: PLR0913, PLR0917
         record.model = model
         record.ocr_enabled = ocr_enabled
         record.chat_model = chat_model
+        record.base_url = normalized_base_url
 
     session.add(record)
     await session.commit()
@@ -192,7 +196,9 @@ async def parse_transactions_with_ai(  # noqa: PLR0912, PLR0914, PLR0915, C901
     wallet_context = [(w.name, w.currency) for w in user_wallets]
     wallet_by_name = {w.name.lower(): str(w.id) for w in user_wallets}
 
-    provider = get_provider(record.provider, api_key=api_key, model=record.model)
+    provider = get_provider(
+        record.provider, api_key=api_key, model=record.model, base_url=record.base_url
+    )
 
     try:
         output = await provider.parse_transactions(

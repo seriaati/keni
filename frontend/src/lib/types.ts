@@ -231,6 +231,7 @@ export interface AIProviderResponse {
   provider: string;
   model: string;
   chat_model: string | null;
+  base_url: string | null;
   api_key_masked: string;
   ocr_enabled: boolean;
 }
