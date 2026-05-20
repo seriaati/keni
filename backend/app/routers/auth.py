@@ -50,7 +50,7 @@ async def signup(body: SignupRequest, session: DbDep) -> TokenResponse:
     user = User(
         username=body.username,
         password_hash=hash_password(body.password),
-        display_name=body.display_name or body.username,
+        display_name=body.display_name,
     )
     session.add(user)
     await session.flush()
