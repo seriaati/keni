@@ -42,6 +42,48 @@ function clearTokens() {
   localStorage.removeItem('refresh_token');
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function formatFieldName(value: unknown): string {
+  if (Array.isArray(value)) {
+    return value
+      .filter((part) => part !== 'body')
+      .map((part) => String(part).replace(/_/g, ' '))
+      .join(' ');
+  }
+  return '';
+}
+
+function formatErrorDetail(detail: unknown): string {
+  if (typeof detail === 'string') return detail;
+
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => {
+        if (typeof item === 'string') return item;
+        if (!isRecord(item)) return '';
+
+        const msg = typeof item.msg === 'string' ? item.msg : '';
+        const field = formatFieldName(item.loc);
+
+        if (field && msg) return `${field}: ${msg}`;
+        return msg;
+      })
+      .filter(Boolean);
+
+    if (messages.length > 0) return messages.join('\n');
+  }
+
+  if (isRecord(detail)) {
+    if (typeof detail.message === 'string') return detail.message;
+    if (typeof detail.msg === 'string') return detail.msg;
+  }
+
+  return 'Request failed';
+}
+
 async function refreshAccessToken(): Promise<boolean> {
   const refresh = getRefreshToken();
   if (!refresh) return false;
@@ -86,7 +128,7 @@ async function request<T>(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || 'Request failed');
+    throw new Error(isRecord(err) ? formatErrorDetail(err.detail) : 'Request failed');
   }
 
   if (res.status === 204) return undefined as T;
@@ -200,6 +242,21 @@ export const expenses = {
   createGroup: (walletId: string, data: GroupTransactionRequest) =>
     request<TransactionResponse>(`/wallets/${walletId}/transactions/groups`, {
       method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  bulkDelete: (walletId: string, ids: string[]) =>
+    request<void>(`/wallets/${walletId}/transactions/bulk`, {
+      method: 'DELETE',
+      body: JSON.stringify({ transaction_ids: ids }),
+    }),
+  bulkUpdate: (walletId: string, data: {
+    transaction_ids: string[];
+    category_id?: string;
+    add_tag_ids?: string[];
+    remove_tag_ids?: string[];
+  }) =>
+    request<{ updated_count: number }>(`/wallets/${walletId}/transactions/bulk`, {
+      method: 'PATCH',
       body: JSON.stringify(data),
     }),
   export: (walletId: string, format: 'csv' | 'json', params: { start_date?: string; end_date?: string } = {}) => {
