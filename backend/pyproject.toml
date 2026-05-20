@@ -25,6 +25,13 @@ dependencies = [
 ]
 
 [tool.pyright]
+exclude = [
+    "migrations/**",
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.*",
+    "**/.venv",
+]
 enableTypeIgnoreComments = false
 reportIncompatibleMethodOverride = false
 reportIncompatibleVariableOverride = false
