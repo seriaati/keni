@@ -39,8 +39,8 @@ export function SettingsPage() {
         </button>
       </div>
 
-      {activeTab === 'profile' && <ProfileTab user={user} refreshUser={refreshUser} toast={toast} />}
-      {activeTab === 'ai' && <AIProviderTab user={user} refreshUser={refreshUser} toast={toast} />}
+      {activeTab === 'profile' && user && <ProfileTab user={user} refreshUser={refreshUser} toast={toast} />}
+      {activeTab === 'ai' && user && <AIProviderTab user={user} refreshUser={refreshUser} toast={toast} />}
       {activeTab === 'tokens' && <TokensTab toast={toast} />}
     </div>
   );
