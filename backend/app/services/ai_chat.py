@@ -630,7 +630,7 @@ async def _tool_create_transaction(  # noqa: PLR0911, PLR0912
 ) -> dict[str, Any]:
     try:
         wallet_id = uuid.UUID(args["wallet_id"])
-    except (ValueError, KeyError):
+    except ValueError, KeyError:
         return {"error": "Invalid wallet_id"}
 
     if wallet_id not in wallet_ids:
@@ -715,7 +715,7 @@ async def _tool_update_transaction(  # noqa: C901, PLR0911, PLR0912
     try:
         wallet_id = uuid.UUID(args["wallet_id"])
         transaction_id = uuid.UUID(args["transaction_id"])
-    except (ValueError, KeyError):
+    except ValueError, KeyError:
         return {"error": "Invalid wallet_id or transaction_id"}
 
     if wallet_id not in wallet_ids:
@@ -808,7 +808,7 @@ async def _tool_delete_transaction(
     try:
         wallet_id = uuid.UUID(args["wallet_id"])
         transaction_id = uuid.UUID(args["transaction_id"])
-    except (ValueError, KeyError):
+    except ValueError, KeyError:
         return {"error": "Invalid wallet_id or transaction_id"}
 
     if wallet_id not in wallet_ids:

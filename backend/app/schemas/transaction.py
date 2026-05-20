@@ -103,3 +103,18 @@ class TransactionSummary(BaseModel):
     by_category: list[dict]
     income_by_category: list[dict]
     by_period: list[dict]
+
+
+class BulkDeleteRequest(BaseModel):
+    transaction_ids: list[uuid.UUID] = Field(min_length=1)
+
+
+class BulkUpdateRequest(BaseModel):
+    transaction_ids: list[uuid.UUID] = Field(min_length=1)
+    category_id: uuid.UUID | None = None
+    add_tag_ids: list[uuid.UUID] | None = None
+    remove_tag_ids: list[uuid.UUID] | None = None
+
+
+class BulkUpdateResponse(BaseModel):
+    updated_count: int
