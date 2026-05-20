@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams, useSearchParams, useOutletContext, useNavigate } from 'react-router-dom';
+import { useParams, useSearchParams, useOutletContext, useNavigate } from 'react-router-dom';
 import { ArrowLeftRight, Command, Download, Filter, FolderOpen, Layers, Search, SortAsc, SortDesc, Tag, Trash2, X } from 'lucide-react';
 import { expenses as expensesApi, categories as categoriesApi, wallets as walletsApi, tags as tagsApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -241,6 +241,10 @@ export function WalletViewPage() {
       if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
         e.preventDefault();
         handleSelectAll();
+      } else if (e.key === 'Escape') {
+        setSelectedIds(new Set());
+        setIsSelecting(false);
+        lastClickedIndexRef.current = -1;
       }
     };
     document.addEventListener('keydown', handler);
@@ -690,16 +694,24 @@ export function WalletViewPage() {
         <>
 
 
-          {isMobile && fxRate != null && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+          {isMobile && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <button
                 className="btn btn-secondary btn-sm"
-                onClick={handleToggleConverted}
-                style={{ gap: 5, fontSize: 12 }}
+                onClick={isSelecting ? handleDeselectAll : () => setIsSelecting(true)}
               >
-                <ArrowLeftRight size={12} />
-                {showConverted ? `${user?.global_currency} (converted)` : `${wallet?.currency} (original)`}
+                {isSelecting ? t('common.cancel') : t('walletView.bulkEnterSelect')}
               </button>
+              {fxRate != null && (
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleToggleConverted}
+                  style={{ gap: 5, fontSize: 12 }}
+                >
+                  <ArrowLeftRight size={12} />
+                  {showConverted ? `${user?.global_currency} (converted)` : `${wallet?.currency} (original)`}
+                </button>
+              )}
             </div>
           )}
           <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', overflow: 'hidden' }}>
@@ -796,6 +808,7 @@ function ExpenseRow({
   onSelect: (id: string, e: React.MouseEvent) => void;
   onNavigate: (path: string) => void;
 }) {
+  const [isHovered, setIsHovered] = useState(false);
   const convertedAmount = fxRate != null ? expense.amount * fxRate : null;
   const hasConversion = convertedAmount != null && globalCurrency != null;
   const sign = expense.type === 'income' ? '+' : '';
@@ -838,24 +851,33 @@ function ExpenseRow({
     pressStartPosRef.current = null;
   };
 
+  const showCheckbox = isSelecting || (!isMobile && isHovered);
+
   const rowContent = (
     <>
-      {/* Checkbox — visible when selecting */}
+      {/* Left-zone click overlay — desktop hover mode only; covers padding + checkbox + gap */}
+      {!isMobile && showCheckbox && !isSelecting && (
+        <div
+          style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 48, cursor: 'pointer', zIndex: 1 }}
+          onClick={(e) => { e.stopPropagation(); onSelect(expense.id, e as React.MouseEvent); }}
+        />
+      )}
+      {/* Checkbox — slides in from the left on desktop hover or when selecting */}
       <div
         style={{
-          width: isSelecting ? 20 : 0,
+          width: showCheckbox ? 20 : 0,
           height: 20,
           borderRadius: '50%',
-          border: isSelecting ? (isSelected ? 'none' : '2px solid var(--ink-mid)') : 'none',
+          border: showCheckbox ? (isSelected ? 'none' : '2px solid var(--ink-light)') : 'none',
           background: isSelected ? 'var(--forest)' : 'transparent',
           flexShrink: 0,
-          transition: 'width 0.15s, opacity 0.15s',
+          transition: 'width 0.15s, margin-right 0.15s, opacity 0.15s',
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          marginRight: isSelecting ? 0 : -4,
-          opacity: isSelecting ? 1 : 0,
+          marginRight: showCheckbox ? 0 : -12,
+          opacity: showCheckbox ? 1 : 0,
         }}
       >
         {isSelected && (
@@ -942,6 +964,7 @@ function ExpenseRow({
   );
 
   const sharedStyle: React.CSSProperties = {
+    position: 'relative',
     display: 'flex',
     alignItems: 'center',
     gap: 12,
@@ -989,45 +1012,33 @@ function ExpenseRow({
     );
   }
 
-  if (isSelecting) {
-    // On desktop in selecting mode: render as div (no Link navigation)
-    return (
-      <div
-        role="row"
-        aria-selected={isSelected}
-        style={sharedStyle}
-        onClick={(e) => onSelect(expense.id, e)}
-        onMouseEnter={(e) => {
-          if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'var(--cream)';
-        }}
-        onMouseLeave={(e) => {
-          if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'transparent';
-        }}
-      >
-        {rowContent}
-      </div>
-    );
-  }
-
+  // Desktop: always a div so the element persists across isSelecting state changes,
+  // which lets CSS transitions fire correctly when checkboxes slide in/out.
   return (
-    <Link
-      to={`/wallets/${walletId}/expenses/${expense.id}`}
+    <div
+      role="row"
+      aria-selected={isSelected}
       style={sharedStyle}
       onClick={(e) => {
-        if (e.ctrlKey || e.metaKey || e.shiftKey) {
-          e.preventDefault();
+        if (isSelecting) {
           onSelect(expense.id, e);
+        } else if (e.ctrlKey || e.metaKey || e.shiftKey) {
+          onSelect(expense.id, e);
+        } else {
+          onNavigate(`/wallets/${walletId}/expenses/${expense.id}`);
         }
       }}
       onMouseEnter={(e) => {
-        if (!isSelected) e.currentTarget.style.background = 'var(--cream)';
+        if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'var(--cream)';
+        setIsHovered(true);
       }}
       onMouseLeave={(e) => {
-        if (!isSelected) e.currentTarget.style.background = 'transparent';
+        if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'transparent';
+        setIsHovered(false);
       }}
     >
       {rowContent}
-    </Link>
+    </div>
   );
 }
 

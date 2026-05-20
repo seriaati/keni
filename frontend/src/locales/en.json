@@ -239,6 +239,7 @@
     "toastUpdated": "Transaction updated",
     "toastExportFailed": "Export failed",
     "toastLoadFailed": "Failed to load",
+    "bulkEnterSelect": "Select",
     "bulkSelected": "{{count}} selected",
     "bulkDeselectAll": "Deselect all",
     "bulkSelectAll": "Select all",

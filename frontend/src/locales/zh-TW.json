@@ -239,6 +239,7 @@
     "toastUpdated": "交易已更新",
     "toastExportFailed": "匯出失敗",
     "toastLoadFailed": "載入失敗",
+    "bulkEnterSelect": "選取",
     "bulkSelected": "已選取 {{count}} 筆",
     "bulkDeselectAll": "取消全選",
     "bulkSelectAll": "全選",
