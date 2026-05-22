@@ -571,73 +571,6 @@ async def list_transactions(  # noqa: PLR0913, PLR0917
     return TransactionListResponse(items=items, total=int(total), page=page, page_size=page_size)
 
 
-@router.get("/{transaction_id}")
-async def get_transaction(
-    wallet_id: uuid.UUID, transaction_id: uuid.UUID, current_user: CurrentUser, session: DbDep
-) -> TransactionResponse:
-    await _get_wallet_or_404(wallet_id, current_user.id, session)
-    transaction = await _get_transaction_or_404(transaction_id, wallet_id, session)
-    return await _build_transaction_response(transaction, session)
-
-
-@router.patch("/{transaction_id}")
-async def update_transaction(
-    wallet_id: uuid.UUID,
-    transaction_id: uuid.UUID,
-    body: TransactionUpdate,
-    current_user: CurrentUser,
-    session: DbDep,
-) -> TransactionResponse:
-    await _get_wallet_or_404(wallet_id, current_user.id, session)
-    transaction = await _get_transaction_or_404(transaction_id, wallet_id, session)
-
-    if body.category_id is not None:
-        await _validate_category(body.category_id, current_user.id, session)
-        transaction.category_id = body.category_id
-    if body.type is not None:
-        transaction.type = body.type
-    if body.amount is not None:
-        transaction.amount = body.amount
-    if body.description is not None:
-        transaction.description = body.description
-    if body.date is not None:
-        transaction.date = body.date
-
-    transaction.updated_at = datetime.now(UTC)
-
-    if body.tag_ids is not None:
-        await _validate_tag_ids(body.tag_ids, current_user.id, session)
-        existing = await session.exec(
-            select(TransactionTag).where(col(TransactionTag.transaction_id) == transaction.id)
-        )
-        for tt in existing.all():
-            await session.delete(tt)
-        for tag_id in body.tag_ids:
-            session.add(TransactionTag(transaction_id=transaction.id, tag_id=tag_id))
-
-    session.add(transaction)
-    await session.commit()
-    await session.refresh(transaction)
-    return await _build_transaction_response(transaction, session)
-
-
-@router.delete("/{transaction_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_transaction(
-    wallet_id: uuid.UUID, transaction_id: uuid.UUID, current_user: CurrentUser, session: DbDep
-) -> None:
-    await _get_wallet_or_404(wallet_id, current_user.id, session)
-    transaction = await _get_transaction_or_404(transaction_id, wallet_id, session)
-
-    existing = await session.exec(
-        select(TransactionTag).where(col(TransactionTag.transaction_id) == transaction.id)
-    )
-    for tt in existing.all():
-        await session.delete(tt)
-
-    await session.delete(transaction)
-    await session.commit()
-
-
 @router.delete("/bulk", status_code=status.HTTP_204_NO_CONTENT)
 async def bulk_delete_transactions(
     wallet_id: uuid.UUID, body: BulkDeleteRequest, current_user: CurrentUser, session: DbDep
@@ -756,3 +689,70 @@ async def bulk_update_transactions(
 
     await session.commit()
     return BulkUpdateResponse(updated_count=updated_count)
+
+
+@router.get("/{transaction_id}")
+async def get_transaction(
+    wallet_id: uuid.UUID, transaction_id: uuid.UUID, current_user: CurrentUser, session: DbDep
+) -> TransactionResponse:
+    await _get_wallet_or_404(wallet_id, current_user.id, session)
+    transaction = await _get_transaction_or_404(transaction_id, wallet_id, session)
+    return await _build_transaction_response(transaction, session)
+
+
+@router.patch("/{transaction_id}")
+async def update_transaction(
+    wallet_id: uuid.UUID,
+    transaction_id: uuid.UUID,
+    body: TransactionUpdate,
+    current_user: CurrentUser,
+    session: DbDep,
+) -> TransactionResponse:
+    await _get_wallet_or_404(wallet_id, current_user.id, session)
+    transaction = await _get_transaction_or_404(transaction_id, wallet_id, session)
+
+    if body.category_id is not None:
+        await _validate_category(body.category_id, current_user.id, session)
+        transaction.category_id = body.category_id
+    if body.type is not None:
+        transaction.type = body.type
+    if body.amount is not None:
+        transaction.amount = body.amount
+    if body.description is not None:
+        transaction.description = body.description
+    if body.date is not None:
+        transaction.date = body.date
+
+    transaction.updated_at = datetime.now(UTC)
+
+    if body.tag_ids is not None:
+        await _validate_tag_ids(body.tag_ids, current_user.id, session)
+        existing = await session.exec(
+            select(TransactionTag).where(col(TransactionTag.transaction_id) == transaction.id)
+        )
+        for tt in existing.all():
+            await session.delete(tt)
+        for tag_id in body.tag_ids:
+            session.add(TransactionTag(transaction_id=transaction.id, tag_id=tag_id))
+
+    session.add(transaction)
+    await session.commit()
+    await session.refresh(transaction)
+    return await _build_transaction_response(transaction, session)
+
+
+@router.delete("/{transaction_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_transaction(
+    wallet_id: uuid.UUID, transaction_id: uuid.UUID, current_user: CurrentUser, session: DbDep
+) -> None:
+    await _get_wallet_or_404(wallet_id, current_user.id, session)
+    transaction = await _get_transaction_or_404(transaction_id, wallet_id, session)
+
+    existing = await session.exec(
+        select(TransactionTag).where(col(TransactionTag.transaction_id) == transaction.id)
+    )
+    for tt in existing.all():
+        await session.delete(tt)
+
+    await session.delete(transaction)
+    await session.commit()
