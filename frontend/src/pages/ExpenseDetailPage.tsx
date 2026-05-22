@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, CornerUpLeft, Bot, Layers, Pencil, Trash2, Check, X, Plus, Search } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { expenses as expensesApi, categories as categoriesApi, tags as tagsApi, wallets as walletsApi, transactionLinks } from '../lib/api';
@@ -329,6 +329,8 @@ export function ExpenseDetailPage() {
   const { t } = useTranslation();
   const { walletId, expenseId } = useParams<{ walletId: string; expenseId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const backSearch = (location.state as { backSearch?: string } | null)?.backSearch ?? '';
   const toast = useToast();
   const { user } = useAuth();
   const [currency, setCurrency] = useState('USD');
@@ -427,7 +429,7 @@ export function ExpenseDetailPage() {
     try {
       await expensesApi.delete(walletId, expenseId);
       toast(t('expenseDetail.toastDeleted'), 'success');
-      navigate(`/wallets/${walletId}`);
+      navigate(backSearch ? `/wallets/${walletId}?${backSearch}` : `/wallets/${walletId}`);
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed to delete', 'error');
       setDeleting(false);
@@ -494,7 +496,7 @@ export function ExpenseDetailPage() {
     <div className="animate-fade-in" style={{ maxWidth: 560 }}>
       <button
         className="btn btn-ghost btn-sm"
-        onClick={() => navigate(`/wallets/${walletId}`)}
+        onClick={() => navigate(backSearch ? `/wallets/${walletId}?${backSearch}` : `/wallets/${walletId}`)}
         style={{ marginBottom: 20, paddingLeft: 4 }}
       >
         <ArrowLeft size={15} /> {t('expenseDetail.backToWallet')}

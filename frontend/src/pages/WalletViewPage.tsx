@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { useParams, useSearchParams, useOutletContext, useNavigate } from 'react-router-dom';
+import { useParams, useSearchParams, useOutletContext, useNavigate, type NavigateFunction } from 'react-router-dom';
 import { ArrowLeftRight, Check, Command, Download, Filter, FolderOpen, Layers, Plus, Search, SortAsc, SortDesc, Tag, Trash2, X } from 'lucide-react';
 import { expenses as expensesApi, categories as categoriesApi, wallets as walletsApi, tags as tagsApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -820,6 +820,7 @@ export function WalletViewPage() {
                 isSelecting={isSelecting}
                 onSelect={handleSelect}
                 onNavigate={navigate}
+                backSearch={searchParams.toString()}
               />
             ))}
           </div>
@@ -883,6 +884,7 @@ function ExpenseRow({
   isSelecting,
   onSelect,
   onNavigate,
+  backSearch,
 }: {
   expense: TransactionResponse;
   currency: string;
@@ -896,7 +898,8 @@ function ExpenseRow({
   isSelected: boolean;
   isSelecting: boolean;
   onSelect: (id: string, e: React.MouseEvent) => void;
-  onNavigate: (path: string) => void;
+  onNavigate: NavigateFunction;
+  backSearch: string;
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const convertedAmount = fxRate != null ? expense.amount * fxRate : null;
@@ -1083,7 +1086,7 @@ function ExpenseRow({
           if (isSelecting) {
             onSelect(expense.id, e);
           } else {
-            onNavigate(`/wallets/${walletId}/expenses/${expense.id}`);
+            onNavigate(`/wallets/${walletId}/expenses/${expense.id}`, { state: { backSearch } });
           }
         }}
         onMouseEnter={(e) => {
@@ -1115,7 +1118,7 @@ function ExpenseRow({
         } else if (e.ctrlKey || e.metaKey || e.shiftKey) {
           onSelect(expense.id, e);
         } else {
-          onNavigate(`/wallets/${walletId}/expenses/${expense.id}`);
+          onNavigate(`/wallets/${walletId}/expenses/${expense.id}`, { state: { backSearch } });
         }
       }}
       onMouseEnter={(e) => {
