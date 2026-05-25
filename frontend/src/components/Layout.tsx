@@ -96,6 +96,21 @@ export function Layout() {
   }, []);
 
   useEffect(() => {
+    const handler = (e: ClipboardEvent) => {
+      if (cmdOpen) return;
+      const item = Array.from(e.clipboardData?.items ?? []).find((i) => i.type.startsWith('image/'));
+      if (!item) return;
+      const file = item.getAsFile();
+      if (!file) return;
+      e.preventDefault();
+      setCmdInitialPayload({ files: [file] });
+      setCmdOpen(true);
+    };
+    document.addEventListener('paste', handler);
+    return () => document.removeEventListener('paste', handler);
+  }, [cmdOpen]);
+
+  useEffect(() => {
     if (location.pathname !== '/share') return;
     navigate('/', { replace: true });
     getSharedPayload().then((data) => {
