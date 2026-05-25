@@ -561,6 +561,7 @@ export function ExpenseDetailPage() {
         wallets={allWallets}
         alreadyLinkedIds={pendingLinks.map((l) => l.id)}
         onLink={handleLink}
+        onUnlink={handleUnlink}
       />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
