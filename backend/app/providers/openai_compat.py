@@ -43,15 +43,15 @@ _MAX_TOOL_ROUNDS = 10
 
 def _wrap_openai_error(exc: Exception) -> Exception:
     if isinstance(exc, openai.AuthenticationError):
-        return ProviderAuthError(str(exc))
+        return ProviderAuthError(exc.message or str(exc))
     if isinstance(exc, openai.PermissionDeniedError):
-        return ProviderPermissionError(str(exc))
+        return ProviderPermissionError(exc.message or str(exc))
     if isinstance(exc, openai.RateLimitError):
-        return ProviderRateLimitError(str(exc))
+        return ProviderRateLimitError(exc.message or str(exc))
     if isinstance(exc, openai.APIConnectionError):
         return ProviderConnectionError(str(exc))
     if isinstance(exc, openai.APIError):
-        return ProviderAPIError(str(exc))
+        return ProviderAPIError(exc.message or str(exc))
     return exc
 
 

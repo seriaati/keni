@@ -39,14 +39,14 @@ def _wrap_google_error(exc: Exception) -> Exception:
     if isinstance(exc, genai_errors.ClientError):
         return _wrap_client_error(exc)
     if isinstance(exc, genai_errors.ServerError):
-        return ProviderAPIError(str(exc))
+        return ProviderAPIError(exc.message or str(exc))
     if isinstance(exc, (ConnectionError, TimeoutError, OSError)):
         return ProviderConnectionError(str(exc))
     return exc
 
 
 def _wrap_client_error(exc: genai_errors.ClientError) -> Exception:
-    msg = str(exc)
+    msg = exc.message or str(exc)
     code = getattr(exc, "code", None) or getattr(exc, "status_code", None)
     if code == 401 or "API_KEY_INVALID" in msg or "UNAUTHENTICATED" in msg:
         return ProviderAuthError(msg)

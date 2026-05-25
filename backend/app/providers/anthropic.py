@@ -48,15 +48,15 @@ _SUPPORTED_MEDIA_TYPES: frozenset[str] = frozenset(get_args(_SupportedMediaType)
 
 def _wrap_anthropic_error(exc: Exception) -> Exception:
     if isinstance(exc, anthropic.AuthenticationError):
-        return ProviderAuthError(str(exc))
+        return ProviderAuthError(exc.message or str(exc))
     if isinstance(exc, anthropic.PermissionDeniedError):
-        return ProviderPermissionError(str(exc))
+        return ProviderPermissionError(exc.message or str(exc))
     if isinstance(exc, anthropic.RateLimitError):
-        return ProviderRateLimitError(str(exc))
+        return ProviderRateLimitError(exc.message or str(exc))
     if isinstance(exc, anthropic.APIConnectionError):
         return ProviderConnectionError(str(exc))
     if isinstance(exc, anthropic.APIError):
-        return ProviderAPIError(str(exc))
+        return ProviderAPIError(exc.message or str(exc))
     return exc
 
 
