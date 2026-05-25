@@ -48,10 +48,9 @@ function TagPicker({ selectedIds, allTags, onAdd, onRemove, onCreateAndAdd }: Ta
   const dropdownRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  const unselected = allTags.filter((t) => !selectedIds.includes(t.id));
   const filtered = query.trim()
-    ? unselected.filter((t) => t.name.toLowerCase().includes(query.toLowerCase()))
-    : unselected;
+    ? allTags.filter((t) => t.name.toLowerCase().includes(query.toLowerCase()))
+    : allTags;
 
   const trimmed = query.trim();
   const exactMatch = allTags.some((t) => t.name.toLowerCase() === trimmed.toLowerCase());
@@ -123,7 +122,10 @@ function TagPicker({ selectedIds, allTags, onAdd, onRemove, onCreateAndAdd }: Ta
         e.preventDefault();
         if (focusedIndex < filtered.length) {
           const tag = filtered[focusedIndex];
-          if (tag) { onAdd(tag.id); setQuery(''); setFocusedIndex(0); }
+          if (tag) {
+            if (selectedIds.includes(tag.id)) { onRemove(tag.id); } else { onAdd(tag.id); }
+            setQuery('');
+          }
         } else if (showCreate) {
           handleCreate();
         }
@@ -182,43 +184,46 @@ function TagPicker({ selectedIds, allTags, onAdd, onRemove, onCreateAndAdd }: Ta
       <ul ref={listRef} style={{ listStyle: 'none', padding: 4, maxHeight: 200, overflowY: 'auto', margin: 0 }}>
         {filtered.length === 0 && !showCreate && (
           <li style={{ padding: '10px', fontSize: 13, color: 'var(--ink-faint)', textAlign: 'center' }}>
-            {unselected.length === 0 ? 'All tags added' : 'No results'}
+            No results
           </li>
         )}
-        {filtered.map((tag, i) => (
-          <li
-            key={tag.id}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '7px 10px',
-              borderRadius: 'calc(var(--radius) - 4px)',
-              fontSize: 13,
-              cursor: 'pointer',
-              background: i === focusedIndex ? 'var(--cream-dark)' : 'transparent',
-              transition: 'background 0.1s',
-            }}
-            onMouseEnter={() => setFocusedIndex(i)}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              onAdd(tag.id);
-              setQuery('');
-              setFocusedIndex(0);
-            }}
-          >
-            <span
+        {filtered.map((tag, i) => {
+          const isSelected = selectedIds.includes(tag.id);
+          return (
+            <li
+              key={tag.id}
               style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                background: tag.color ?? 'var(--ink-faint)',
-                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '7px 10px',
+                borderRadius: 'calc(var(--radius) - 4px)',
+                fontSize: 13,
+                cursor: 'pointer',
+                background: i === focusedIndex ? 'var(--cream-dark)' : 'transparent',
+                transition: 'background 0.1s',
               }}
-            />
-            <span style={{ flex: 1, color: 'var(--ink)' }}>{tag.name}</span>
-          </li>
-        ))}
+              onMouseEnter={() => setFocusedIndex(i)}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                if (isSelected) { onRemove(tag.id); } else { onAdd(tag.id); }
+                setQuery('');
+              }}
+            >
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: tag.color ?? 'var(--ink-faint)',
+                  flexShrink: 0,
+                }}
+              />
+              <span style={{ flex: 1, color: 'var(--ink)' }}>{tag.name}</span>
+              {isSelected && <Check size={13} style={{ color: 'var(--forest)', flexShrink: 0 }} />}
+            </li>
+          );
+        })}
         {showCreate && (
           <li
             style={{
