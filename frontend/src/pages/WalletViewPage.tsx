@@ -81,6 +81,14 @@ export function WalletViewPage() {
   // Filter state derived from URL params
   const search = searchParams.get('q') ?? '';
   const categoryId = searchParams.get('category_id') ?? '';
+
+  // Local state for search input — decoupled from URL to avoid interrupting IME composition (e.g. Zhuyin)
+  const [searchInput, setSearchInput] = useState(() => search);
+  const isComposingRef = useRef(false);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!isComposingRef.current) setSearchInput(search);
+  }, [search]);
   const selectedTagIds = useMemo(() => searchParams.getAll('tag_ids'), [searchParams]);
   const sortBy = searchParams.get('sort_by') ?? 'date';
   const sortOrder = (searchParams.get('sort_order') ?? 'desc') as 'asc' | 'desc';
@@ -243,6 +251,8 @@ export function WalletViewPage() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        const tag = (e.target as HTMLElement).tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement).isContentEditable) return;
         e.preventDefault();
         handleSelectAll();
       } else if (e.key === 'Escape') {
@@ -651,8 +661,21 @@ export function WalletViewPage() {
             className="input"
             style={{ paddingLeft: 32 }}
             placeholder={t('walletView.searchPlaceholder')}
-            value={search}
-            onChange={(e) => setParam({ q: e.target.value, page: null })}
+            value={searchInput}
+            onChange={(e) => {
+              const val = e.target.value;
+              setSearchInput(val);
+              if (!isComposingRef.current) {
+                if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+                searchDebounceRef.current = setTimeout(() => setParam({ q: val, page: null }), 300);
+              }
+            }}
+            onCompositionStart={() => { isComposingRef.current = true; }}
+            onCompositionEnd={(e) => {
+              isComposingRef.current = false;
+              if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+              setParam({ q: (e.target as HTMLInputElement).value, page: null });
+            }}
           />
         </div>
 
