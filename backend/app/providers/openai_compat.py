@@ -14,12 +14,15 @@ from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMe
 
 from app.providers.base import (
     CHAT_SYSTEM_PROMPT,
+    ICON_SEARCH_SYSTEM_PROMPT,
+    ICON_SEARCH_TOOL,
     SYSTEM_PROMPT,
     ChatResponse,
     LLMProvider,
     ParsedTransactionOutput,
     build_chat_user_message,
     build_parse_prompt,
+    search_icons,
 )
 from app.providers.errors import (
     ProviderAPIError,
@@ -60,6 +63,63 @@ class OpenAICompatibleProvider(LLMProvider):
         self._client = openai.AsyncOpenAI(api_key=api_key, base_url=base_url)
         self._model = model
 
+    async def _fetch_icon_suggestions(
+        self, *, text: str | None, images: list[tuple[str, str]], categories: list[str]
+    ) -> dict[str, list[str]]:
+        icon_tool = ChatCompletionToolParam(
+            type="function",
+            function={
+                "name": ICON_SEARCH_TOOL.name,
+                "description": ICON_SEARCH_TOOL.description,
+                "parameters": ICON_SEARCH_TOOL.parameters,
+            },
+        )
+        parts: list[ChatCompletionContentPartTextParam | ChatCompletionContentPartImageParam] = []
+        for img_b64, img_media_type in images:
+            parts.append(
+                ChatCompletionContentPartImageParam(
+                    type="image_url", image_url={"url": f"data:{img_media_type};base64,{img_b64}"}
+                )
+            )
+        cat_list = ", ".join(categories) if categories else "none"
+        parts.append(
+            ChatCompletionContentPartTextParam(
+                type="text",
+                text=f"Existing categories: {cat_list}\n\nUser input: {text or '[image only]'}",
+            )
+        )
+        messages: list[Any] = [
+            {"role": "system", "content": ICON_SEARCH_SYSTEM_PROMPT},
+            {"role": "user", "content": parts},
+        ]
+        icon_context: dict[str, list[str]] = {}
+        for _ in range(5):
+            try:
+                response = await self._client.chat.completions.create(
+                    model=self._model, max_tokens=256, messages=messages, tools=[icon_tool]
+                )
+            except Exception as exc:
+                logger.warning("Icon search phase failed: %s", exc)
+                return icon_context
+            msg = response.choices[0].message
+            tool_calls = msg.tool_calls or []
+            if not tool_calls:
+                break
+            messages.append(cast("Any", msg.model_dump(exclude_unset=False)))
+            for tc in tool_calls:
+                if not isinstance(tc, ChatCompletionMessageToolCall):
+                    continue
+                try:
+                    query = json.loads(tc.function.arguments).get("query", "")
+                except json.JSONDecodeError:
+                    query = ""
+                results = search_icons(query)
+                icon_context[query] = results
+                messages.append(
+                    {"role": "tool", "tool_call_id": tc.id, "content": json.dumps(results)}
+                )
+        return icon_context
+
     async def parse_transactions(  # noqa: PLR0913
         self,
         *,
@@ -74,6 +134,10 @@ class OpenAICompatibleProvider(LLMProvider):
         if not text and not images:
             msg = "At least one of text or image must be provided"
             raise ValueError(msg)
+
+        icon_context = await self._fetch_icon_suggestions(
+            text=text, images=images, categories=categories
+        )
 
         parts: list[ChatCompletionContentPartTextParam | ChatCompletionContentPartImageParam] = []
 
@@ -91,6 +155,7 @@ class OpenAICompatibleProvider(LLMProvider):
             wallets=wallets,
             timezone=timezone,
             custom_prompt=custom_prompt,
+            icon_context=icon_context or None,
         )
         parts.append(ChatCompletionContentPartTextParam(type="text", text=prompt_text))
 

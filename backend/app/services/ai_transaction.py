@@ -14,6 +14,7 @@ from app.models.tag import Tag
 from app.models.user import User
 from app.models.wallet import Wallet
 from app.providers import get_provider
+from app.providers.base import LUCIDE_ICONS
 from app.providers.errors import (
     ProviderAPIError,
     ProviderAuthError,
@@ -267,7 +268,9 @@ async def parse_transactions_with_ai(  # noqa: PLR0912, PLR0914, PLR0915, C901
             ai_context=parsed_rec.ai_context,
             type=parsed_rec.type,
             suggested_tags=tags,
-            suggested_icon=parsed_rec.suggested_icon if is_new else None,
+            suggested_icon=parsed_rec.suggested_icon
+            if (is_new and parsed_rec.suggested_icon in LUCIDE_ICONS)
+            else None,
         )
 
     def _enrich_transaction(parsed_txn: ParsedTransaction) -> ParsedTransactionResult:
@@ -285,7 +288,9 @@ async def parse_transactions_with_ai(  # noqa: PLR0912, PLR0914, PLR0915, C901
             ai_context=parsed_txn.ai_context,
             type=parsed_txn.type,
             suggested_tags=tags,
-            suggested_icon=parsed_txn.suggested_icon if is_new else None,
+            suggested_icon=parsed_txn.suggested_icon
+            if (is_new and parsed_txn.suggested_icon in LUCIDE_ICONS)
+            else None,
         )
 
     enriched_transactions = [_enrich_transaction(e) for e in output.expenses]
@@ -307,7 +312,9 @@ async def parse_transactions_with_ai(  # noqa: PLR0912, PLR0914, PLR0915, C901
             ai_context=g.ai_context,
             type=g.type,
             suggested_tags=g_tags,
-            suggested_icon=g.suggested_icon if is_new else None,
+            suggested_icon=g.suggested_icon
+            if (is_new and g.suggested_icon in LUCIDE_ICONS)
+            else None,
         )
 
     enriched_recurring: ParsedRecurringResult | None = None

@@ -16,12 +16,15 @@ from anthropic.types import (
 
 from app.providers.base import (
     CHAT_SYSTEM_PROMPT,
+    ICON_SEARCH_SYSTEM_PROMPT,
+    ICON_SEARCH_TOOL,
     SYSTEM_PROMPT,
     ChatResponse,
     LLMProvider,
     ParsedTransactionOutput,
     build_chat_user_message,
     build_parse_prompt,
+    search_icons,
 )
 from app.providers.errors import (
     ProviderAPIError,
@@ -65,6 +68,66 @@ class AnthropicProvider(LLMProvider):
         self._client = anthropic.AsyncAnthropic(api_key=api_key)
         self._model = model
 
+    async def _fetch_icon_suggestions(
+        self, *, text: str | None, images: list[tuple[str, str]], categories: list[str]
+    ) -> dict[str, list[str]]:
+        icon_tool = ToolParam(
+            name=ICON_SEARCH_TOOL.name,
+            description=ICON_SEARCH_TOOL.description,
+            input_schema=ICON_SEARCH_TOOL.parameters,  # type: ignore[arg-type]
+        )
+        parts: list[TextBlockParam | ImageBlockParam] = []
+        for img_b64, img_media_type in images:
+            safe_media_type = cast(
+                "_SupportedMediaType",
+                img_media_type if img_media_type in _SUPPORTED_MEDIA_TYPES else "image/jpeg",
+            )
+            parts.append(
+                ImageBlockParam(
+                    type="image",
+                    source=Base64ImageSourceParam(
+                        type="base64", media_type=safe_media_type, data=img_b64
+                    ),
+                )
+            )
+        cat_list = ", ".join(categories) if categories else "none"
+        parts.append(
+            TextBlockParam(
+                type="text",
+                text=f"Existing categories: {cat_list}\n\nUser input: {text or '[image only]'}",
+            )
+        )
+        messages: list[MessageParam] = [{"role": "user", "content": parts}]
+        icon_context: dict[str, list[str]] = {}
+        for _ in range(5):
+            try:
+                response = await self._client.messages.create(
+                    model=self._model,
+                    max_tokens=256,
+                    system=ICON_SEARCH_SYSTEM_PROMPT,
+                    messages=messages,
+                    tools=[icon_tool],
+                )
+            except Exception as exc:
+                logger.warning("Icon search phase failed: %s", exc)
+                return icon_context
+            tool_uses = [b for b in response.content if isinstance(b, ToolUseBlock)]
+            if not tool_uses:
+                break
+            messages.append({"role": "assistant", "content": response.content})  # type: ignore[arg-type]
+            tool_results: list[ToolResultBlockParam] = []
+            for use in tool_uses:
+                query = str(use.input.get("query", ""))
+                results = search_icons(query)
+                icon_context[query] = results
+                tool_results.append(
+                    ToolResultBlockParam(
+                        type="tool_result", tool_use_id=use.id, content=json.dumps(results)
+                    )
+                )
+            messages.append({"role": "user", "content": tool_results})  # type: ignore[arg-type]
+        return icon_context
+
     async def parse_transactions(  # noqa: PLR0913
         self,
         *,
@@ -79,6 +142,10 @@ class AnthropicProvider(LLMProvider):
         if not text and not images:
             msg = "At least one of text or image must be provided"
             raise ValueError(msg)
+
+        icon_context = await self._fetch_icon_suggestions(
+            text=text, images=images, categories=categories
+        )
 
         parts: list[TextBlockParam | ImageBlockParam] = []
 
@@ -103,6 +170,7 @@ class AnthropicProvider(LLMProvider):
             wallets=wallets,
             timezone=timezone,
             custom_prompt=custom_prompt,
+            icon_context=icon_context or None,
         )
         parts.append(TextBlockParam(type="text", text=prompt_text))
 

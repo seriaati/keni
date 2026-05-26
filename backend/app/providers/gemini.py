@@ -10,12 +10,15 @@ from google.genai import types as genai_types
 
 from app.providers.base import (
     CHAT_SYSTEM_PROMPT,
+    ICON_SEARCH_SYSTEM_PROMPT,
+    ICON_SEARCH_TOOL,
     SYSTEM_PROMPT,
     ChatResponse,
     LLMProvider,
     ParsedTransactionOutput,
     build_chat_user_message,
     build_parse_prompt,
+    search_icons,
 )
 from app.providers.errors import (
     ProviderAPIError,
@@ -62,6 +65,68 @@ class GeminiProvider(LLMProvider):
         self._client = genai.Client(api_key=api_key)
         self._model = model
 
+    async def _fetch_icon_suggestions(
+        self, *, text: str | None, images: list[tuple[str, str]], categories: list[str]
+    ) -> dict[str, list[str]]:
+        tool_decl = genai_types.FunctionDeclaration(
+            name=ICON_SEARCH_TOOL.name,
+            description=ICON_SEARCH_TOOL.description,
+            parameters=genai_types.Schema.model_validate(ICON_SEARCH_TOOL.parameters),
+        )
+        gemini_tool = genai_types.Tool(function_declarations=[tool_decl])
+        parts: list[genai_types.Part] = []
+        for img_b64, img_media_type in images:
+            parts.append(
+                genai_types.Part.from_bytes(
+                    data=__import__("base64").b64decode(img_b64), mime_type=img_media_type
+                )
+            )
+        cat_list = ", ".join(categories) if categories else "none"
+        parts.append(
+            genai_types.Part.from_text(
+                text=f"Existing categories: {cat_list}\n\nUser input: {text or '[image only]'}"
+            )
+        )
+        contents: list[Any] = [genai_types.Content(role="user", parts=parts)]
+        icon_context: dict[str, list[str]] = {}
+        for _ in range(5):
+            try:
+                response = await self._client.aio.models.generate_content(
+                    model=self._model,
+                    contents=contents,  # type: ignore[arg-type]
+                    config=genai_types.GenerateContentConfig(
+                        system_instruction=ICON_SEARCH_SYSTEM_PROMPT,
+                        tools=[gemini_tool],
+                        max_output_tokens=256,
+                    ),
+                )
+            except Exception as exc:
+                logger.warning("Icon search phase failed: %s", exc)
+                return icon_context
+            candidate = response.candidates[0] if response.candidates else None
+            if candidate is None or candidate.content is None:
+                break
+            function_calls = [
+                p.function_call
+                for p in (candidate.content.parts or [])
+                if p.function_call is not None
+            ]
+            if not function_calls:
+                break
+            contents.append(candidate.content)
+            tool_parts: list[genai_types.Part] = []
+            for fc in function_calls:
+                query = str((fc.args or {}).get("query", ""))
+                results = search_icons(query)
+                icon_context[query] = results
+                tool_parts.append(
+                    genai_types.Part.from_function_response(
+                        name=fc.name or "", response={"icons": results}
+                    )
+                )
+            contents.append(genai_types.Content(role="tool", parts=tool_parts))
+        return icon_context
+
     async def parse_transactions(  # noqa: PLR0913
         self,
         *,
@@ -76,6 +141,10 @@ class GeminiProvider(LLMProvider):
         if not text and not images:
             msg = "At least one of text or image must be provided"
             raise ValueError(msg)
+
+        icon_context = await self._fetch_icon_suggestions(
+            text=text, images=images, categories=categories
+        )
 
         parts: list[genai_types.Part] = []
 
@@ -93,6 +162,7 @@ class GeminiProvider(LLMProvider):
             wallets=wallets,
             timezone=timezone,
             custom_prompt=custom_prompt,
+            icon_context=icon_context or None,
         )
         parts.append(genai_types.Part.from_text(text=prompt_text))
 
