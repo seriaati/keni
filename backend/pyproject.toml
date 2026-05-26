@@ -40,6 +40,8 @@ reportUnnecessaryContains = true
 reportUnnecessaryIsInstance = true
 reportUnnecessaryTypeIgnoreComment = true
 typeCheckingMode = "standard"
+venvPath = "."
+venv = ".venv"
 
 [dependency-groups]
 dev = ["pyright>=1.1.408", "ruff>=0.15.8"]

@@ -30,14 +30,14 @@ bun run preview  # vite preview
 
 ### Backend (`backend/`)
 
-Always prefix with **`uv run`** — never call `python`, `alembic`, `ruff`, or `uvicorn` directly.
+Always prefix with **`uv run`** when not running ruff and pyright, never call `python`, `alembic`, or `uvicorn` directly.
 
 ```bash
 uv run uvicorn main:app --reload                        # dev server :8000
 uv run alembic upgrade head                             # apply migrations
 uv run alembic revision --autogenerate -m "<msg>"       # generate migration
-uv run ruff format . && uv run ruff check .             # format + lint (run after every Python edit)
-uv run pyright                                          # type check
+ruff format . && ruff check .                           # format + lint (run after every Python edit)
+pyright                                          # type check
 ```
 
 ### Full stack
