@@ -537,15 +537,17 @@ async def _tool_convert_currency(args: dict[str, Any]) -> dict[str, Any]:
         rates = cached[0]
     else:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(f"https://open.er-api.com/v6/latest/{from_cur}")
+            resp = await client.get(
+                f"https://api.frankfurter.dev/v2/rates?base={from_cur}",
+            )
         if resp.status_code != 200:
             msg = f"Exchange rate API returned {resp.status_code}"
             raise ValueError(msg)
         data = resp.json()
-        if data.get("result") != "success":
-            msg = f"Exchange rate API error: {data.get('error-type', 'unknown')}"
+        if not isinstance(data, list):
+            msg = "Exchange rate API error"
             raise ValueError(msg)
-        rates = {k: float(v) for k, v in data["rates"].items()}
+        rates = {item["quote"]: float(item["rate"]) for item in data}
         _fx_cache[from_cur] = (rates, time.time())
 
     rate = rates.get(to_cur)

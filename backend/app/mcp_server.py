@@ -1020,13 +1020,15 @@ async def convert_currency(amount: float, from_currency: str, to_currency: str) 
         rates = cached[0]
     else:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(f"https://open.er-api.com/v6/latest/{from_cur}")
+            resp = await client.get(
+                f"https://api.frankfurter.dev/v2/rates?base={from_cur}",
+            )
         if resp.status_code != 200:
             return {"error": f"Exchange rate API returned {resp.status_code}"}
         data = resp.json()
-        if data.get("result") != "success":
-            return {"error": f"Exchange rate API error: {data.get('error-type', 'unknown')}"}
-        rates = {k: float(v) for k, v in data["rates"].items()}
+        if not isinstance(data, list):
+            return {"error": "Exchange rate API error"}
+        rates = {item["quote"]: float(item["rate"]) for item in data}
         _fx_cache[from_cur] = (rates, time.time())
 
     rate = rates.get(to_cur)

@@ -1,37 +1,47 @@
-const cache = new Map<string, { rate: number; ts: number }>();
-const TTL = 60 * 60 * 1000; // 1 hour
+const rateCache = new Map<string, { rate: number; ts: number }>();
+const RATE_TTL = 60 * 60 * 1000; // 1 hour
 
-let currenciesCache: string[] | null = null;
+let currenciesCache: { codes: string[]; ts: number } | null = null;
+const CURRENCY_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+const BASE = 'https://api.frankfurter.dev/v2';
+
+type RateEntry = { date: string; base: string; quote: string; rate: number };
 
 export async function getSupportedCurrencies(): Promise<string[]> {
-  if (currenciesCache) return currenciesCache;
+  if (currenciesCache && Date.now() - currenciesCache.ts < CURRENCY_TTL) {
+    return currenciesCache.codes;
+  }
   try {
-    const res = await fetch('https://open.er-api.com/v6/latest/USD');
+    const res = await fetch(`${BASE}/currencies`);
     if (!res.ok) return [];
-    const data = await res.json() as { result: string; rates: Record<string, number> };
-    if (data.result !== 'success') return [];
-    currenciesCache = Object.keys(data.rates).sort();
-    return currenciesCache;
+    const data = await res.json() as { iso_code: string }[];
+    if (!Array.isArray(data)) return [];
+    const codes = data.map((c) => c.iso_code).sort();
+    currenciesCache = { codes, ts: Date.now() };
+    return codes;
   } catch {
     return [];
   }
 }
 
-export async function getExchangeRate(from: string, to: string): Promise<number | null> {
+export async function getExchangeRate(from: string, to: string, date?: string): Promise<number | null> {
   if (from === to) return 1;
 
-  const key = `${from}:${to}`;
-  const cached = cache.get(key);
-  if (cached && Date.now() - cached.ts < TTL) return cached.rate;
+  const key = date ? `${from}:${to}:${date}` : `${from}:${to}`;
+  const cached = rateCache.get(key);
+  if (cached && Date.now() - cached.ts < RATE_TTL) return cached.rate;
 
   try {
-    const res = await fetch(`https://open.er-api.com/v6/latest/${from}`);
+    const params = date
+      ? `date=${date}&base=${from}&quotes=${to}`
+      : `base=${from}&quotes=${to}`;
+    const res = await fetch(`${BASE}/rates?${params}`);
     if (!res.ok) return null;
-    const data = await res.json() as { result: string; rates: Record<string, number> };
-    if (data.result !== 'success') return null;
-    const rate = data.rates[to];
-    if (rate == null) return null;
-    cache.set(key, { rate, ts: Date.now() });
+    const data = await res.json() as RateEntry[];
+    if (!Array.isArray(data) || data.length === 0) return null;
+    const rate = data[0].rate;
+    rateCache.set(key, { rate, ts: Date.now() });
     return rate;
   } catch {
     return null;

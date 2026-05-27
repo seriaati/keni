@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Plus, Pencil, Trash2, ArrowRight } from 'lucide-react';
@@ -8,7 +8,7 @@ import { useToast } from '../components/ui/Toast';
 import { Modal } from '../components/ui/Modal';
 import { SearchableSelect } from '../components/ui/SearchableSelect';
 import type { WalletResponse } from '../lib/types';
-import { CURRENCIES } from '../lib/utils';
+import { getSupportedCurrencies } from '../lib/fx';
 
 export function WalletsPage() {
   const { t } = useTranslation();
@@ -19,6 +19,11 @@ export function WalletsPage() {
   const [deleteWallet, setDeleteWallet] = useState<WalletResponse | null>(null);
   const [form, setForm] = useState({ name: '', currency: 'USD' });
   const [saving, setSaving] = useState(false);
+  const [currencies, setCurrencies] = useState<string[]>([]);
+
+  useEffect(() => {
+    getSupportedCurrencies().then(setCurrencies);
+  }, []);
 
   const openCreate = () => {
     setForm({ name: '', currency: 'USD' });
@@ -158,7 +163,7 @@ export function WalletsPage() {
           <SearchableSelect
             value={form.currency}
             onChange={(v) => setForm({ ...form, currency: v })}
-            options={CURRENCIES.map((c) => ({ value: c, label: c }))}
+            options={currencies.map((c) => ({ value: c, label: c }))}
             searchPlaceholder={t('wallets.currencySearchPlaceholder')}
           />
         </div>
