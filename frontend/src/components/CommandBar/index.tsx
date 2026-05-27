@@ -5,12 +5,16 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeftRight,
   ArrowRight,
+  Check,
+  Crop,
+  RotateCcw,
   FileText,
   Image,
   Mic,
   MicOff,
   Paperclip,
   Plus,
+  RotateCw,
   X,
   Zap,
 } from 'lucide-react';
@@ -30,7 +34,10 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   const [mode, setMode] = useState<Mode>('input');
   const [parseResult, setParseResult] = useState<AIParseResponse | null>(null);
   const [transcript, setTranscript] = useState('');
-  const [enlargedPreview, setEnlargedPreview] = useState<string | null>(null);
+  const [enlargedPreviewIndex, setEnlargedPreviewIndex] = useState<number | null>(null);
+  const [cropMode, setCropMode] = useState(false);
+  const [cropRect, setCropRect] = useState({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 });
+  const [preCropSnapshot, setPreCropSnapshot] = useState<{ url: string; file: File } | null>(null);
 
   const [singleExpense, setSingleExpense] = useState<EditableExpense | null>(null);
   const [multiExpenses, setMultiExpenses] = useState<EditableExpense[]>([]);
@@ -56,6 +63,9 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const lightboxImgRef = useRef<HTMLImageElement>(null);
+  const cropOverlayRef = useRef<HTMLDivElement>(null);
+  const cropDragMovedRef = useRef(false);
 
   const { t } = useTranslation();
   const { activeWallet } = useWallet();
@@ -76,7 +86,10 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     setError('');
     setAttachedFiles([]);
     setFilePreviews((prev) => { prev.forEach((url) => { if (url) URL.revokeObjectURL(url); }); return []; });
-    setEnlargedPreview(null);
+    setPreCropSnapshot((prev) => { if (prev) URL.revokeObjectURL(prev.url); return null; });
+    setEnlargedPreviewIndex(null);
+    setCropMode(false);
+    setCropRect({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 });
     setSaving(false);
     setSelectedWalletId(null);
   }, []);
@@ -414,6 +427,137 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     setMode('review');
   };
 
+  const enlargedPreview = enlargedPreviewIndex !== null ? (filePreviews[enlargedPreviewIndex] ?? null) : null;
+
+  const openLightbox = (index: number) => {
+    setEnlargedPreviewIndex(index);
+    setCropMode(false);
+    setCropRect({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 });
+  };
+
+  const closeLightbox = () => {
+    setPreCropSnapshot((prev) => { if (prev) URL.revokeObjectURL(prev.url); return null; });
+    setEnlargedPreviewIndex(null);
+    setCropMode(false);
+    setCropRect({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 });
+  };
+
+  const rotateImageCW = () => {
+    if (enlargedPreviewIndex === null || !lightboxImgRef.current) return;
+    const idx = enlargedPreviewIndex;
+    const imgEl = lightboxImgRef.current;
+    if (imgEl.naturalWidth === 0) return;
+    const url = filePreviews[idx];
+    const canvas = document.createElement('canvas');
+    canvas.width = imgEl.naturalHeight;
+    canvas.height = imgEl.naturalWidth;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(Math.PI / 2);
+    ctx.drawImage(imgEl, -imgEl.naturalWidth / 2, -imgEl.naturalHeight / 2);
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const newUrl = URL.createObjectURL(blob);
+      if (url) URL.revokeObjectURL(url);
+      setFilePreviews((prev) => { const n = [...prev]; n[idx] = newUrl; return n; });
+      const origFile = attachedFiles[idx];
+      setAttachedFiles((prev) => {
+        const n = [...prev];
+        n[idx] = new File([blob], origFile?.name ?? 'image.png', { type: 'image/png' });
+        return n;
+      });
+    }, 'image/png');
+  };
+
+  const applyCrop = () => {
+    if (enlargedPreviewIndex === null || !lightboxImgRef.current) return;
+    const idx = enlargedPreviewIndex;
+    const imgEl = lightboxImgRef.current;
+    if (imgEl.naturalWidth === 0) return;
+    const url = filePreviews[idx];
+    const origFile = attachedFiles[idx];
+    const { naturalWidth, naturalHeight } = imgEl;
+    const sx = Math.round(cropRect.x * naturalWidth);
+    const sy = Math.round(cropRect.y * naturalHeight);
+    const sw = Math.max(1, Math.round(cropRect.w * naturalWidth));
+    const sh = Math.max(1, Math.round(cropRect.h * naturalHeight));
+    const canvas = document.createElement('canvas');
+    canvas.width = sw;
+    canvas.height = sh;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(imgEl, sx, sy, sw, sh, 0, 0, sw, sh);
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const newUrl = URL.createObjectURL(blob);
+      setPreCropSnapshot((prev) => { if (prev) URL.revokeObjectURL(prev.url); return { url, file: origFile }; });
+      setFilePreviews((prev) => { const n = [...prev]; n[idx] = newUrl; return n; });
+      setAttachedFiles((prev) => {
+        const n = [...prev];
+        n[idx] = new File([blob], origFile?.name ?? 'image.png', { type: 'image/png' });
+        return n;
+      });
+      setCropMode(false);
+      setCropRect({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 });
+    }, 'image/png');
+  };
+
+  const resetCrop = () => {
+    if (!preCropSnapshot || enlargedPreviewIndex === null) return;
+    const idx = enlargedPreviewIndex;
+    const currentUrl = filePreviews[idx];
+    if (currentUrl && currentUrl !== preCropSnapshot.url) URL.revokeObjectURL(currentUrl);
+    setFilePreviews((prev) => { const n = [...prev]; n[idx] = preCropSnapshot.url; return n; });
+    setAttachedFiles((prev) => { const n = [...prev]; n[idx] = preCropSnapshot.file; return n; });
+    setPreCropSnapshot(null);
+  };
+
+  const startCropDrag = (e: React.PointerEvent, action: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!cropOverlayRef.current) return;
+    const overlayRect = cropOverlayRef.current.getBoundingClientRect();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startRect = { ...cropRect };
+    const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+    const MIN = 0.05;
+    cropDragMovedRef.current = false;
+    const onMove = (e2: PointerEvent) => {
+      cropDragMovedRef.current = true;
+      const dx = (e2.clientX - startX) / overlayRect.width;
+      const dy = (e2.clientY - startY) / overlayRect.height;
+      let { x, y, w, h } = startRect;
+      if (action === 'move') {
+        x = clamp(x + dx, 0, 1 - w);
+        y = clamp(y + dy, 0, 1 - h);
+      } else if (action === 'nw') {
+        const nx = clamp(x + dx, 0, x + w - MIN);
+        const ny = clamp(y + dy, 0, y + h - MIN);
+        w = w + (x - nx); h = h + (y - ny); x = nx; y = ny;
+      } else if (action === 'ne') {
+        const ny = clamp(y + dy, 0, y + h - MIN);
+        h = h + (y - ny); y = ny;
+        w = clamp(w + dx, MIN, 1 - x);
+      } else if (action === 'se') {
+        w = clamp(w + dx, MIN, 1 - x);
+        h = clamp(h + dy, MIN, 1 - y);
+      } else if (action === 'sw') {
+        const nx = clamp(x + dx, 0, x + w - MIN);
+        w = w + (x - nx); x = nx;
+        h = clamp(h + dy, MIN, 1 - y);
+      }
+      setCropRect({ x, y, w, h });
+    };
+    const onUp = () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  };
+
   if (!open) return null;
 
   const resultType = parseResult?.result_type;
@@ -427,29 +571,135 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
             position: 'fixed',
             inset: 0,
             zIndex: 3000,
-            background: 'oklch(18% 0.02 80 / 0.8)',
+            background: 'oklch(18% 0.02 80 / 0.85)',
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
+            gap: 16,
             padding: 24,
             backdropFilter: 'blur(4px)',
           }}
-          onClick={() => setEnlargedPreview(null)}
+          onClick={(e) => {
+            if (cropDragMovedRef.current) { cropDragMovedRef.current = false; return; }
+            if (e.target === e.currentTarget) closeLightbox();
+          }}
         >
-          <img
-            src={enlargedPreview}
-            alt="Receipt enlarged"
-            style={{
-              maxWidth: '90vw',
-              maxHeight: '85vh',
-              objectFit: 'contain',
-              borderRadius: 12,
-              boxShadow: '0 32px 80px oklch(18% 0.02 80 / 0.4)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          />
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <img
+              ref={lightboxImgRef}
+              src={enlargedPreview}
+              alt="Receipt enlarged"
+              style={{
+                maxWidth: '90vw',
+                maxHeight: '70vh',
+                display: 'block',
+                borderRadius: cropMode ? 0 : 12,
+                boxShadow: cropMode ? 'none' : '0 32px 80px oklch(18% 0.02 80 / 0.4)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+            {cropMode && (
+              <div
+                ref={cropOverlayRef}
+                style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: `${cropRect.y * 100}%`, background: 'rgba(0,0,0,0.55)', pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', top: `${cropRect.y * 100}%`, left: 0, width: `${cropRect.x * 100}%`, height: `${cropRect.h * 100}%`, background: 'rgba(0,0,0,0.55)', pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', top: `${cropRect.y * 100}%`, left: `${(cropRect.x + cropRect.w) * 100}%`, right: 0, height: `${cropRect.h * 100}%`, background: 'rgba(0,0,0,0.55)', pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', top: `${(cropRect.y + cropRect.h) * 100}%`, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.55)', pointerEvents: 'none' }} />
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${cropRect.x * 100}%`,
+                    top: `${cropRect.y * 100}%`,
+                    width: `${cropRect.w * 100}%`,
+                    height: `${cropRect.h * 100}%`,
+                    border: '2px solid white',
+                    boxSizing: 'border-box',
+                    cursor: 'move',
+                  }}
+                  onPointerDown={(e) => startCropDrag(e, 'move')}
+                >
+                  {(['nw', 'ne', 'se', 'sw'] as const).map((corner) => (
+                    <div
+                      key={corner}
+                      onPointerDown={(e) => startCropDrag(e, corner)}
+                      style={{
+                        position: 'absolute',
+                        width: 14,
+                        height: 14,
+                        background: 'white',
+                        borderRadius: 2,
+                        ...(corner[0] === 'n' ? { top: -7 } : { bottom: -7 }),
+                        ...(corner[1] === 'w' ? { left: -7 } : { right: -7 }),
+                        cursor: `${corner}-resize`,
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              className="btn btn-sm btn-secondary"
+              style={{ border: 'none' }}
+              onClick={(e) => { e.stopPropagation(); rotateImageCW(); }}
+              title="Rotate 90° clockwise"
+            >
+              <RotateCw size={14} />
+              Rotate
+            </button>
+            {cropMode ? (
+              <>
+                <button
+                  className="btn btn-sm btn-primary"
+                  style={{ border: 'none' }}
+                  onClick={(e) => { e.stopPropagation(); applyCrop(); }}
+                  title="Apply crop"
+                >
+                  <Check size={14} />
+                  Apply Crop
+                </button>
+                <button
+                  className="btn btn-sm btn-secondary"
+                  style={{ border: 'none' }}
+                  onClick={(e) => { e.stopPropagation(); setCropMode(false); }}
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  className="btn btn-sm btn-secondary"
+                  style={{ border: 'none' }}
+                  onClick={(e) => { e.stopPropagation(); setCropMode(true); setCropRect({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 }); }}
+                  title="Crop image"
+                >
+                  <Crop size={14} />
+                  Crop
+                </button>
+                {preCropSnapshot && (
+                  <button
+                    className="btn btn-sm btn-secondary"
+                    style={{ border: 'none' }}
+                    onClick={(e) => { e.stopPropagation(); resetCrop(); }}
+                    title="Restore image before crop"
+                  >
+                    <RotateCcw size={14} />
+                    Reset Crop
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+
           <button
-            onClick={() => setEnlargedPreview(null)}
+            onClick={(e) => { e.stopPropagation(); closeLightbox(); }}
             style={{
               position: 'absolute',
               top: 16,
@@ -621,7 +871,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
                     <img
                       src={filePreviews[i]}
                       alt={file.name}
-                      onClick={() => setEnlargedPreview(filePreviews[i])}
+                      onClick={() => openLightbox(i)}
                       style={{ height: 48, width: 48, objectFit: 'cover', borderRadius: 6, cursor: 'zoom-in', display: 'block' }}
                     />
                   ) : (
