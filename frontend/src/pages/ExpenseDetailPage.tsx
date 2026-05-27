@@ -368,8 +368,9 @@ export function ExpenseDetailPage() {
       setFxRate(null);
       return;
     }
-    getExchangeRate(currency, globalCurrency).then(setFxRate);
-  }, [currency, user?.global_currency]);
+    const date = user?.fx_use_historical_rates && expense?.date ? expense.date.slice(0, 10) : undefined;
+    getExchangeRate(currency, globalCurrency, date).then(setFxRate);
+  }, [currency, user?.global_currency, user?.fx_use_historical_rates, expense?.date]);
 
   useEffect(() => {
     if (!walletId || !expenseId) return;

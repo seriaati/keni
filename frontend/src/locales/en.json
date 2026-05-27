@@ -316,6 +316,7 @@
     "profileGlobalCurrency": "Global currency",
     "profileGlobalCurrencyNone": "— None —",
     "profileGlobalCurrencyHint": "When set, transaction amounts are shown with a converted value next to them",
+    "profileFxHistorical": "Use exchange rate from transaction date (instead of today's rate)",
     "profilePassword": "New password",
     "profilePasswordPlaceholder": "Leave blank to keep current",
     "profileConfirmPassword": "Confirm password",

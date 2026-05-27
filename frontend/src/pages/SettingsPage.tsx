@@ -88,6 +88,7 @@ function ProfileTab({ user, refreshUser, toast }: { user: UserResponse; refreshU
   const [confirmPassword, setConfirmPassword] = useState('');
   const [timezone, setTimezone] = useState<string>(user?.timezone ?? '');
   const [globalCurrency, setGlobalCurrency] = useState<string>(user?.global_currency ?? '');
+  const [fxHistorical, setFxHistorical] = useState<boolean>(user?.fx_use_historical_rates ?? false);
   const [language, setLanguage] = useState<string>(user?.language ?? i18n.resolvedLanguage ?? 'en');
   const [currencyOptions, setCurrencyOptions] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -108,6 +109,7 @@ function ProfileTab({ user, refreshUser, toast }: { user: UserResponse; refreshU
         password: password || undefined,
         timezone: timezone || null,
         global_currency: globalCurrency || null,
+        fx_use_historical_rates: fxHistorical,
         language: language || null,
       });
       await refreshUser();
@@ -157,6 +159,14 @@ function ProfileTab({ user, refreshUser, toast }: { user: UserResponse; refreshU
           />
           <span className="input-hint">{t('settings.profileGlobalCurrencyHint')}</span>
         </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
+          <input
+            type="checkbox"
+            checked={fxHistorical}
+            onChange={(e) => setFxHistorical(e.target.checked)}
+          />
+          <span style={{ fontSize: 14, fontFamily: 'var(--font-body)' }}>{t('settings.profileFxHistorical')}</span>
+        </label>
         <div className="input-group">
           <label className="input-label">{t('settings.profileLanguage')}</label>
           <Select

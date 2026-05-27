@@ -166,8 +166,9 @@ export function WalletViewPage() {
       setFxRate(null);
       return;
     }
-    getExchangeRate(walletCurrency, globalCurrency).then(setFxRate);
-  }, [wallet?.currency, user?.global_currency]);
+    const date = user?.fx_use_historical_rates && endDate ? endDate : undefined;
+    getExchangeRate(walletCurrency, globalCurrency, date).then(setFxRate);
+  }, [wallet?.currency, user?.global_currency, user?.fx_use_historical_rates, endDate]);
 
   const handleExport = async (format: 'csv' | 'json') => {
     if (!walletId) return;

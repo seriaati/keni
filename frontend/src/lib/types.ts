@@ -12,6 +12,7 @@ export interface UserResponse {
   timezone: string | null;
   custom_ai_prompt: string | null;
   global_currency: string | null;
+  fx_use_historical_rates: boolean;
   language: string | null;
 }
 

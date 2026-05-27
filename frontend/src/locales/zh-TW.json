@@ -316,6 +316,7 @@
     "profileGlobalCurrency": "全域貨幣",
     "profileGlobalCurrencyNone": "— 無 —",
     "profileGlobalCurrencyHint": "設定後，交易金額旁會顯示換算後的數值",
+    "profileFxHistorical": "使用交易日的匯率（而非今日匯率）",
     "profilePassword": "新密碼",
     "profilePasswordPlaceholder": "留空表示不更改",
     "profileConfirmPassword": "確認密碼",

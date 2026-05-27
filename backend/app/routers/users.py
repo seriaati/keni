@@ -35,6 +35,7 @@ async def get_me(current_user: CurrentUser) -> UserResponse:
         timezone=current_user.timezone,
         custom_ai_prompt=current_user.custom_ai_prompt,
         global_currency=current_user.global_currency,
+        fx_use_historical_rates=current_user.fx_use_historical_rates,
         language=current_user.language,
     )
 
@@ -53,6 +54,8 @@ async def update_me(
         current_user.custom_ai_prompt = body.custom_ai_prompt
     if "global_currency" in body.model_fields_set:
         current_user.global_currency = body.global_currency
+    if "fx_use_historical_rates" in body.model_fields_set and body.fx_use_historical_rates is not None:
+        current_user.fx_use_historical_rates = body.fx_use_historical_rates
     if "language" in body.model_fields_set:
         current_user.language = body.language
 
@@ -69,6 +72,7 @@ async def update_me(
         timezone=current_user.timezone,
         custom_ai_prompt=current_user.custom_ai_prompt,
         global_currency=current_user.global_currency,
+        fx_use_historical_rates=current_user.fx_use_historical_rates,
         language=current_user.language,
     )
 
