@@ -87,6 +87,7 @@ function ProfileTab({ user, refreshUser, toast }: { user: UserResponse; refreshU
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [timezone, setTimezone] = useState<string>(user?.timezone ?? '');
+  const [globalCurrencyEnabled, setGlobalCurrencyEnabled] = useState<boolean>(!!user?.global_currency);
   const [globalCurrency, setGlobalCurrency] = useState<string>(user?.global_currency ?? '');
   const [fxHistorical, setFxHistorical] = useState<boolean>(user?.fx_use_historical_rates ?? false);
   const [language, setLanguage] = useState<string>(user?.language ?? i18n.resolvedLanguage ?? 'en');
@@ -108,8 +109,8 @@ function ProfileTab({ user, refreshUser, toast }: { user: UserResponse; refreshU
         display_name: displayName || undefined,
         password: password || undefined,
         timezone: timezone || null,
-        global_currency: globalCurrency || null,
-        fx_use_historical_rates: fxHistorical,
+        global_currency: globalCurrencyEnabled ? (globalCurrency || null) : null,
+        fx_use_historical_rates: globalCurrencyEnabled ? fxHistorical : false,
         language: language || null,
       });
       await refreshUser();
@@ -149,24 +150,40 @@ function ProfileTab({ user, refreshUser, toast }: { user: UserResponse; refreshU
           />
           <span className="input-hint">{t('settings.profileTimezoneHint')}</span>
         </div>
-        <div className="input-group">
-          <label className="input-label">{t('settings.profileGlobalCurrency')}</label>
-          <SearchableSelect
-            value={globalCurrency}
-            onChange={setGlobalCurrency}
-            options={[{ value: '', label: t('settings.profileGlobalCurrencyNone') }, ...currencyOptions.map((c) => ({ value: c, label: c }))]}
-            placeholder={currencyOptions.length === 0 ? 'Loading…' : t('settings.profileGlobalCurrencyNone')}
-          />
-          <span className="input-hint">{t('settings.profileGlobalCurrencyHint')}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
+            <input
+              type="checkbox"
+              checked={globalCurrencyEnabled}
+              onChange={(e) => setGlobalCurrencyEnabled(e.target.checked)}
+              style={{ width: 16, height: 16, accentColor: 'var(--forest)', cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: 14, color: 'var(--ink)' }}>{t('settings.profileGlobalCurrencyEnable')}</span>
+          </label>
+          {globalCurrencyEnabled && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingLeft: 26 }}>
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <label className="input-label">{t('settings.profileGlobalCurrency')}</label>
+                <SearchableSelect
+                  value={globalCurrency}
+                  onChange={setGlobalCurrency}
+                  options={currencyOptions.map((c) => ({ value: c, label: c }))}
+                  placeholder={currencyOptions.length === 0 ? 'Loading…' : 'Select currency…'}
+                />
+                <span className="input-hint">{t('settings.profileGlobalCurrencyHint')}</span>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
+                <input
+                  type="checkbox"
+                  checked={fxHistorical}
+                  onChange={(e) => setFxHistorical(e.target.checked)}
+                  style={{ width: 16, height: 16, accentColor: 'var(--forest)', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: 14, color: 'var(--ink)' }}>{t('settings.profileFxHistorical')}</span>
+              </label>
+            </div>
+          )}
         </div>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
-          <input
-            type="checkbox"
-            checked={fxHistorical}
-            onChange={(e) => setFxHistorical(e.target.checked)}
-          />
-          <span style={{ fontSize: 14, fontFamily: 'var(--font-body)' }}>{t('settings.profileFxHistorical')}</span>
-        </label>
         <div className="input-group">
           <label className="input-label">{t('settings.profileLanguage')}</label>
           <Select
