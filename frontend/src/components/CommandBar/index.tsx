@@ -465,10 +465,10 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
       const origFile = attachedFiles[idx];
       setAttachedFiles((prev) => {
         const n = [...prev];
-        n[idx] = new File([blob], origFile?.name ?? 'image.png', { type: 'image/png' });
+        n[idx] = new File([blob], origFile?.name ?? 'image.jpg', { type: 'image/jpeg' });
         return n;
       });
-    }, 'image/png');
+    }, 'image/jpeg', 0.92);
   };
 
   const applyCrop = () => {
@@ -496,12 +496,12 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
       setFilePreviews((prev) => { const n = [...prev]; n[idx] = newUrl; return n; });
       setAttachedFiles((prev) => {
         const n = [...prev];
-        n[idx] = new File([blob], origFile?.name ?? 'image.png', { type: 'image/png' });
+        n[idx] = new File([blob], origFile?.name ?? 'image.jpg', { type: 'image/jpeg' });
         return n;
       });
       setCropMode(false);
       setCropRect({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 });
-    }, 'image/png');
+    }, 'image/jpeg', 0.92);
   };
 
   const resetCrop = () => {
@@ -518,6 +518,8 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     e.preventDefault();
     e.stopPropagation();
     if (!cropOverlayRef.current) return;
+    const target = e.currentTarget as HTMLElement;
+    target.setPointerCapture(e.pointerId);
     const overlayRect = cropOverlayRef.current.getBoundingClientRect();
     const startX = e.clientX;
     const startY = e.clientY;
@@ -552,11 +554,13 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
       setCropRect({ x, y, w, h });
     };
     const onUp = () => {
-      document.removeEventListener('pointermove', onMove);
-      document.removeEventListener('pointerup', onUp);
+      target.removeEventListener('pointermove', onMove);
+      target.removeEventListener('pointerup', onUp);
+      target.removeEventListener('pointercancel', onUp);
     };
-    document.addEventListener('pointermove', onMove);
-    document.addEventListener('pointerup', onUp);
+    target.addEventListener('pointermove', onMove);
+    target.addEventListener('pointerup', onUp);
+    target.addEventListener('pointercancel', onUp);
   };
 
   if (!open) return null;
@@ -603,7 +607,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
             {cropMode && (
               <div
                 ref={cropOverlayRef}
-                style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}
+                style={{ position: 'absolute', inset: 0, overflow: 'hidden', touchAction: 'none' }}
                 onClick={(e) => e.stopPropagation()}
               >
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: `${cropRect.y * 100}%`, background: 'rgba(0,0,0,0.55)', pointerEvents: 'none' }} />
@@ -620,6 +624,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
                     border: '2px solid white',
                     boxSizing: 'border-box',
                     cursor: 'move',
+                    touchAction: 'none',
                   }}
                   onPointerDown={(e) => startCropDrag(e, 'move')}
                 >
@@ -629,15 +634,19 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
                       onPointerDown={(e) => startCropDrag(e, corner)}
                       style={{
                         position: 'absolute',
-                        width: 14,
-                        height: 14,
-                        background: 'white',
-                        borderRadius: 2,
-                        ...(corner[0] === 'n' ? { top: -7 } : { bottom: -7 }),
-                        ...(corner[1] === 'w' ? { left: -7 } : { right: -7 }),
+                        width: 44,
+                        height: 44,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        ...(corner[0] === 'n' ? { top: -22 } : { bottom: -22 }),
+                        ...(corner[1] === 'w' ? { left: -22 } : { right: -22 }),
                         cursor: `${corner}-resize`,
+                        touchAction: 'none',
                       }}
-                    />
+                    >
+                      <div style={{ width: 14, height: 14, background: 'white', borderRadius: 2, pointerEvents: 'none' }} />
+                    </div>
                   ))}
                 </div>
               </div>
