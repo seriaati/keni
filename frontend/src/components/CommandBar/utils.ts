@@ -1,5 +1,6 @@
 import { LayoutDashboard, Zap, RefreshCw, Tag, Bot, Settings } from 'lucide-react';
 import type { AIExpenseResponse, AIRecurringResponse } from '../../lib/types';
+import { localDateStr } from '../../lib/utils';
 import type { EditableExpense, EditableRecurring } from './types';
 
 export const NAV_ITEMS_STATIC = [
@@ -23,7 +24,7 @@ export function makeEditable(exp: AIExpenseResponse): EditableExpense {
     _editCategory: exp.category_name ?? '',
     _editDescription: exp.description ?? '',
     _editTags: exp.suggested_tags.map((t) => t.name).join(', '),
-    _editDate: exp.date ? exp.date.slice(0, 10) : new Date().toISOString().slice(0, 10),
+    _editDate: exp.date ? exp.date.slice(0, 10) : localDateStr(),
     _editing: false,
   };
 }

@@ -22,6 +22,7 @@ import { expenses as expensesApi, recurring as recurringApi, categories as categ
 import { useWallet } from '../../contexts/WalletContext';
 import { useToast } from '../ui/Toast';
 import type { AIParseResponse, CategoryResponse, TagResponse, WalletResponse } from '../../lib/types';
+import { localDateStr } from '../../lib/utils';
 import { NAV_ITEMS_STATIC, looksLikeExpense, makeEditable, commitEditable, makeEditableRecurring } from './utils';
 import { SingleReview } from './SingleReview';
 import { MultipleReview } from './MultipleReview';
@@ -405,7 +406,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
 
   const openManualEntry = () => {
     setSelectedWalletId(activeWallet?.id ?? null);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateStr();
     const blank = {
       ...makeEditable({
         amount: null,

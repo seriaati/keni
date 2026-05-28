@@ -10,7 +10,7 @@ import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
 import { DatePicker } from '../components/ui/DatePicker';
 import type { CategoryResponse, RecurringTransactionResponse } from '../lib/types';
-import { fmt, fmtDate, getFrequencies } from '../lib/utils';
+import { fmt, fmtDate, getFrequencies, localDateStr } from '../lib/utils';
 
 export function RecurringPage() {
   const { t } = useTranslation();
@@ -31,7 +31,7 @@ export function RecurringPage() {
     amount: '',
     description: '',
     frequency: 'monthly',
-    next_due: new Date().toISOString().slice(0, 10),
+    next_due: localDateStr(),
   });
 
   const load = async () => {
@@ -51,7 +51,7 @@ export function RecurringPage() {
   useEffect(() => { load(); }, [activeWallet, expenseAddedKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openCreate = () => {
-    setForm({ category_id: categories[0]?.id ?? '', type: 'expense', amount: '', description: '', frequency: 'monthly', next_due: new Date().toISOString().slice(0, 10) });
+    setForm({ category_id: categories[0]?.id ?? '', type: 'expense', amount: '', description: '', frequency: 'monthly', next_due: localDateStr() });
     setShowCreate(true);
   };
 

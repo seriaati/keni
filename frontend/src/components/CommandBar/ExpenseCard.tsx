@@ -1,7 +1,7 @@
 import { memo, useRef } from 'react';
 import { Pencil, TrendingDown, TrendingUp, Trash2, WandSparkles, Wallet } from 'lucide-react';
 import type { CategoryResponse, TagResponse, WalletResponse } from '../../lib/types';
-import { fmt, fmtDate } from '../../lib/utils';
+import { fmt, fmtDate, localDateStr } from '../../lib/utils';
 import { DatePicker } from '../ui/DatePicker';
 import { Select } from '../ui/Select';
 import { CategorySelect } from '../ui/CategorySelect';
@@ -47,7 +47,7 @@ export const ExpenseCard = memo(function ExpenseCard({
       _editCategory: expense.category_name ?? '',
       _editDescription: expense.description ?? '',
       _editTags: expense.suggested_tags.map((t) => t.name).join(', '),
-      _editDate: expense.date ? expense.date.slice(0, 10) : new Date().toISOString().slice(0, 10),
+      _editDate: expense.date ? expense.date.slice(0, 10) : localDateStr(),
       _editing: true,
     });
     setTimeout(() => amountRef.current?.focus(), 50);
