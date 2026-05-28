@@ -1,14 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CornerUpLeft, Bot, Layers, Pencil, Trash2, Check, X, Plus, Search } from 'lucide-react';
+import { ArrowLeft, CornerUpLeft, Bot, Layers, Pencil, Trash2, Check, X, Plus, Search, Sparkles } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { expenses as expensesApi, categories as categoriesApi, tags as tagsApi, wallets as walletsApi, transactionLinks } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import { DatePicker } from '../components/ui/DatePicker';
 import { Modal } from '../components/ui/Modal';
 import { CategorySelect } from '../components/ui/CategorySelect';
-import type { CategoryResponse, TransactionLinkBrief, TransactionResponse, TagResponse, WalletResponse } from '../lib/types';
+import type { AICategorizeResponse, CategoryResponse, TransactionLinkBrief, TransactionResponse, TagResponse, WalletResponse } from '../lib/types';
 import { LinkedTransactionsPicker } from '../components/LinkedTransactionsPicker';
 import { fmt, fmtDate } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
@@ -348,6 +348,7 @@ export function ExpenseDetailPage() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [aiSuggesting, setAiSuggesting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [allWallets, setAllWallets] = useState<WalletResponse[]>([]);
   const [showLinkPicker, setShowLinkPicker] = useState(false);
@@ -488,6 +489,43 @@ export function ExpenseDetailPage() {
     }
   };
 
+  const handleAICategorize = async () => {
+    if (!walletId || !expenseId || aiSuggesting) return;
+    setAiSuggesting(true);
+    try {
+      const result: AICategorizeResponse = await expensesApi.aiCategorize(walletId, expenseId);
+
+      let categoryId = form.category_id;
+      if (result.is_new_category) {
+        const newCat = await categoriesApi.create({ name: result.category_name, icon: result.suggested_icon ?? undefined });
+        setCategories((prev) => [...prev, newCat]);
+        categoryId = newCat.id;
+      } else {
+        const match = categories.find((c) => c.name.toLowerCase() === result.category_name.toLowerCase());
+        if (match) categoryId = match.id;
+      }
+
+      const newTagIds = [...form.tag_ids];
+      for (const tag of result.suggested_tags) {
+        if (tag.is_new) {
+          const newTag = await tagsApi.create({ name: tag.name });
+          setAllTags((prev) => [...prev, newTag]);
+          if (!newTagIds.includes(newTag.id)) newTagIds.push(newTag.id);
+        } else {
+          const match = allTags.find((t) => t.name.toLowerCase() === tag.name.toLowerCase());
+          if (match && !newTagIds.includes(match.id)) newTagIds.push(match.id);
+        }
+      }
+
+      setForm((f) => ({ ...f, category_id: categoryId, tag_ids: newTagIds }));
+      toast(t('expenseDetail.toastAISuggested'), 'success');
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'AI suggestion failed', 'error');
+    } finally {
+      setAiSuggesting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 560 }}>
@@ -513,7 +551,18 @@ export function ExpenseDetailPage() {
         <div style={{ display: 'flex', gap: 6 }}>
           {!editing ? (
             <>
-              <button className="btn btn-secondary btn-sm" onClick={() => { setPendingLinks(expense.linked_transactions); setEditing(true); }}>
+              <button className="btn btn-secondary btn-sm" onClick={() => {
+                setPendingLinks(expense.linked_transactions);
+                setForm({
+                  amount: String(expense.amount),
+                  description: expense.description ?? '',
+                  category_id: expense.category.id,
+                  date: expense.date.slice(0, 10),
+                  tag_ids: expense.tags.map((t) => t.id),
+                  type: expense.type,
+                });
+                setEditing(true);
+              }}>
                 <Pencil size={13} /> {t('expenseDetail.btnEdit')}
               </button>
               <button className="btn btn-danger btn-sm" onClick={() => setConfirmDelete(true)} disabled={deleting}>
@@ -525,6 +574,10 @@ export function ExpenseDetailPage() {
             <>
               <button className="btn btn-secondary btn-sm" onClick={() => setEditing(false)}>
                 <X size={13} /> {t('expenseDetail.btnCancel')}
+              </button>
+              <button className="btn btn-secondary btn-sm" onClick={handleAICategorize} disabled={aiSuggesting}>
+                {aiSuggesting ? <span className="btn-spinner" /> : <Sparkles size={13} />}
+                {t('expenseDetail.btnAISuggest')}
               </button>
               <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
                 {saving ? <span className="btn-spinner" /> : <Check size={13} />}

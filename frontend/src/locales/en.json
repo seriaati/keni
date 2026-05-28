@@ -262,7 +262,13 @@
     "bulkActions": "Actions",
     "bulkActionDelete": "Delete selected",
     "bulkActionEditCategory": "Edit category",
-    "bulkActionEditLabels": "Edit labels"
+    "bulkActionEditLabels": "Edit labels",
+    "bulkActionAISuggest": "AI suggest category & labels",
+    "bulkAISuggestTitle": "AI suggest category & labels",
+    "bulkAISuggestBody": "Use AI to automatically update the category and labels for {{count}} selected transaction{{plural}}. This will overwrite their current categories.",
+    "bulkAISuggestConfirm": "Apply AI suggestions",
+    "bulkAISuggestToast": "AI updated {{count}} transaction{{plural}}",
+    "bulkAISuggestFailed": "Failed to update {{count}} transaction(s)"
   },
   "expenseDetail": {
     "title": "Transaction detail",
@@ -272,6 +278,7 @@
     "btnDelete": "Delete",
     "btnCancel": "Cancel",
     "btnSave": "Save",
+    "btnAISuggest": "AI Suggest",
     "sectionAmount": "Amount",
     "sectionCategory": "Category",
     "sectionDate": "Date",
@@ -293,6 +300,7 @@
     "metaUpdated": "Updated {{date}}",
     "toastDeleted": "Transaction deleted",
     "toastUpdated": "Transaction updated",
+    "toastAISuggested": "AI filled in category and labels",
     "toastLoadFailed": "Failed to load expense",
     "deleteTitle": "Delete transaction"
   },

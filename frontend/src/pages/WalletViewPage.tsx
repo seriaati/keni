@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useParams, useSearchParams, useOutletContext, useNavigate, type NavigateFunction } from 'react-router-dom';
-import { ArrowLeftRight, Check, Command, Download, Filter, FolderOpen, Layers, Plus, Search, SortAsc, SortDesc, Tag, Trash2, X } from 'lucide-react';
+import { ArrowLeftRight, Check, Command, Download, Filter, FolderOpen, Layers, Plus, Search, SortAsc, SortDesc, Sparkles, Tag, Trash2, X } from 'lucide-react';
 import { expenses as expensesApi, categories as categoriesApi, wallets as walletsApi, tags as tagsApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/Toast';
@@ -65,6 +65,9 @@ export function WalletViewPage() {
   const [bulkAddTagIds, setBulkAddTagIds] = useState<Set<string>>(new Set());
   const [bulkRemoveTagIds, setBulkRemoveTagIds] = useState<Set<string>>(new Set());
   const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [bulkAISuggesting, setBulkAISuggesting] = useState(false);
+  const [showAISuggestModal, setShowAISuggestModal] = useState(false);
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
   const handleToggleConverted = () => {
     if (switching) return;
@@ -375,6 +378,73 @@ export function WalletViewPage() {
     }
   };
 
+  const handleBulkAISuggest = async () => {
+    if (!walletId || selectedIds.size === 0) return;
+    setShowAISuggestModal(false);
+    setBulkAISuggesting(true);
+
+    const selectedItems = (data?.items ?? []).filter((item) => selectedIds.has(item.id));
+    setProcessingIds(new Set(selectedItems.map((item) => item.id)));
+    const localCategories = [...categories];
+    const localTags = [...allTags];
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const item of selectedItems) {
+      try {
+        const result = await expensesApi.aiCategorize(walletId, item.id);
+
+        let categoryId = item.category.id;
+        if (result.is_new_category) {
+          const existing = localCategories.find((c) => c.name.toLowerCase() === result.category_name.toLowerCase());
+          if (existing) {
+            categoryId = existing.id;
+          } else {
+            const newCat = await categoriesApi.create({ name: result.category_name });
+            localCategories.push(newCat);
+            categoryId = newCat.id;
+          }
+        } else {
+          const match = localCategories.find((c) => c.name.toLowerCase() === result.category_name.toLowerCase());
+          if (match) categoryId = match.id;
+        }
+
+        const tagIds = item.tags.map((t) => t.id);
+        for (const tag of result.suggested_tags) {
+          if (tag.is_new) {
+            const existing = localTags.find((t) => t.name.toLowerCase() === tag.name.toLowerCase());
+            if (existing) {
+              if (!tagIds.includes(existing.id)) tagIds.push(existing.id);
+            } else {
+              const newTag = await tagsApi.create({ name: tag.name });
+              localTags.push(newTag);
+              if (!tagIds.includes(newTag.id)) tagIds.push(newTag.id);
+            }
+          } else {
+            const match = localTags.find((t) => t.name.toLowerCase() === tag.name.toLowerCase());
+            if (match && !tagIds.includes(match.id)) tagIds.push(match.id);
+          }
+        }
+
+        await expensesApi.update(walletId, item.id, { category_id: categoryId, tag_ids: tagIds });
+        successCount++;
+      } catch {
+        failCount++;
+      } finally {
+        setProcessingIds((prev) => { const next = new Set(prev); next.delete(item.id); return next; });
+      }
+    }
+
+    setCategories(localCategories);
+    setAllTags(localTags);
+    setProcessingIds(new Set());
+    if (successCount > 0) toast(t('walletView.bulkAISuggestToast', { count: successCount, plural: successCount === 1 ? '' : 's' }), 'success');
+    if (failCount > 0) toast(t('walletView.bulkAISuggestFailed', { count: failCount }), 'error');
+    handleDeselectAll();
+    await load();
+    setBulkAISuggesting(false);
+  };
+
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
   const hasFilters = search || categoryId || selectedTagIds.length > 0 || startDate || endDate || minAmount || maxAmount;
   const selCount = selectedIds.size;
@@ -635,6 +705,33 @@ export function WalletViewPage() {
     </Modal>
   );
 
+  const aiSuggestModal = (
+    <Modal
+      open={showAISuggestModal}
+      onClose={() => setShowAISuggestModal(false)}
+      title={t('walletView.bulkAISuggestTitle')}
+      size="sm"
+      footer={
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button className="btn btn-ghost btn-md" onClick={() => setShowAISuggestModal(false)}>
+            {t('common.cancel')}
+          </button>
+          <button
+            className="btn btn-primary btn-md"
+            onClick={handleBulkAISuggest}
+            disabled={bulkAISuggesting}
+          >
+            {bulkAISuggesting ? '…' : <><Sparkles size={13} /> {t('walletView.bulkAISuggestConfirm')}</>}
+          </button>
+        </div>
+      }
+    >
+      <p style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.5 }}>
+        {t('walletView.bulkAISuggestBody', { count: selCount, plural: selCount === 1 ? '' : 's' })}
+      </p>
+    </Modal>
+  );
+
   return (
     <div className="animate-fade-in">
       <div className="page-header">
@@ -842,6 +939,7 @@ export function WalletViewPage() {
                 switching={switching}
                 isSelected={selectedIds.has(expense.id)}
                 isSelecting={isSelecting}
+                isProcessing={processingIds.has(expense.id)}
                 onSelect={handleSelect}
                 onNavigate={navigate}
                 backSearch={searchParams.toString()}
@@ -882,6 +980,7 @@ export function WalletViewPage() {
       {deleteModal}
       {editCategoryModal}
       {editLabelsModal}
+      {aiSuggestModal}
       <BulkActionsBar
         open={showActionsBar}
         onClose={() => setShowActionsBar(false)}
@@ -889,6 +988,7 @@ export function WalletViewPage() {
         onDeleteSelected={() => { setShowActionsBar(false); setShowDeleteModal(true); }}
         onEditCategory={() => { setShowActionsBar(false); openEditCategoryModal(); }}
         onEditLabels={() => { setShowActionsBar(false); openEditLabelModal(); }}
+        onAISuggest={() => { setShowActionsBar(false); setShowAISuggestModal(true); }}
       />
     </div>
   );
@@ -906,6 +1006,7 @@ function ExpenseRow({
   switching,
   isSelected,
   isSelecting,
+  isProcessing,
   onSelect,
   onNavigate,
   backSearch,
@@ -921,6 +1022,7 @@ function ExpenseRow({
   switching: boolean;
   isSelected: boolean;
   isSelecting: boolean;
+  isProcessing: boolean;
   onSelect: (id: string, e: React.MouseEvent) => void;
   onNavigate: NavigateFunction;
   backSearch: string;
@@ -1004,14 +1106,25 @@ function ExpenseRow({
         )}
       </div>
 
-      <CategoryIcon
-        iconName={expense.category.icon}
-        color={expense.category.color}
-        size={17}
-        containerSize={38}
-        borderRadius={10}
-        fallbackLetter={expense.category.name[0]}
-      />
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <CategoryIcon
+          iconName={expense.category.icon}
+          color={expense.category.color}
+          size={17}
+          containerSize={38}
+          borderRadius={10}
+          fallbackLetter={expense.category.name[0]}
+        />
+        {isProcessing && (
+          <div style={{
+            position: 'absolute', inset: 0, borderRadius: 10,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(255,255,255,0.75)',
+          }}>
+            <span className="btn-spinner" style={{ color: 'var(--forest)' }} />
+          </div>
+        )}
+      </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -1088,10 +1201,12 @@ function ExpenseRow({
     padding: '12px 16px',
     textDecoration: 'none',
     borderBottom: isLast ? 'none' : '1px solid var(--cream)',
-    transition: 'background 0.1s',
+    transition: 'background 0.1s, opacity 0.2s',
     background: isSelected ? 'var(--cream)' : 'transparent',
-    cursor: isSelecting ? 'default' : 'pointer',
+    cursor: isProcessing ? 'default' : isSelecting ? 'default' : 'pointer',
     userSelect: 'none' as const,
+    opacity: isProcessing ? 0.45 : 1,
+    pointerEvents: isProcessing ? 'none' : undefined,
   };
 
   if (isMobile) {
@@ -1166,6 +1281,7 @@ function BulkActionsBar({
   onDeleteSelected,
   onEditCategory,
   onEditLabels,
+  onAISuggest,
 }: {
   open: boolean;
   onClose: () => void;
@@ -1173,6 +1289,7 @@ function BulkActionsBar({
   onDeleteSelected: () => void;
   onEditCategory: () => void;
   onEditLabels: () => void;
+  onAISuggest: () => void;
 }) {
   const { t } = useTranslation();
   const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -1181,6 +1298,7 @@ function BulkActionsBar({
     { id: 'delete', label: t('walletView.bulkActionDelete'), icon: Trash2, danger: true, execute: onDeleteSelected },
     { id: 'editCategory', label: t('walletView.bulkActionEditCategory'), icon: FolderOpen, danger: false, execute: onEditCategory },
     { id: 'editLabels', label: t('walletView.bulkActionEditLabels'), icon: Tag, danger: false, execute: onEditLabels },
+    { id: 'aiSuggest', label: t('walletView.bulkActionAISuggest'), icon: Sparkles, danger: false, execute: onAISuggest },
   ];
 
   useEffect(() => {

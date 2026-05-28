@@ -16,6 +16,7 @@ import type {
   TagResponse,
   TokenResponse,
   UserResponse,
+  AICategorizeResponse,
   VoiceParseResponse,
   WalletResponse,
   WalletSummary,
@@ -239,6 +240,10 @@ export const expenses = {
       headers: { 'X-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone },
     });
   },
+  aiCategorize: (walletId: string, transactionId: string) =>
+    request<AICategorizeResponse>(`/wallets/${walletId}/transactions/${transactionId}/ai-categorize`, {
+      method: 'POST',
+    }),
   createGroup: (walletId: string, data: GroupTransactionRequest) =>
     request<TransactionResponse>(`/wallets/${walletId}/transactions/groups`, {
       method: 'POST',

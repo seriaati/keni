@@ -158,6 +158,13 @@ export interface VoiceParseResponse extends AIParseResponse {
   transcript: string;
 }
 
+export interface AICategorizeResponse {
+  category_name: string;
+  is_new_category: boolean;
+  suggested_icon: string | null;
+  suggested_tags: SuggestedTag[];
+}
+
 export interface GroupTransactionItemRequest {
   category_name?: string;
   category_id?: string;

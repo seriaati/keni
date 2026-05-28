@@ -262,7 +262,13 @@
     "bulkActions": "動作",
     "bulkActionDelete": "刪除所選",
     "bulkActionEditCategory": "編輯類別",
-    "bulkActionEditLabels": "編輯標籤"
+    "bulkActionEditLabels": "編輯標籤",
+    "bulkActionAISuggest": "AI 建議類別與標籤",
+    "bulkAISuggestTitle": "AI 建議類別與標籤",
+    "bulkAISuggestBody": "使用 AI 自動更新 {{count}} 筆選取交易{{plural}}的類別與標籤。此操作將覆蓋現有類別。",
+    "bulkAISuggestConfirm": "套用 AI 建議",
+    "bulkAISuggestToast": "AI 已更新 {{count}} 筆交易{{plural}}",
+    "bulkAISuggestFailed": "{{count}} 筆交易更新失敗"
   },
   "expenseDetail": {
     "title": "交易詳情",
@@ -272,6 +278,7 @@
     "btnDelete": "刪除",
     "btnCancel": "取消",
     "btnSave": "儲存",
+    "btnAISuggest": "AI 建議",
     "sectionAmount": "金額",
     "sectionCategory": "類別",
     "sectionDate": "日期",
@@ -293,6 +300,7 @@
     "metaUpdated": "更新於 {{date}}",
     "toastDeleted": "交易已刪除",
     "toastUpdated": "交易已更新",
+    "toastAISuggested": "AI 已填入類別與標籤",
     "toastLoadFailed": "載入支出失敗",
     "deleteTitle": "刪除交易"
   },
