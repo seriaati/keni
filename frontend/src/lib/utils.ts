@@ -26,9 +26,10 @@ export function fmtDateShort(date: string | Date): string {
 export function fmtRelative(date: string | Date): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   const now = new Date();
-  const diff = now.getTime() - d.getTime();
-  const days = Math.floor(diff / 86400000);
   const t = i18n.t.bind(i18n);
+  const dMidnight = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const days = Math.round((nowMidnight.getTime() - dMidnight.getTime()) / 86400000);
   if (days === 0) return t('utils.today');
   if (days === 1) return t('utils.yesterday');
   return fmtDate(d);
