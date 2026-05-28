@@ -91,3 +91,10 @@ class VoiceTransactionsResponse(BaseModel):
     group: AITransactionGroupInfo | None
     recurring: AIRecurringItem | None = None
     suggested_wallet_id: str | None = None
+
+
+class AICategorizeResponse(BaseModel):
+    category_name: str
+    is_new_category: bool
+    suggested_icon: str | None
+    suggested_tags: list[SuggestedTag]

@@ -332,3 +332,42 @@ async def parse_transactions_with_ai(  # noqa: PLR0912, PLR0914, PLR0915, C901
         recurring=enriched_recurring,
         suggested_wallet_id=suggested_wallet_id,
     )
+
+
+@dataclass
+class CategorizeTransactionResult:
+    category_name: str
+    is_new_category: bool
+    suggested_icon: str | None
+    suggested_tags: list[SuggestedTagResult]
+
+
+async def categorize_transaction_with_ai(  # noqa: PLR0913, PLR0917
+    user_id: uuid.UUID,
+    description: str | None,
+    amount: float,
+    transaction_type: str,
+    date: str,
+    session: AsyncSession,
+) -> CategorizeTransactionResult:
+    text_parts: list[str] = []
+    if description:
+        text_parts.append(f"Description: {description}")
+    text_parts.extend([f"Amount: {amount}", f"Type: {transaction_type}", f"Date: {date}"])
+    text = "\n".join(text_parts)
+
+    result = await parse_transactions_with_ai(
+        user_id=user_id, text=text, images=[], session=session
+    )
+
+    if not result.expenses:
+        msg = "AI could not suggest a category for this transaction"
+        raise ValueError(msg)
+
+    expense = result.expenses[0]
+    return CategorizeTransactionResult(
+        category_name=expense.category_name,
+        is_new_category=expense.is_new_category,
+        suggested_icon=expense.suggested_icon,
+        suggested_tags=expense.suggested_tags,
+    )

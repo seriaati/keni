@@ -18,6 +18,7 @@ from app.models.transaction import Transaction, TransactionLink, TransactionTag
 from app.models.user import User
 from app.models.wallet import Wallet
 from app.schemas.ai_provider import (
+    AICategorizeResponse,
     AIRecurringItem,
     AITransactionGroupInfo,
     AITransactionItem,
@@ -39,7 +40,7 @@ from app.schemas.transaction import (
     TransactionSummary,
     TransactionUpdate,
 )
-from app.services.ai_transaction import parse_transactions_with_ai
+from app.services.ai_transaction import categorize_transaction_with_ai, parse_transactions_with_ai
 
 if TYPE_CHECKING:
     from app.services.ai_transaction import ParsedTransactionResult
@@ -698,6 +699,30 @@ async def get_transaction(
     await _get_wallet_or_404(wallet_id, current_user.id, session)
     transaction = await _get_transaction_or_404(transaction_id, wallet_id, session)
     return await _build_transaction_response(transaction, session)
+
+
+@router.post("/{transaction_id}/ai-categorize")
+async def ai_categorize_transaction(
+    wallet_id: uuid.UUID, transaction_id: uuid.UUID, current_user: CurrentUser, session: DbDep
+) -> AICategorizeResponse:
+    await _get_wallet_or_404(wallet_id, current_user.id, session)
+    transaction = await _get_transaction_or_404(transaction_id, wallet_id, session)
+
+    result = await categorize_transaction_with_ai(
+        user_id=current_user.id,
+        description=transaction.description,
+        amount=transaction.amount,
+        transaction_type=transaction.type,
+        date=transaction.date.strftime("%Y-%m-%d"),
+        session=session,
+    )
+
+    return AICategorizeResponse(
+        category_name=result.category_name,
+        is_new_category=result.is_new_category,
+        suggested_icon=result.suggested_icon,
+        suggested_tags=[SuggestedTag(name=t.name, is_new=t.is_new) for t in result.suggested_tags],
+    )
 
 
 @router.patch("/{transaction_id}")
