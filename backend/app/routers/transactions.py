@@ -542,6 +542,7 @@ async def list_transactions(  # noqa: PLR0913, PLR0917
     start_date: Annotated[datetime | None, Query()] = None,
     end_date: Annotated[datetime | None, Query()] = None,
     category_id: Annotated[uuid.UUID | None, Query()] = None,
+    category_ids: Annotated[list[uuid.UUID] | None, Query()] = None,
     tag_ids: Annotated[list[uuid.UUID] | None, Query()] = None,
     min_amount: Annotated[float | None, Query()] = None,
     max_amount: Annotated[float | None, Query()] = None,
@@ -566,7 +567,9 @@ async def list_transactions(  # noqa: PLR0913, PLR0917
         query = query.where(col(Transaction.date) >= start_date)
     if end_date:
         query = query.where(col(Transaction.date) <= end_date)
-    if category_id:
+    if category_ids:
+        query = query.where(col(Transaction.category_id).in_(category_ids))
+    elif category_id:
         query = query.where(Transaction.category_id == category_id)
     if min_amount is not None:
         query = query.where(col(Transaction.amount) >= min_amount)

@@ -10,6 +10,7 @@ import { Select } from '../components/ui/Select';
 import { DatePicker } from '../components/ui/DatePicker';
 import { Modal } from '../components/ui/Modal';
 import { CategorySelect } from '../components/ui/CategorySelect';
+import { MultiCategorySelect } from '../components/ui/MultiCategorySelect';
 import type { CategoryResponse, TransactionListResponse, TransactionResponse, TagResponse, TagBrief, WalletSummary } from '../lib/types';
 import { fmt, fmtRelative } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
@@ -83,7 +84,7 @@ export function WalletViewPage() {
 
   // Filter state derived from URL params
   const search = searchParams.get('q') ?? '';
-  const categoryId = searchParams.get('category_id') ?? '';
+  const selectedCategoryIds = useMemo(() => searchParams.getAll('category_ids'), [searchParams]);
 
   // Local state for search input — decoupled from URL to avoid interrupting IME composition (e.g. Zhuyin)
   const [searchInput, setSearchInput] = useState(() => search);
@@ -132,7 +133,7 @@ export function WalletViewPage() {
           page,
           page_size: PAGE_SIZE,
           search: search || undefined,
-          category_id: categoryId || undefined,
+          category_ids: selectedCategoryIds.length > 0 ? selectedCategoryIds : undefined,
           tag_ids: selectedTagIds.length > 0 ? selectedTagIds : undefined,
           sort_by: sortBy,
           sort_order: sortOrder,
@@ -151,7 +152,7 @@ export function WalletViewPage() {
     } finally {
       setLoading(false);
     }
-  }, [walletId, page, search, categoryId, selectedTagIds, sortBy, sortOrder, startDate, endDate, minAmount, maxAmount, toast, expenseAddedKey]);
+  }, [walletId, page, search, selectedCategoryIds, selectedTagIds, sortBy, sortOrder, startDate, endDate, minAmount, maxAmount, toast, expenseAddedKey]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -446,7 +447,7 @@ export function WalletViewPage() {
   };
 
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
-  const hasFilters = search || categoryId || selectedTagIds.length > 0 || startDate || endDate || minAmount || maxAmount;
+  const hasFilters = search || selectedCategoryIds.length > 0 || selectedTagIds.length > 0 || startDate || endDate || minAmount || maxAmount;
   const selCount = selectedIds.size;
 
   const selectedTransactionTags = useMemo(() => {
@@ -777,10 +778,10 @@ export function WalletViewPage() {
           />
         </div>
 
-        <Select
-          value={categoryId}
-          onChange={(v) => setParam({ category_id: v, page: null })}
-          options={[{ value: '', label: t('walletView.filterAllCategories') }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
+        <MultiCategorySelect
+          value={selectedCategoryIds}
+          categories={categories}
+          onChange={(ids) => setParam({ category_ids: ids, page: null })}
           placeholder={t('walletView.filterAllCategories')}
         />
 
@@ -877,7 +878,7 @@ export function WalletViewPage() {
             <div style={{ display: 'flex', alignItems: 'flex-end' }}>
               <button
                 className="btn btn-ghost btn-md"
-                onClick={() => setParam({ q: null, category_id: null, tag_ids: null, start_date: null, end_date: null, min_amount: null, max_amount: null, page: null })}
+                onClick={() => setParam({ q: null, category_ids: null, tag_ids: null, start_date: null, end_date: null, min_amount: null, max_amount: null, page: null })}
               >
                 <X size={14} /> {t('walletView.filterClearAll')}
               </button>
