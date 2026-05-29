@@ -4,9 +4,11 @@ import base64 as _b64
 import operator
 import uuid
 from datetime import UTC, datetime
+from io import BytesIO
 from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile, status
+from PIL import Image as PILImage
 from sqlalchemy import func, or_
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -251,6 +253,27 @@ def _build_ai_transaction_item(parsed: ParsedTransactionResult) -> AITransaction
     )
 
 
+def _rotate_image(raw: bytes, degrees: int) -> bytes:
+    """Rotate image bytes clockwise by degrees (90/180/270). Returns raw unchanged for 0."""
+    if degrees == 0:
+        return raw
+    cw_to_pil = {
+        90: PILImage.Transpose.ROTATE_270,
+        180: PILImage.Transpose.ROTATE_180,
+        270: PILImage.Transpose.ROTATE_90,
+    }
+    op = cw_to_pil.get(degrees)
+    if op is None:
+        return raw
+    img = PILImage.open(BytesIO(raw))
+    img = img.transpose(op)
+    out = BytesIO()
+    fmt = img.format or "JPEG"
+    save_kw: dict = {"quality": 85} if fmt == "JPEG" else {}
+    img.save(out, format=fmt, **save_kw)
+    return out.getvalue()
+
+
 @router.post("/ai", status_code=status.HTTP_201_CREATED)
 async def create_transaction_ai(  # noqa: PLR0913, PLR0917
     wallet_id: uuid.UUID,
@@ -258,6 +281,7 @@ async def create_transaction_ai(  # noqa: PLR0913, PLR0917
     session: DbDep,
     text: Annotated[str | None, Form()] = None,
     files: Annotated[list[UploadFile], File()] = [],  # noqa: B006
+    rotations: Annotated[list[int], Form()] = [],  # noqa: B006
     x_timezone: Annotated[str | None, Header()] = None,
 ) -> AITransactionsResponse:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
@@ -269,7 +293,7 @@ async def create_transaction_ai(  # noqa: PLR0913, PLR0917
         )
 
     images: list[tuple[str, str]] = []
-    for upload in files:
+    for i, upload in enumerate(files):
         raw = await upload.read()
         content_type = upload.content_type or ""
         if content_type == "application/pdf":
@@ -277,6 +301,9 @@ async def create_transaction_ai(  # noqa: PLR0913, PLR0917
             if pdf_text:
                 text = f"{pdf_text}\n\n{text}" if text else pdf_text
         elif content_type.startswith("image/"):
+            deg = rotations[i] if i < len(rotations) else 0
+            if deg:
+                raw = _rotate_image(raw, deg)
             images.append((_b64.b64encode(raw).decode(), content_type or "image/jpeg"))
         else:
             raise HTTPException(

@@ -22,6 +22,7 @@ dependencies = [
     "sqlmodel>=0.0.37",
     "uvicorn>=0.42.0",
     "apscheduler>=3.11.2",
+    "pillow>=12.2.0",
 ]
 
 [tool.pyright]
