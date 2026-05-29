@@ -39,6 +39,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   const [cropMode, setCropMode] = useState(false);
   const [cropRect, setCropRect] = useState({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 });
   const [preCropSnapshot, setPreCropSnapshot] = useState<{ url: string; file: File } | null>(null);
+  const [fileRotations, setFileRotations] = useState<number[]>([]);
 
   const [singleExpense, setSingleExpense] = useState<EditableExpense | null>(null);
   const [multiExpenses, setMultiExpenses] = useState<EditableExpense[]>([]);
@@ -93,6 +94,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     setCropRect({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 });
     setSaving(false);
     setSelectedWalletId(null);
+    setFileRotations([]);
   }, []);
 
   useEffect(() => {
@@ -106,6 +108,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
             f.type.startsWith('image/') ? URL.createObjectURL(f) : '',
           ),
         );
+        setFileRotations(initialPayload.files.map(() => 0));
       }
       setTimeout(() => inputRef.current?.focus(), 50);
       categoriesApi.list().then(setCategories).catch(() => {});
@@ -169,7 +172,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     setMode('processing');
     setError('');
     try {
-      const result = await expensesApi.aiParse(activeWallet.id, text || undefined, attachedFiles.length ? attachedFiles : undefined);
+      const result = await expensesApi.aiParse(activeWallet.id, text || undefined, attachedFiles.length ? attachedFiles : undefined, attachedFiles.length ? fileRotations : undefined);
       applyParseResult(result);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to parse expense');
@@ -326,6 +329,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
       ...prev,
       ...dropped.map((f) => (f.type.startsWith('image/') ? URL.createObjectURL(f) : '')),
     ]);
+    setFileRotations((prev) => [...prev, ...dropped.map(() => 0)]);
   }, []);
 
   useEffect(() => {
@@ -352,6 +356,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     if (!file) return;
     setAttachedFiles((prev) => [...prev, file]);
     setFilePreviews((prev) => [...prev, URL.createObjectURL(file)]);
+    setFileRotations((prev) => [...prev, 0]);
   }, [open]);
 
   useEffect(() => {
@@ -367,6 +372,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
       ...prev,
       ...selected.map((f) => (f.type.startsWith('image/') ? URL.createObjectURL(f) : '')),
     ]);
+    setFileRotations((prev) => [...prev, ...selected.map(() => 0)]);
     e.target.value = '';
   };
 
@@ -443,32 +449,37 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     setCropRect({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 });
   };
 
-  const rotateImageCW = () => {
-    if (enlargedPreviewIndex === null || !lightboxImgRef.current) return;
+  const flushRotation = (): Promise<void> => {
     const idx = enlargedPreviewIndex;
+    if (idx === null) return Promise.resolve();
+    const deg = fileRotations[idx] ?? 0;
     const imgEl = lightboxImgRef.current;
-    if (imgEl.naturalWidth === 0) return;
-    const url = filePreviews[idx];
+    if (deg === 0 || !imgEl || imgEl.naturalWidth === 0) return Promise.resolve();
+    const swap = deg === 90 || deg === 270;
     const canvas = document.createElement('canvas');
-    canvas.width = imgEl.naturalHeight;
-    canvas.height = imgEl.naturalWidth;
+    canvas.width = swap ? imgEl.naturalHeight : imgEl.naturalWidth;
+    canvas.height = swap ? imgEl.naturalWidth : imgEl.naturalHeight;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) return Promise.resolve();
     ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.rotate(Math.PI / 2);
+    ctx.rotate((deg * Math.PI) / 180);
     ctx.drawImage(imgEl, -imgEl.naturalWidth / 2, -imgEl.naturalHeight / 2);
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      const newUrl = URL.createObjectURL(blob);
-      if (url) URL.revokeObjectURL(url);
-      setFilePreviews((prev) => { const n = [...prev]; n[idx] = newUrl; return n; });
-      const origFile = attachedFiles[idx];
-      setAttachedFiles((prev) => {
-        const n = [...prev];
-        n[idx] = new File([blob], origFile?.name ?? 'image.jpg', { type: 'image/jpeg' });
-        return n;
-      });
-    }, 'image/jpeg', 0.92);
+    return new Promise<void>((resolve) => {
+      canvas.toBlob((blob) => {
+        if (!blob) { resolve(); return; }
+        const newUrl = URL.createObjectURL(blob);
+        setFilePreviews(prev => { const n = [...prev]; if (n[idx]) URL.revokeObjectURL(n[idx]); n[idx] = newUrl; return n; });
+        setAttachedFiles(prev => { const n = [...prev]; const f = prev[idx]; n[idx] = new File([blob], f?.name ?? 'image.jpg', { type: 'image/jpeg' }); return n; });
+        setFileRotations(prev => { const n = [...prev]; n[idx] = 0; return n; });
+        resolve();
+      }, 'image/jpeg', 0.92);
+    });
+  };
+
+  const rotateImageCW = () => {
+    if (enlargedPreviewIndex === null) return;
+    const idx = enlargedPreviewIndex;
+    setFileRotations((prev) => { const n = [...prev]; n[idx] = ((n[idx] ?? 0) + 90) % 360; return n; });
   };
 
   const applyCrop = () => {
@@ -596,11 +607,13 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
               src={enlargedPreview}
               alt="Receipt enlarged"
               style={{
-                maxWidth: '90vw',
-                maxHeight: '70vh',
+                maxWidth: ((fileRotations[enlargedPreviewIndex ?? -1] ?? 0) === 90 || (fileRotations[enlargedPreviewIndex ?? -1] ?? 0) === 270) ? '70vh' : '90vw',
+                maxHeight: ((fileRotations[enlargedPreviewIndex ?? -1] ?? 0) === 90 || (fileRotations[enlargedPreviewIndex ?? -1] ?? 0) === 270) ? '90vw' : '70vh',
                 display: 'block',
                 borderRadius: cropMode ? 0 : 12,
                 boxShadow: cropMode ? 'none' : '0 32px 80px oklch(18% 0.02 80 / 0.4)',
+                transform: (fileRotations[enlargedPreviewIndex ?? -1] ?? 0) !== 0 ? `rotate(${fileRotations[enlargedPreviewIndex ?? -1] ?? 0}deg)` : undefined,
+                transition: 'transform 0.15s ease',
               }}
               onClick={(e) => e.stopPropagation()}
             />
@@ -654,20 +667,21 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <button
-              className="btn btn-sm btn-secondary"
-              style={{ border: 'none' }}
-              onClick={(e) => { e.stopPropagation(); rotateImageCW(); }}
-              title="Rotate 90° clockwise"
-            >
-              <RotateCw size={14} />
-              Rotate
-            </button>
+            {!cropMode && (
+              <button
+                className="btn btn-sm btn-secondary"
+                style={{ border: 'none' }}
+                onClick={(e) => { e.stopPropagation(); rotateImageCW(); }}
+                title="Rotate 90° clockwise"
+              >
+                <RotateCw size={14} />
+                Rotate
+              </button>
+            )}
             {cropMode ? (
               <>
                 <button
-                  className="btn btn-sm btn-primary"
-                  style={{ border: 'none' }}
+                  className="btn btn-sm btn-secondary"
                   onClick={(e) => { e.stopPropagation(); applyCrop(); }}
                   title="Apply crop"
                 >
@@ -687,7 +701,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
                 <button
                   className="btn btn-sm btn-secondary"
                   style={{ border: 'none' }}
-                  onClick={(e) => { e.stopPropagation(); setCropMode(true); setCropRect({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 }); }}
+                  onClick={async (e) => { e.stopPropagation(); await flushRotation(); setCropMode(true); setCropRect({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 }); }}
                   title="Crop image"
                 >
                   <Crop size={14} />
@@ -882,7 +896,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
                       src={filePreviews[i]}
                       alt={file.name}
                       onClick={() => openLightbox(i)}
-                      style={{ height: 48, width: 48, objectFit: 'cover', borderRadius: 6, cursor: 'zoom-in', display: 'block' }}
+                      style={{ height: 48, width: 48, objectFit: 'cover', borderRadius: 6, cursor: 'zoom-in', display: 'block', transform: fileRotations[i] ? `rotate(${fileRotations[i]}deg)` : undefined }}
                     />
                   ) : (
                     <div style={{ height: 48, width: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--cream-darker)', borderRadius: 6 }}>
@@ -895,6 +909,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
                       if (filePreviews[i]) URL.revokeObjectURL(filePreviews[i]);
                       setAttachedFiles((prev) => prev.filter((_, idx) => idx !== i));
                       setFilePreviews((prev) => prev.filter((_, idx) => idx !== i));
+                      setFileRotations((prev) => prev.filter((_, idx) => idx !== i));
                     }}
                     style={{
                       position: 'absolute', top: -6, right: -6,

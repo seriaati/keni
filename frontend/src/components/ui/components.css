@@ -12,6 +12,8 @@
   position: relative;
   cursor: pointer;
   border: none;
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
 }
 
 .btn:disabled {
@@ -28,6 +30,9 @@
   color: var(--cream);
 }
 .btn-primary:hover:not(:disabled) {
+  background: var(--forest-mid);
+}
+.btn-primary:active:not(:disabled) {
   background: var(--forest-mid);
 }
 

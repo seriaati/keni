@@ -221,10 +221,13 @@ export const expenses = {
     if (params.end_date) q.set('end_date', params.end_date);
     return request<TransactionSummary>(`/wallets/${walletId}/transactions/summary?${q}`);
   },
-  aiParse: (walletId: string, text?: string, files?: File[]) => {
+  aiParse: (walletId: string, text?: string, files?: File[], rotations?: number[]) => {
     const form = new FormData();
     if (text) form.append('text', text);
-    files?.forEach((f) => form.append('files', f));
+    files?.forEach((f, i) => {
+      form.append('files', f);
+      form.append('rotations', String(rotations?.[i] ?? 0));
+    });
     return request<AIParseResponse>(`/wallets/${walletId}/transactions/ai`, {
       method: 'POST',
       body: form,
