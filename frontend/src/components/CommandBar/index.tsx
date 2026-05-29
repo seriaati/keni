@@ -452,7 +452,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   const flushRotation = (): Promise<void> => {
     const idx = enlargedPreviewIndex;
     if (idx === null) return Promise.resolve();
-    const deg = fileRotations[idx] ?? 0;
+    const deg = ((fileRotations[idx] ?? 0) % 360 + 360) % 360;
     const imgEl = lightboxImgRef.current;
     if (deg === 0 || !imgEl || imgEl.naturalWidth === 0) return Promise.resolve();
     const swap = deg === 90 || deg === 270;
@@ -479,7 +479,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   const rotateImageCW = () => {
     if (enlargedPreviewIndex === null) return;
     const idx = enlargedPreviewIndex;
-    setFileRotations((prev) => { const n = [...prev]; n[idx] = ((n[idx] ?? 0) + 90) % 360; return n; });
+    setFileRotations((prev) => { const n = [...prev]; n[idx] = (n[idx] ?? 0) + 90; return n; });
   };
 
   const applyCrop = () => {
@@ -579,6 +579,10 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   const resultType = parseResult?.result_type;
   const activeWalletCurrency = wallets.find((w) => w.id === selectedWalletId)?.currency ?? activeWallet?.currency;
 
+  const enlargedRotation = fileRotations[enlargedPreviewIndex ?? -1] ?? 0;
+  const enlargedRotationNorm = ((enlargedRotation % 360) + 360) % 360;
+  const enlargedRotationSwap = enlargedRotationNorm === 90 || enlargedRotationNorm === 270;
+
   return (
     <>
       {enlargedPreview && createPortal(
@@ -607,13 +611,14 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
               src={enlargedPreview}
               alt="Receipt enlarged"
               style={{
-                maxWidth: ((fileRotations[enlargedPreviewIndex ?? -1] ?? 0) === 90 || (fileRotations[enlargedPreviewIndex ?? -1] ?? 0) === 270) ? '70vh' : '90vw',
-                maxHeight: ((fileRotations[enlargedPreviewIndex ?? -1] ?? 0) === 90 || (fileRotations[enlargedPreviewIndex ?? -1] ?? 0) === 270) ? '90vw' : '70vh',
+                maxWidth: enlargedRotationSwap ? '70vh' : '90vw',
+                maxHeight: enlargedRotationSwap ? '90vw' : '70vh',
                 display: 'block',
                 borderRadius: cropMode ? 0 : 12,
                 boxShadow: cropMode ? 'none' : '0 32px 80px oklch(18% 0.02 80 / 0.4)',
-                transform: (fileRotations[enlargedPreviewIndex ?? -1] ?? 0) !== 0 ? `rotate(${fileRotations[enlargedPreviewIndex ?? -1] ?? 0}deg)` : undefined,
+                transform: `rotate(${enlargedRotation}deg)`,
                 transition: 'transform 0.15s ease',
+                willChange: 'transform',
               }}
               onClick={(e) => e.stopPropagation()}
             />
