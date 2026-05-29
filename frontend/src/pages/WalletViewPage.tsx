@@ -461,6 +461,18 @@ export function WalletViewPage() {
     return [...seen.values()];
   }, [data, selectedIds]);
 
+  // Net amount of selected transactions (income positive, expense negative)
+  const selectedSum = useMemo(() => {
+    if (!data) return 0;
+    let total = 0;
+    for (const item of data.items) {
+      if (selectedIds.has(item.id)) {
+        total += item.type === 'income' ? item.amount : -item.amount;
+      }
+    }
+    return total;
+  }, [data, selectedIds]);
+
   // Bulk action toolbar (floating, Linear-style)
   const bulkToolbar = selCount > 0 ? (
     <div
@@ -487,6 +499,15 @@ export function WalletViewPage() {
     >
       <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', padding: '0 4px 0 6px' }}>
         {t('walletView.bulkSelected', { count: selCount })}
+      </span>
+      <div style={{ width: 1, height: 18, background: 'var(--cream-darker)', flexShrink: 0 }} />
+      <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', padding: '0 4px', display: 'flex', alignItems: 'baseline', gap: 6 }}>
+        {fmt(selectedSum, wallet?.currency ?? 'USD')}
+        {fxRate != null && user?.global_currency && (
+          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)' }}>
+            ≈ {fmt(selectedSum * fxRate, user.global_currency)}
+          </span>
+        )}
       </span>
       <button
         className="btn btn-secondary btn-sm"
