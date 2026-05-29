@@ -537,9 +537,7 @@ async def _tool_convert_currency(args: dict[str, Any]) -> dict[str, Any]:
         rates = cached[0]
     else:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(
-                f"https://api.frankfurter.dev/v2/rates?base={from_cur}",
-            )
+            resp = await client.get(f"https://api.frankfurter.dev/v2/rates?base={from_cur}")
         if resp.status_code != 200:
             msg = f"Exchange rate API returned {resp.status_code}"
             raise ValueError(msg)

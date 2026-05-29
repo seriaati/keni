@@ -1020,9 +1020,7 @@ async def convert_currency(amount: float, from_currency: str, to_currency: str) 
         rates = cached[0]
     else:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(
-                f"https://api.frankfurter.dev/v2/rates?base={from_cur}",
-            )
+            resp = await client.get(f"https://api.frankfurter.dev/v2/rates?base={from_cur}")
         if resp.status_code != 200:
             return {"error": f"Exchange rate API returned {resp.status_code}"}
         data = resp.json()

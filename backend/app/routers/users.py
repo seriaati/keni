@@ -54,7 +54,10 @@ async def update_me(
         current_user.custom_ai_prompt = body.custom_ai_prompt
     if "global_currency" in body.model_fields_set:
         current_user.global_currency = body.global_currency
-    if "fx_use_historical_rates" in body.model_fields_set and body.fx_use_historical_rates is not None:
+    if (
+        "fx_use_historical_rates" in body.model_fields_set
+        and body.fx_use_historical_rates is not None
+    ):
         current_user.fx_use_historical_rates = body.fx_use_historical_rates
     if "language" in body.model_fields_set:
         current_user.language = body.language
