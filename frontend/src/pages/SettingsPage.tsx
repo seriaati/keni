@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Copy, Eye, EyeOff, Info, Key, Plus, Trash2, User, Bot, Check } from 'lucide-react';
-import { users as usersApi, aiProvider as aiProviderApi, tokens as tokensApi } from '../lib/api';
+import { Copy, Download, Eye, EyeOff, Info, Key, Plus, Trash2, User, Bot, Check } from 'lucide-react';
+import { users as usersApi, aiProvider as aiProviderApi, tokens as tokensApi, wallets as walletsApi, expenses as expensesApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/Toast';
 import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
 import { SearchableSelect } from '../components/ui/SearchableSelect';
 import { DatePicker } from '../components/ui/DatePicker';
-import type { AIProviderResponse, APITokenCreateResponse, APITokenResponse, UserResponse } from '../lib/types';
+import type { AIProviderResponse, APITokenCreateResponse, APITokenResponse, UserResponse, WalletResponse } from '../lib/types';
 import { AI_PROVIDERS, fmtDate } from '../lib/utils';
 import { getSupportedCurrencies } from '../lib/fx';
 import { SUPPORTED_LOCALES } from '../lib/i18n';
@@ -18,7 +18,7 @@ export function SettingsPage() {
   const { user, refreshUser } = useAuth();
   const toast = useToast();
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'ai' | 'tokens'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'ai' | 'tokens' | 'data'>('profile');
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: 640 }}>
@@ -37,11 +37,15 @@ export function SettingsPage() {
         <button className={`tab ${activeTab === 'tokens' ? 'tab-active' : ''}`} onClick={() => setActiveTab('tokens')}>
           <Key size={14} /> {t('settings.tabTokens')}
         </button>
+        <button className={`tab ${activeTab === 'data' ? 'tab-active' : ''}`} onClick={() => setActiveTab('data')}>
+          <Download size={14} /> {t('settings.tabData')}
+        </button>
       </div>
 
       {activeTab === 'profile' && user && <ProfileTab user={user} refreshUser={refreshUser} toast={toast} />}
       {activeTab === 'ai' && user && <AIProviderTab user={user} refreshUser={refreshUser} toast={toast} />}
       {activeTab === 'tokens' && <TokensTab toast={toast} />}
+      {activeTab === 'data' && <DataExportTab toast={toast} />}
     </div>
   );
 }
@@ -642,6 +646,129 @@ function TokensTab({ toast }: { toast: (msg: string, type?: 'success' | 'error' 
           />
         </div>
       </Modal>
+    </div>
+  );
+}
+
+// Make a wallet name safe to use as a filename component
+function safeFileName(name: string): string {
+  return name.trim().replace(/[/\\?%*:|"<>]/g, '-').replace(/\s+/g, '_') || 'wallet';
+}
+
+function DataExportTab({ toast }: { toast: (msg: string, type?: 'success' | 'error' | 'info') => void }) {
+  const { t } = useTranslation();
+  const [wallets, setWallets] = useState<WalletResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [format, setFormat] = useState<'csv' | 'json'>('csv');
+  const [exporting, setExporting] = useState(false);
+
+  useEffect(() => {
+    walletsApi.list()
+      .then(setWallets)
+      .catch(() => toast(t('settings.exportToastLoadFailed'), 'error'))
+      .finally(() => setLoading(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleWallet = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const allSelected = wallets.length > 0 && selectedIds.size === wallets.length;
+  const toggleAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(wallets.map((w) => w.id)));
+  };
+
+  const handleExport = async () => {
+    if (selectedIds.size === 0) return;
+    setExporting(true);
+    let failCount = 0;
+    try {
+      for (const wallet of wallets) {
+        if (!selectedIds.has(wallet.id)) continue;
+        try {
+          const res = await expensesApi.export(wallet.id, format);
+          if (!res.ok) throw new Error('export failed');
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${safeFileName(wallet.name)}-${wallet.id}.${format}`;
+          a.click();
+          URL.revokeObjectURL(url);
+        } catch {
+          failCount++;
+        }
+      }
+      if (failCount > 0) {
+        toast(t('settings.exportToastFailed', { count: failCount }), 'error');
+      } else {
+        toast(t('settings.exportToastSuccess', { count: selectedIds.size }), 'success');
+      }
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>{t('settings.exportTitle')}</div>
+          <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{t('settings.exportDesc')}</div>
+        </div>
+
+        {loading ? (
+          <div className="skeleton" style={{ height: 120, borderRadius: 12 }} />
+        ) : wallets.length === 0 ? (
+          <p style={{ fontSize: 13, color: 'var(--ink-faint)', margin: 0 }}>{t('settings.exportNoWallets')}</p>
+        ) : (
+          <>
+            <div className="input-group" style={{ marginBottom: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <label className="input-label" style={{ marginBottom: 0 }}>{t('settings.exportSelectWallets')}</label>
+                <button className="btn btn-ghost btn-sm" onClick={toggleAll} style={{ fontSize: 12 }}>
+                  {allSelected ? t('settings.exportDeselectAll') : t('settings.exportSelectAll')}
+                </button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 6 }}>
+                {wallets.map((wallet) => (
+                  <label key={wallet.id} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(wallet.id)}
+                      onChange={() => toggleWallet(wallet.id)}
+                      style={{ width: 16, height: 16, accentColor: 'var(--forest)', cursor: 'pointer' }}
+                    />
+                    <span style={{ flex: 1, fontSize: 14, color: 'var(--ink)' }}>{wallet.name}</span>
+                    <span style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{wallet.currency}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="input-group" style={{ marginBottom: 0 }}>
+              <label className="input-label">{t('settings.exportFormat')}</label>
+              <Select
+                value={format}
+                onChange={(v) => setFormat(v as 'csv' | 'json')}
+                options={[{ value: 'csv', label: 'CSV' }, { value: 'json', label: 'JSON' }]}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn btn-primary btn-md" onClick={handleExport} disabled={exporting || selectedIds.size === 0}>
+                {exporting ? <span className="btn-spinner" /> : <Download size={16} />}
+                {t('settings.exportButton')}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

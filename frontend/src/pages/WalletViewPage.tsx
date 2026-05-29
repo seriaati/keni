@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useParams, useSearchParams, useOutletContext, useNavigate, type NavigateFunction } from 'react-router-dom';
-import { ArrowLeftRight, Check, Command, Download, Filter, FolderOpen, Layers, Plus, Search, SortAsc, SortDesc, Sparkles, Tag, Trash2, X } from 'lucide-react';
+import { ArrowLeftRight, Check, Command, Filter, FolderOpen, Layers, Plus, Search, SortAsc, SortDesc, Sparkles, Tag, Trash2, X } from 'lucide-react';
 import { expenses as expensesApi, categories as categoriesApi, wallets as walletsApi, tags as tagsApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/Toast';
@@ -173,22 +173,6 @@ export function WalletViewPage() {
     const date = user?.fx_use_historical_rates && endDate ? endDate : undefined;
     getExchangeRate(walletCurrency, globalCurrency, date).then(setFxRate);
   }, [wallet?.currency, user?.global_currency, user?.fx_use_historical_rates, endDate]);
-
-  const handleExport = async (format: 'csv' | 'json') => {
-    if (!walletId) return;
-    try {
-      const res = await expensesApi.export(walletId, format);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `expenses.${format}`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      toast(t('walletView.toastExportFailed'), 'error');
-    }
-  };
 
   const toggleTag = (id: string) => {
     const next = selectedTagIds.includes(id)
@@ -762,14 +746,6 @@ export function WalletViewPage() {
           <p className="page-subtitle">
             {wallet ? `${fmt(wallet.balance, wallet.currency)} balance · ${fmt(wallet.total_income, wallet.currency)} income · ${fmt(wallet.total_expenses, wallet.currency)} expenses` : ''}
           </p>
-        </div>
-        <div className="page-actions">
-          <button className="btn btn-secondary btn-sm" onClick={() => handleExport('csv')}>
-            <Download size={14} /> CSV
-          </button>
-          <button className="btn btn-secondary btn-sm" onClick={() => handleExport('json')}>
-            <Download size={14} /> JSON
-          </button>
         </div>
       </div>
 

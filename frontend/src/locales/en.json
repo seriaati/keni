@@ -378,7 +378,19 @@
     "tokenCreateBtn": "Create token",
     "toastTokenRevoked": "Token revoked",
     "toastTokenLoadFailed": "Failed to load tokens",
-    "toastTokenRevokeFailed": "Failed to revoke"
+    "toastTokenRevokeFailed": "Failed to revoke",
+    "tabData": "Data",
+    "exportTitle": "Export transactions",
+    "exportDesc": "Download your transactions per wallet.",
+    "exportSelectWallets": "Wallets",
+    "exportSelectAll": "Select all",
+    "exportDeselectAll": "Deselect all",
+    "exportFormat": "Format",
+    "exportButton": "Export",
+    "exportNoWallets": "You don't have any wallets yet.",
+    "exportToastLoadFailed": "Failed to load wallets",
+    "exportToastSuccess": "Exported {{count}} wallet(s)",
+    "exportToastFailed": "Failed to export {{count}} wallet(s)"
   },
   "admin": {
     "title": "Admin Settings",

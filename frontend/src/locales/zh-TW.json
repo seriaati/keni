@@ -378,7 +378,19 @@
     "tokenCreateBtn": "建立令牌",
     "toastTokenRevoked": "令牌已撤銷",
     "toastTokenLoadFailed": "載入令牌失敗",
-    "toastTokenRevokeFailed": "撤銷失敗"
+    "toastTokenRevokeFailed": "撤銷失敗",
+    "tabData": "資料",
+    "exportTitle": "匯出交易",
+    "exportDesc": "依錢包下載你的交易。",
+    "exportSelectWallets": "錢包",
+    "exportSelectAll": "全選",
+    "exportDeselectAll": "取消全選",
+    "exportFormat": "格式",
+    "exportButton": "匯出",
+    "exportNoWallets": "你還沒有任何錢包。",
+    "exportToastLoadFailed": "載入錢包失敗",
+    "exportToastSuccess": "已匯出 {{count}} 個錢包",
+    "exportToastFailed": "{{count}} 個錢包匯出失敗"
   },
   "admin": {
     "title": "管理設定",
