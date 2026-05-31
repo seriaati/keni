@@ -89,7 +89,6 @@ export function WalletViewPage() {
   // Local state for search input — decoupled from URL to avoid interrupting IME composition (e.g. Zhuyin)
   const [searchInput, setSearchInput] = useState(() => search);
   const isComposingRef = useRef(false);
-  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!isComposingRef.current) setSearchInput(search);
   }, [search]);
@@ -751,29 +750,25 @@ export function WalletViewPage() {
 
       {/* Search & filter bar */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
+        <form
+          style={{ flex: 1, minWidth: 200, position: 'relative' }}
+          onSubmit={(e) => { e.preventDefault(); setParam({ q: searchInput, page: null }); }}
+        >
           <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-faint)' }} />
           <input
             className="input"
             style={{ paddingLeft: 32 }}
             placeholder={t('walletView.searchPlaceholder')}
+            enterKeyHint="search"
             value={searchInput}
-            onChange={(e) => {
-              const val = e.target.value;
-              setSearchInput(val);
-              if (!isComposingRef.current) {
-                if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-                searchDebounceRef.current = setTimeout(() => setParam({ q: val, page: null }), 300);
-              }
-            }}
+            onChange={(e) => setSearchInput(e.target.value)}
             onCompositionStart={() => { isComposingRef.current = true; }}
             onCompositionEnd={(e) => {
               isComposingRef.current = false;
-              if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-              setParam({ q: (e.target as HTMLInputElement).value, page: null });
+              setSearchInput((e.target as HTMLInputElement).value);
             }}
           />
-        </div>
+        </form>
 
         <MultiCategorySelect
           value={selectedCategoryIds}
