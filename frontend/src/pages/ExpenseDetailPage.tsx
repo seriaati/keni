@@ -708,7 +708,7 @@ export function ExpenseDetailPage() {
               />
             ) : (
               <Link
-                to={`/wallets/${walletId}?category_id=${expense.category.id}`}
+                to={`/wallets/${walletId}?category_ids=${expense.category.id}`}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: 'inherit' }}
                 onMouseEnter={(e) => { (e.currentTarget.lastElementChild as HTMLElement).style.textDecoration = 'underline'; }}
                 onMouseLeave={(e) => { (e.currentTarget.lastElementChild as HTMLElement).style.textDecoration = 'none'; }}
