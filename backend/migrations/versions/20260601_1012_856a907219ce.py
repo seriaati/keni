@@ -5,6 +5,7 @@ Revises: 471e6e0223f8
 Create Date: 2026-06-01 10:12:09.634128
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -13,8 +14,8 @@ import sqlmodel.sql.sqltypes
 
 
 # revision identifiers, used by Alembic.
-revision: str = '856a907219ce'
-down_revision: Union[str, Sequence[str], None] = '471e6e0223f8'
+revision: str = "856a907219ce"
+down_revision: Union[str, Sequence[str], None] = "471e6e0223f8"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

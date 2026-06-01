@@ -5,6 +5,7 @@ Revises: 4b1464fbd894
 Create Date: 2026-06-01 09:15:48.046900
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -13,8 +14,8 @@ import sqlmodel.sql.sqltypes
 
 
 # revision identifiers, used by Alembic.
-revision: str = '471e6e0223f8'
-down_revision: Union[str, Sequence[str], None] = '4b1464fbd894'
+revision: str = "471e6e0223f8"
+down_revision: Union[str, Sequence[str], None] = "4b1464fbd894"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -56,10 +57,7 @@ def upgrade() -> None:
         )
     )
     op.create_index(
-        "ix_tags_user_id_lower_name",
-        "tags",
-        ["user_id", sa.text("lower(name)")],
-        unique=True,
+        "ix_tags_user_id_lower_name", "tags", ["user_id", sa.text("lower(name)")], unique=True
     )
 
 
