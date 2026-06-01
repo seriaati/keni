@@ -52,6 +52,7 @@ ignore = [
     "S311",    # Standard pseudo-random generators are not suitable for security/cryptographic purposes
     "ANN003",  # Missing type annotation for kwargs
     "RUF001",  # Use of ambiguous Unicode characters
+    "PLW0717",
 ]
 
 [lint.per-file-ignores]
