@@ -399,6 +399,20 @@ export function ExpenseDetailPage() {
       .finally(() => setLoading(false));
   }, [walletId, expenseId, toast]);
 
+  const handleStartEdit = () => {
+    if (!expense) return;
+    setPendingLinks(expense.linked_transactions);
+    setForm({
+      amount: String(expense.amount),
+      description: expense.description ?? '',
+      category_id: expense.category.id,
+      date: expense.date.slice(0, 10),
+      tag_ids: expense.tags.map((tg) => tg.id),
+      type: expense.type,
+    });
+    setEditing(true);
+  };
+
   const handleSave = async () => {
     if (!walletId || !expenseId || !expense) return;
     setSaving(true);
@@ -548,21 +562,10 @@ export function ExpenseDetailPage() {
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
         <h1 className="page-title">{t('expenseDetail.title')}</h1>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div className="header-actions" style={{ display: 'flex', gap: 6 }}>
           {!editing ? (
             <>
-              <button className="btn btn-secondary btn-sm" onClick={() => {
-                setPendingLinks(expense.linked_transactions);
-                setForm({
-                  amount: String(expense.amount),
-                  description: expense.description ?? '',
-                  category_id: expense.category.id,
-                  date: expense.date.slice(0, 10),
-                  tag_ids: expense.tags.map((t) => t.id),
-                  type: expense.type,
-                });
-                setEditing(true);
-              }}>
+              <button className="btn btn-secondary btn-sm" onClick={handleStartEdit}>
                 <Pencil size={13} /> {t('expenseDetail.btnEdit')}
               </button>
               <button className="btn btn-danger btn-sm" onClick={() => setConfirmDelete(true)} disabled={deleting}>
@@ -909,6 +912,80 @@ export function ExpenseDetailPage() {
           {expense.updated_at !== expense.created_at && <span>{t('expenseDetail.metaUpdated', { date: fmtDate(expense.updated_at) })}</span>}
         </div>
       </div>
+
+      {createPortal(
+        <div
+          role="toolbar"
+          className="edit-island"
+          style={{
+            position: 'fixed',
+            bottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 24px)',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 500,
+            alignItems: 'center',
+            gap: 6,
+            background: 'white',
+            border: '1px solid var(--cream-darker)',
+            borderRadius: 100,
+            padding: '6px 8px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.07)',
+            whiteSpace: 'nowrap',
+            transition: 'border-radius 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+        >
+          {!editing ? (
+            <div key="view" className="island-morph" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ borderRadius: 100, fontSize: 13, padding: '5px 14px', display: 'flex', alignItems: 'center', gap: 5 }}
+                onClick={handleStartEdit}
+              >
+                <Pencil size={13} /> {t('expenseDetail.btnEdit')}
+              </button>
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ borderRadius: 100, padding: '5px 8px', lineHeight: 0, border: '1px solid var(--cream-darker)', color: 'var(--rose)' }}
+                onClick={() => setConfirmDelete(true)}
+                disabled={deleting}
+                title={t('expenseDetail.btnDelete')}
+              >
+                {deleting ? <span className="btn-spinner" /> : <Trash2 size={14} />}
+              </button>
+            </div>
+          ) : (
+            <div key="edit" className="island-morph" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ borderRadius: 100, padding: '5px 8px', lineHeight: 0, border: '1px solid var(--cream-darker)' }}
+                onClick={() => setEditing(false)}
+                title={t('expenseDetail.btnCancel')}
+              >
+                <X size={14} />
+              </button>
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ borderRadius: 100, fontSize: 13, padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 5 }}
+                onClick={handleAICategorize}
+                disabled={aiSuggesting}
+              >
+                {aiSuggesting ? <span className="btn-spinner" /> : <Sparkles size={13} />}
+                {t('expenseDetail.btnAISuggest')}
+              </button>
+              <button
+                className="btn btn-primary btn-sm"
+                style={{ borderRadius: 100, fontSize: 13, padding: '5px 14px', display: 'flex', alignItems: 'center', gap: 5 }}
+                onClick={handleSave}
+                disabled={saving}
+              >
+                {saving ? <span className="btn-spinner" /> : <Check size={13} />}
+                {t('expenseDetail.btnSave')}
+              </button>
+            </div>
+          )}
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }
