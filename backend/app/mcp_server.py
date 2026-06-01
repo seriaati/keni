@@ -16,14 +16,14 @@ from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import Icon
 from pydantic import AnyHttpUrl
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlmodel import col, select
 
 from app.config import settings as app_settings
 from app.database import get_session
 from app.models.category import Category
 from app.models.tag import Tag
-from app.models.transaction import Transaction, TransactionTag
+from app.models.transaction import Transaction, TransactionLink, TransactionTag
 from app.models.user import User
 from app.models.wallet import Wallet
 from app.services.category_tag import find_or_create_category, find_or_create_tag
@@ -111,6 +111,51 @@ async def _get_transaction_tags(transaction_id: uuid.UUID, session: Any) -> list
         .where(col(TransactionTag.transaction_id) == transaction_id)
     )
     return [{"id": str(t.id), "name": t.name, "color": t.color} for t in tag_result.all()]
+
+
+async def _get_linked_count(transaction_id: uuid.UUID, session: Any) -> int:
+    count_result = await session.exec(
+        select(func.count())
+        .select_from(TransactionLink)
+        .where(
+            or_(
+                col(TransactionLink.transaction_id_a) == transaction_id,
+                col(TransactionLink.transaction_id_b) == transaction_id,
+            )
+        )
+    )
+    return int(count_result.one())
+
+
+async def _get_linked_transactions(transaction_id: uuid.UUID, session: Any) -> list[dict[str, Any]]:
+    linked_result = await session.exec(
+        select(Transaction).join(
+            TransactionLink,
+            or_(
+                (col(TransactionLink.transaction_id_a) == transaction_id)
+                & (col(TransactionLink.transaction_id_b) == col(Transaction.id)),
+                (col(TransactionLink.transaction_id_b) == transaction_id)
+                & (col(TransactionLink.transaction_id_a) == col(Transaction.id)),
+            ),
+        )
+    )
+    linked = []
+    for lt in linked_result.all():
+        cat_result = await session.exec(select(Category).where(Category.id == lt.category_id))
+        cat = cat_result.first()
+        linked.append(
+            {
+                "id": str(lt.id),
+                "wallet_id": str(lt.wallet_id),
+                "type": lt.type,
+                "amount": lt.amount,
+                "description": lt.description,
+                "date": lt.date.isoformat(),
+                "category": cat.name if cat else "Unknown",
+                "category_id": str(lt.category_id),
+            }
+        )
+    return linked
 
 
 def _transaction_to_dict(
@@ -294,7 +339,9 @@ async def _fetch_transactions(  # noqa: PLR0911, PLR0912, PLR0914
             cat_result = await session.exec(select(Category).where(Category.id == t.category_id))
             cat = cat_result.first()
             tags = await _get_transaction_tags(t.id, session)
-            rows.append(_transaction_to_dict(t, cat, tags))
+            row = _transaction_to_dict(t, cat, tags)
+            row["linked_count"] = await _get_linked_count(t.id, session)
+            rows.append(row)
 
         return {"items": rows, "total": int(total), "page": page, "page_size": page_size}
     return "Database error"
@@ -304,6 +351,10 @@ async def _fetch_transactions(  # noqa: PLR0911, PLR0912, PLR0914
 async def list_transactions(params: ListTransactionsInput) -> dict[str, Any]:
     """
     List transactions for a wallet with optional filters.
+
+    Each item includes a "linked_count" field — the number of other transactions linked to it.
+    The linked transactions themselves are not included here; call get_transaction to retrieve
+    the full "linked_transactions" objects for any item where linked_count > 0.
 
     Args:
         params.wallet_id: UUID of the wallet to query.
@@ -331,6 +382,9 @@ async def list_transactions(params: ListTransactionsInput) -> dict[str, Any]:
 async def get_transaction(wallet_id: str, transaction_id: str) -> dict[str, Any]:
     """
     Get a single transaction by ID.
+
+    The result includes a "linked_transactions" list with the full details of every
+    transaction linked to this one.
 
     Args:
         wallet_id: UUID of the wallet.
@@ -362,7 +416,9 @@ async def get_transaction(wallet_id: str, transaction_id: str) -> dict[str, Any]
         cat_result = await session.exec(select(Category).where(Category.id == t.category_id))
         cat = cat_result.first()
         tags = await _get_transaction_tags(t.id, session)
-        return _transaction_to_dict(t, cat, tags)
+        row = _transaction_to_dict(t, cat, tags)
+        row["linked_transactions"] = await _get_linked_transactions(t.id, session)
+        return row
     return {"error": "Database error"}
 
 
@@ -631,7 +687,7 @@ class UpdateTransactionInput:
 
 
 @mcp.tool()
-async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]:  # noqa: C901, PLR0911, PLR0912
+async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]:  # noqa: C901, PLR0911, PLR0912, PLR0914
     """
     Update an existing transaction.
 
@@ -729,7 +785,9 @@ async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]: 
         cat_result = await session.exec(select(Category).where(Category.id == t.category_id))
         cat = cat_result.first()
         tags = await _get_transaction_tags(t.id, session)
-        return _transaction_to_dict(t, cat, tags)
+        row = _transaction_to_dict(t, cat, tags)
+        row["linked_transactions"] = await _get_linked_transactions(t.id, session)
+        return row
     return {"error": "Database error"}
 
 
