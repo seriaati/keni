@@ -1,0 +1,62 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "github>seriaati/renovate-config"
+  ],
+  "packageRules": [
+    {
+      "description": "Disable Dockerfile tag updates in all subdirs (preset only covers root)",
+      "matchFileNames": ["**/Dockerfile"],
+      "enabled": false
+    },
+    {
+      "description": "Group React ecosystem (frontend)",
+      "matchFileNames": ["frontend/**"],
+      "matchPackageNames": [
+        "react",
+        "react-dom",
+        "react-router-dom",
+        "react-i18next",
+        "i18next",
+        "i18next-browser-languagedetector",
+        "@types/react",
+        "@types/react-dom"
+      ],
+      "groupName": "react"
+    },
+    {
+      "description": "Group lint + TypeScript tooling",
+      "matchPackageNames": [
+        "eslint",
+        "@eslint/js",
+        "typescript",
+        "typescript-eslint",
+        "eslint-plugin-react-hooks",
+        "eslint-plugin-react-refresh",
+        "globals"
+      ],
+      "groupName": "lint & types"
+    },
+    {
+      "description": "Group Vite tooling",
+      "matchPackageNames": [
+        "vite",
+        "@vitejs/plugin-react",
+        "vite-plugin-pwa"
+      ],
+      "groupName": "vite"
+    },
+    {
+      "description": "Group Astro (website)",
+      "matchFileNames": ["website/**"],
+      "matchPackageNames": ["astro", "@astrojs/**"],
+      "groupName": "astro"
+    },
+    {
+      "description": "Pin @types/node to the Node major in use",
+      "matchPackageNames": ["@types/node"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    }
+  ]
+}
