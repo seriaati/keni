@@ -7,6 +7,11 @@ from sqlmodel import Field, SQLModel, text
 
 class Category(SQLModel, table=True):
     __tablename__: str = "categories"
+    __table_args__ = (
+        sa.Index(
+            "ix_categories_user_id_lower_name", "user_id", sa.text("lower(name)"), unique=True
+        ),
+    )
 
     id: uuid.UUID = Field(
         default=None,
