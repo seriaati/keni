@@ -431,7 +431,13 @@ export function WalletViewPage() {
 
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
   const hasFilters = search || selectedCategoryIds.length > 0 || selectedTagIds.length > 0 || startDate || endDate || minAmount || maxAmount;
+  // Count of filters controlled by the advanced panel (search & category have their own UI)
+  const panelFilterCount =
+    (startDate ? 1 : 0) + (endDate ? 1 : 0) + (minAmount ? 1 : 0) + (maxAmount ? 1 : 0) + selectedTagIds.length;
   const selCount = selectedIds.size;
+
+  // Tags that can still match given the other active filters; ineligible ones are dimmed, not hidden.
+  const availableTagIds = useMemo(() => new Set(data?.available_tag_ids ?? []), [data]);
 
   const selectedTransactionTags = useMemo(() => {
     if (!data) return [] as TagBrief[];
@@ -780,11 +786,31 @@ export function WalletViewPage() {
         <button
           className={`btn btn-secondary btn-md ${showFilters ? 'btn-active' : ''}`}
           onClick={() => setShowFilters(!showFilters)}
-          style={showFilters ? { background: 'var(--cream-darker)' } : {}}
+          style={{ position: 'relative', ...(showFilters ? { background: 'var(--cream-darker)' } : {}) }}
         >
           <Filter size={14} />
           {t('walletView.filterFilters')}
-          {hasFilters && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--forest)', marginLeft: 2 }} />}
+          {panelFilterCount > 0 && (
+            <span
+              style={{
+                position: 'absolute',
+                top: -6,
+                right: -6,
+                minWidth: 16,
+                height: 16,
+                padding: '0 4px',
+                borderRadius: 8,
+                background: 'var(--forest)',
+                color: 'white',
+                fontSize: 10,
+                fontWeight: 600,
+                lineHeight: '16px',
+                textAlign: 'center',
+              }}
+            >
+              {panelFilterCount}
+            </span>
+          )}
         </button>
 
         <button
@@ -839,6 +865,7 @@ export function WalletViewPage() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {allTags.map((tag) => {
                   const active = selectedTagIds.includes(tag.id);
+                  const eligible = active || availableTagIds.has(tag.id);
                   return (
                     <button
                       key={tag.id}
@@ -850,15 +877,19 @@ export function WalletViewPage() {
                         padding: '3px 10px',
                         borderRadius: 100,
                         fontSize: 12,
-                        fontWeight: 500,
+                        fontWeight: active ? 600 : 500,
                         cursor: 'pointer',
-                        border: `1.5px solid ${tag.color ? (active ? tag.color : `${tag.color}50`) : 'var(--cream-darker)'}`,
-                        background: active ? (tag.color ?? 'var(--ink)') : (tag.color ? `${tag.color}14` : 'var(--cream-dark)'),
-                        color: active ? 'white' : 'var(--ink-mid)',
+                        border: `1.5px solid ${tag.color ? (active ? tag.color : `${tag.color}50`) : (active ? 'var(--ink-light)' : 'var(--cream-darker)')}`,
+                        background: tag.color ? `${tag.color}14` : 'var(--cream-dark)',
+                        color: active ? 'var(--ink)' : 'var(--ink-mid)',
+                        opacity: eligible ? 1 : 0.4,
                         transition: 'all 0.15s',
                       }}
                     >
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: active ? 'white' : (tag.color ?? 'var(--sand-dark)'), flexShrink: 0 }} />
+                      {active
+                        ? <Check size={13} strokeWidth={2.1} style={{ color: tag.color ?? 'var(--ink)', flexShrink: 0, display: 'block' }} />
+                        : <span style={{ width: 6, height: 6, borderRadius: '50%', background: tag.color ?? 'var(--sand-dark)', flexShrink: 0 }} />
+                      }
                       {tag.name}
                     </button>
                   );

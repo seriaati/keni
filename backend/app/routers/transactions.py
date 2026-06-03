@@ -577,6 +577,17 @@ async def list_transactions(  # noqa: PLR0913, PLR0917
         query = query.where(col(Transaction.amount) <= max_amount)
     if search:
         query = query.where(col(Transaction.description).ilike(f"%{search}%"))
+
+    # Tags available given all OTHER active filters (ignoring the tag filter itself),
+    # so the tag filter UI only offers tags that can actually match.
+    ids_subquery = query.with_only_columns(col(Transaction.id))
+    available_tags_result = await session.exec(
+        select(col(TransactionTag.tag_id))
+        .where(col(TransactionTag.transaction_id).in_(ids_subquery))
+        .distinct()
+    )
+    available_tag_ids = list(available_tags_result.all())
+
     if tag_ids:
         query = (
             query.join(TransactionTag, col(Transaction.id) == col(TransactionTag.transaction_id))
@@ -599,7 +610,13 @@ async def list_transactions(  # noqa: PLR0913, PLR0917
 
     items = [await _build_transaction_response(t, session) for t in transactions]
 
-    return TransactionListResponse(items=items, total=int(total), page=page, page_size=page_size)
+    return TransactionListResponse(
+        items=items,
+        total=int(total),
+        page=page,
+        page_size=page_size,
+        available_tag_ids=available_tag_ids,
+    )
 
 
 @router.delete("/bulk", status_code=status.HTTP_204_NO_CONTENT)

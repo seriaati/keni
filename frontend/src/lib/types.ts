@@ -98,6 +98,7 @@ export interface TransactionListResponse {
   total: number;
   page: number;
   page_size: number;
+  available_tag_ids: string[];
 }
 
 export type ExpenseListResponse = TransactionListResponse;

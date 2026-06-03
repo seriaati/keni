@@ -93,6 +93,7 @@ class TransactionListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+    available_tag_ids: list[uuid.UUID] = []
 
 
 class TransactionSummary(BaseModel):
