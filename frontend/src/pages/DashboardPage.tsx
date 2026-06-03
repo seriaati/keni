@@ -144,7 +144,7 @@ export function DashboardPage() {
     id ? (categories.find((c) => c.id === id)?.name ?? 'Unknown') : null;
 
   const goToCategory = (categoryId: string) => {
-    navigate(`/wallets/${activeWallet!.id}?category_id=${categoryId}`);
+    navigate(`/wallets/${activeWallet!.id}?category_ids=${categoryId}`);
   };
 
   const overBudget = budgets.filter((b) => b.is_over_budget);
