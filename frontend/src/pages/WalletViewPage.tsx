@@ -748,9 +748,6 @@ export function WalletViewPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">{wallet?.name ?? t('walletView.titleFallback')}</h1>
-          <p className="page-subtitle">
-            {wallet ? `${fmt(wallet.balance, wallet.currency)} balance · ${fmt(wallet.total_income, wallet.currency)} income · ${fmt(wallet.total_expenses, wallet.currency)} expenses` : ''}
-          </p>
         </div>
       </div>
 
