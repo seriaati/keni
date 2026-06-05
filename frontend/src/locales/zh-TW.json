@@ -84,6 +84,7 @@
     "itemsCount_other": "{{count}} 項",
     "spendingTitle": "各類別支出",
     "incomeTitle": "各類別收入",
+    "total": "總計",
     "noData": "本月尚無數據。",
     "showLess": "收起",
     "showMore": "+{{count}} 項",

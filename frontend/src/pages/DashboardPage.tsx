@@ -443,6 +443,7 @@ export function DashboardPage() {
                 const displayed = categoryExpanded ? sorted : sorted.slice(0, 3);
                 return (
                   <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px' }}>
+                    <div style={{ position: 'relative' }}>
                     <ResponsiveContainer width="100%" height={160}>
                       <PieChart>
                         <Pie
@@ -474,6 +475,11 @@ export function DashboardPage() {
                         <Tooltip content={<PieTooltip total={total} currency={activeWallet.currency} />} wrapperStyle={{ transition: 'opacity 0.15s ease' }} />
                       </PieChart>
                     </ResponsiveContainer>
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
+                      <div style={{ fontSize: 10, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.total')}</div>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{fmt(total, activeWallet.currency)}</div>
+                    </div>
+                    </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
                       {displayed.map((cat, i) => (
                         <button
@@ -553,6 +559,7 @@ export function DashboardPage() {
                   const displayed = incomeCategoryExpanded ? sorted : sorted.slice(0, 3);
                   return (
                     <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px' }}>
+                      <div style={{ position: 'relative' }}>
                       <ResponsiveContainer width="100%" height={160}>
                         <PieChart>
                           <Pie
@@ -583,6 +590,11 @@ export function DashboardPage() {
                           <Tooltip content={<PieTooltip total={total} currency={activeWallet.currency} />} wrapperStyle={{ transition: 'opacity 0.15s ease' }} />
                         </PieChart>
                       </ResponsiveContainer>
+                      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
+                        <div style={{ fontSize: 10, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.total')}</div>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--forest)' }}>{fmt(total, activeWallet.currency)}</div>
+                      </div>
+                      </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
                         {displayed.map((cat, i) => (
                           <button

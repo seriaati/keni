@@ -84,6 +84,7 @@
     "itemsCount_other": "{{count}} items",
     "spendingTitle": "Spending by category",
     "incomeTitle": "Income by category",
+    "total": "Total",
     "noData": "No data yet this month.",
     "showLess": "Show less",
     "showMore": "+{{count}} more",
