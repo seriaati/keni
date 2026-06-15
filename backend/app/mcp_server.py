@@ -652,7 +652,7 @@ async def create_transaction(params: CreateTransactionInput) -> dict[str, Any]:
 
     Args:
         params.wallet_id: UUID of the wallet to add the transaction to.
-        params.amount: Transaction amount (must be positive).
+        params.amount: Transaction amount (zero or positive).
         params.type: Transaction type: "expense" (default) or "income".
         params.category_id: UUID of an existing category (mutually exclusive with category_name).
         params.category_name: Name of the category — matched case-insensitively or created if new.
@@ -664,8 +664,8 @@ async def create_transaction(params: CreateTransactionInput) -> dict[str, Any]:
         params.ai_context: Optional AI context/notes about this transaction.
     """
     user = await _get_authenticated_user()
-    if params.amount <= 0:
-        return {"error": "Amount must be positive"}
+    if params.amount < 0:
+        return {"error": "Amount must not be negative"}
     if params.type not in {"expense", "income"}:
         return {"error": "type must be 'expense' or 'income'"}
     result = await _insert_transaction(params, user.id)
@@ -699,7 +699,7 @@ async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]: 
         params.transaction_id: UUID of the transaction to update.
         params.category_id: New category UUID.
         params.type: New type: "expense" or "income".
-        params.amount: New amount (must be positive).
+        params.amount: New amount (zero or positive).
         params.description: New description.
         params.date: New date (ISO 8601).
         params.tag_ids: Replace all tags with this list of tag UUIDs.
@@ -715,8 +715,8 @@ async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]: 
 
     if params.type and params.type not in {"expense", "income"}:
         return {"error": "type must be 'expense' or 'income'"}
-    if params.amount is not None and params.amount <= 0:
-        return {"error": "Amount must be positive"}
+    if params.amount is not None and params.amount < 0:
+        return {"error": "Amount must not be negative"}
 
     async for session in get_session():
         wallet_result = await session.exec(

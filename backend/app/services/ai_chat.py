@@ -224,7 +224,7 @@ CHAT_TOOLS: list[ChatTool] = [
                 },
                 "amount": {
                     "type": "number",
-                    "description": "Transaction amount (must be positive).",
+                    "description": "Transaction amount (zero or positive).",
                 },
                 "type": {
                     "type": "string",
@@ -268,7 +268,7 @@ CHAT_TOOLS: list[ChatTool] = [
                     "type": "string",
                     "description": "UUID of the transaction to update.",
                 },
-                "amount": {"type": "number", "description": "New amount (must be positive)."},
+                "amount": {"type": "number", "description": "New amount (zero or positive)."},
                 "type": {
                     "type": "string",
                     "enum": ["expense", "income"],
@@ -637,8 +637,8 @@ async def _tool_create_transaction(  # noqa: PLR0911, PLR0912
         return {"error": "Wallet not found or not accessible"}
 
     amount = float(args.get("amount", 0))
-    if amount <= 0:
-        return {"error": "Amount must be positive"}
+    if amount < 0:
+        return {"error": "Amount must not be negative"}
 
     txn_type = args.get("type", "expense")
     if txn_type not in {"expense", "income"}:
@@ -732,8 +732,8 @@ async def _tool_update_transaction(  # noqa: C901, PLR0911, PLR0912
 
     if "amount" in args:
         amount = float(args["amount"])
-        if amount <= 0:
-            return {"error": "Amount must be positive"}
+        if amount < 0:
+            return {"error": "Amount must not be negative"}
         t.amount = amount
 
     if "type" in args:

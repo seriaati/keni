@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, model_validator
 class ExpenseCreate(BaseModel):
     category_id: uuid.UUID | None = None
     category_name: str | None = None
-    amount: float = Field(gt=0)
+    amount: float = Field(ge=0)
     description: str | None = Field(default=None, max_length=500)
     date: datetime | None = None
     tag_ids: list[uuid.UUID] = Field(default_factory=list)
@@ -37,7 +37,7 @@ class ExpenseGroupCreate(BaseModel):
 
 class ExpenseUpdate(BaseModel):
     category_id: uuid.UUID | None = None
-    amount: float | None = Field(default=None, gt=0)
+    amount: float | None = Field(default=None, ge=0)
     description: str | None = Field(default=None, max_length=500)
     date: datetime | None = None
     tag_ids: list[uuid.UUID] | None = None

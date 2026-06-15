@@ -12,7 +12,7 @@ class TransactionCreate(BaseModel):
     category_name: str | None = None
     category_icon: str | None = None
     type: Literal["expense", "income"] = "expense"
-    amount: float = Field(gt=0)
+    amount: float = Field(ge=0)
     description: str | None = Field(default=None, max_length=500)
     date: datetime | None = None
     tag_ids: list[uuid.UUID] = Field(default_factory=list)
@@ -41,7 +41,7 @@ class TransactionGroupCreate(BaseModel):
 class TransactionUpdate(BaseModel):
     category_id: uuid.UUID | None = None
     type: Literal["expense", "income"] | None = None
-    amount: float | None = Field(default=None, gt=0)
+    amount: float | None = Field(default=None, ge=0)
     description: str | None = Field(default=None, max_length=500)
     date: datetime | None = None
     tag_ids: list[uuid.UUID] | None = None
