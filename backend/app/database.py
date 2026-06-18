@@ -16,4 +16,4 @@ AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_co
 
 async def get_session() -> AsyncGenerator[AsyncSession]:
     async with AsyncSessionLocal() as session:
-        yield session
+        yield session  # noqa: ASYNC119 — FastAPI dependency; framework handles generator cleanup

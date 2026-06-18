@@ -26,6 +26,7 @@ export function ChatPage() {
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const idCounter = useRef(0);
   const toast = useToast();
 
   useEffect(() => {
@@ -34,8 +35,8 @@ export function ChatPage() {
 
   const send = async (text: string) => {
     if (!text.trim() || loading) return;
-    const userMsg: Message = { id: Date.now().toString(), role: 'user', content: text };
-    const loadingMsg: Message = { id: Date.now().toString() + 'l', role: 'assistant', content: '', loading: true };
+    const userMsg: Message = { id: (idCounter.current++).toString(), role: 'user', content: text };
+    const loadingMsg: Message = { id: (idCounter.current++).toString(), role: 'assistant', content: '', loading: true };
     setMessages((prev) => [...prev, userMsg, loadingMsg]);
     setInput('');
     setLoading(true);
