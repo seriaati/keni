@@ -876,6 +876,7 @@ async def chat_about_expenses(
         record.provider,
         api_key=_decrypt_key(record.api_key_encrypted),
         model=record.chat_model or record.model,
+        base_url=record.base_url,
     )
 
     try:

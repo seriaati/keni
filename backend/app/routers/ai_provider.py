@@ -40,6 +40,7 @@ async def get_ai_provider(current_user: CurrentUser, session: DbDep) -> AIProvid
         provider=record.provider,
         model=record.model,
         chat_model=record.chat_model,
+        base_url=record.base_url,
         api_key_masked=_mask_key(_decrypt_key(record.api_key_encrypted)),
         ocr_enabled=record.ocr_enabled,
     )
@@ -57,11 +58,13 @@ async def upsert_ai_provider_endpoint(
         session=session,
         ocr_enabled=body.ocr_enabled,
         chat_model=body.chat_model or None,
+        base_url=body.base_url,
     )
     return AIProviderResponse(
         provider=record.provider,
         model=record.model,
         chat_model=record.chat_model,
+        base_url=record.base_url,
         api_key_masked=_mask_key(_decrypt_key(record.api_key_encrypted)),
         ocr_enabled=record.ocr_enabled,
     )
@@ -84,9 +87,11 @@ async def validate_ai_provider(
     session: DbDep,
     api_key: Annotated[str | None, Body(embed=True)] = None,
     provider: Annotated[str | None, Body(embed=True)] = None,
+    base_url: Annotated[str | None, Body(embed=True)] = None,
 ) -> AIProviderValidateResponse:
     resolved_key = api_key
     resolved_provider = provider
+    resolved_base_url = base_url.strip() if base_url else None
 
     if not resolved_key or not resolved_provider:
         record = await get_ai_provider_record(current_user.id, session)
@@ -100,11 +105,13 @@ async def validate_ai_provider(
                 resolved_key = _decrypt_key(record.api_key_encrypted)
             if not resolved_provider:
                 resolved_provider = record.provider
+            if resolved_base_url is None:
+                resolved_base_url = record.base_url
 
     resolved_provider = resolved_provider or "anthropic"
     resolved_key = resolved_key or ""
 
-    client = get_provider_client(resolved_provider, resolved_key)
+    client = get_provider_client(resolved_provider, resolved_key, base_url=resolved_base_url)
     try:
         valid = await client.validate_key()
         if valid:
@@ -124,9 +131,11 @@ async def list_provider_models(
     session: DbDep,
     api_key: Annotated[str | None, Body(embed=True)] = None,
     provider: Annotated[str | None, Body(embed=True)] = None,
+    base_url: Annotated[str | None, Body(embed=True)] = None,
 ) -> AIProviderModelsResponse:
     resolved_key = api_key
     resolved_provider = provider
+    resolved_base_url = base_url.strip() if base_url else None
 
     if not resolved_key or not resolved_provider:
         record = await get_ai_provider_record(current_user.id, session)
@@ -140,11 +149,13 @@ async def list_provider_models(
                 resolved_key = _decrypt_key(record.api_key_encrypted)
             if not resolved_provider:
                 resolved_provider = record.provider
+            if resolved_base_url is None:
+                resolved_base_url = record.base_url
 
     resolved_provider = resolved_provider or "anthropic"
     resolved_key = resolved_key or ""
 
-    client = get_provider_client(resolved_provider, resolved_key)
+    client = get_provider_client(resolved_provider, resolved_key, base_url=resolved_base_url)
     try:
         model_ids = await client.list_models()
     except ProviderAuthError as exc:

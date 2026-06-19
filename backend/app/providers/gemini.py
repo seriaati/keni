@@ -61,8 +61,11 @@ def _wrap_client_error(exc: genai_errors.ClientError) -> Exception:
 
 
 class GeminiProvider(LLMProvider):
-    def __init__(self, api_key: str, model: str) -> None:
-        self._client = genai.Client(api_key=api_key)
+    def __init__(self, api_key: str, model: str, base_url: str | None = None) -> None:
+        http_options: genai_types.HttpOptionsDict | None = (
+            {"base_url": base_url} if base_url else None
+        )
+        self._client = genai.Client(api_key=api_key, http_options=http_options)
         self._model = model
 
     async def _fetch_icon_suggestions(

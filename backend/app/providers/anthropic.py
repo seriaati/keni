@@ -64,8 +64,8 @@ def _wrap_anthropic_error(exc: Exception) -> Exception:
 
 
 class AnthropicProvider(LLMProvider):
-    def __init__(self, api_key: str, model: str) -> None:
-        self._client = anthropic.AsyncAnthropic(api_key=api_key)
+    def __init__(self, api_key: str, model: str, base_url: str | None = None) -> None:
+        self._client = anthropic.AsyncAnthropic(api_key=api_key, base_url=base_url)
         self._model = model
 
     async def _fetch_icon_suggestions(

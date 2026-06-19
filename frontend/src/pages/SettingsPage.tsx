@@ -236,7 +236,7 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showKey, setShowKey] = useState(false);
-  const [form, setForm] = useState({ provider: 'anthropic', model: '', chat_model: '', api_key: '', ocr_enabled: false });
+  const [form, setForm] = useState({ provider: 'anthropic', model: '', chat_model: '', api_key: '', base_url: '', ocr_enabled: false });
   const [useSeparateChatModel, setUseSeparateChatModel] = useState(false);
   const [customPrompt, setCustomPrompt] = useState<string>(user?.custom_ai_prompt ?? '');
   const [savingPrompt, setSavingPrompt] = useState(false);
@@ -248,7 +248,7 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
       .then(async (p) => {
         setProvider(p);
         setUseSeparateChatModel(!!p.chat_model);
-        setForm({ provider: p.provider, model: p.model, chat_model: p.chat_model ?? '', api_key: '', ocr_enabled: p.ocr_enabled });
+        setForm({ provider: p.provider, model: p.model, chat_model: p.chat_model ?? '', api_key: '', base_url: p.base_url ?? '', ocr_enabled: p.ocr_enabled });
         // Fetch available models using the stored key so the user can change model
         setFetchingModels(true);
         try {
@@ -265,11 +265,11 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
   }, []);
 
   useEffect(() => {
-    if (!form.api_key) return;
+    if (!form.api_key && !provider) return;
     const timer = setTimeout(async () => {
       setFetchingModels(true);
       try {
-        const { models: fetched } = await aiProviderApi.listModels(form.api_key, form.provider);
+        const { models: fetched } = await aiProviderApi.listModels(form.api_key, form.provider, form.base_url.trim());
         setModels(fetched);
         setForm((f) => ({ ...f, model: fetched.includes(f.model) ? f.model : (fetched[0] ?? '') }));
       } catch {
@@ -279,7 +279,7 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
       }
     }, 600);
     return () => clearTimeout(timer);
-  }, [form.api_key, form.provider]);
+  }, [form.api_key, form.provider, form.base_url, provider]);
 
   const handleSave = async () => {
     if (!form.api_key && !provider) { toast(t('settings.aiToastKeyRequired'), 'error'); return; }
@@ -290,12 +290,13 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
         provider: form.provider,
         model: form.model,
         chat_model: useSeparateChatModel ? (form.chat_model || null) : null,
+        base_url: form.base_url.trim() || null,
         api_key: form.api_key || undefined,
         ocr_enabled: form.ocr_enabled,
       });
       setProvider(updated);
       setUseSeparateChatModel(!!updated.chat_model);
-      setForm((f) => ({ ...f, api_key: '', chat_model: updated.chat_model ?? '' }));
+      setForm((f) => ({ ...f, api_key: '', chat_model: updated.chat_model ?? '', base_url: updated.base_url ?? '' }));
       // Re-fetch models using the (possibly new) stored key
       setFetchingModels(true);
       try {
@@ -321,7 +322,7 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
       setProvider(null);
       setModels([]);
       setUseSeparateChatModel(false);
-      setForm({ provider: 'anthropic', model: '', chat_model: '', api_key: '', ocr_enabled: true });
+      setForm({ provider: 'anthropic', model: '', chat_model: '', api_key: '', base_url: '', ocr_enabled: true });
       toast(t('settings.aiToastRemoved'), 'success');
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed', 'error');
@@ -349,6 +350,7 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
                 {t('settings.aiConfiguredDetails', {
                   model: provider.model,
                   key: provider.api_key_masked,
+                  baseUrl: provider.base_url || t('settings.aiBaseUrlDefault'),
                   ocr: provider.ocr_enabled ? t('settings.aiOcrOn') : t('settings.aiOcrOff'),
                 })}
               </span>
@@ -399,6 +401,18 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
               {t('settings.aiKeyHintLink')}
             </a>
           </span>
+        </div>
+
+        <div className="input-group">
+          <label className="input-label">{t('settings.aiBaseUrlLabel')}</label>
+          <input
+            className="input"
+            type="url"
+            placeholder={t('settings.aiBaseUrlPlaceholder')}
+            value={form.base_url}
+            onChange={(e) => setForm({ ...form, base_url: e.target.value })}
+          />
+          <span className="input-hint">{t('settings.aiBaseUrlHint')}</span>
         </div>
 
         <div className="input-group">

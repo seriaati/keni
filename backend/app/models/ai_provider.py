@@ -20,6 +20,7 @@ class AIProvider(SQLModel, table=True):
     api_key_encrypted: str
     model: str = Field(default="claude-opus-4-5", max_length=100)
     chat_model: str | None = Field(default=None, max_length=100)
+    base_url: str | None = Field(default=None, max_length=500)
     ocr_enabled: bool = Field(default=False, sa_column_kwargs={"server_default": text("false")})
     created_at: datetime = Field(
         default=None,
