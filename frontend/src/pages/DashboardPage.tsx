@@ -143,20 +143,22 @@ export function DashboardPage() {
   const getCategoryName = (id: string | null) =>
     id ? (categories.find((c) => c.id === id)?.name ?? 'Unknown') : null;
 
-  const goToCategory = (categoryId: string, period: DashboardPeriod) => {
-    const { start_date, end_date } = getPeriodDateRange(period);
-    // DatePicker reads YYYY-MM-DD (local), not full ISO timestamps
-    const toLocalDate = (iso: string) => {
-      const d = new Date(iso);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    };
-    const params = new URLSearchParams({
-      category_ids: categoryId,
-      start_date: toLocalDate(start_date),
-      end_date: toLocalDate(end_date),
-    });
+  // DatePicker reads YYYY-MM-DD (local), not full ISO timestamps
+  const toLocalDate = (iso: string) => {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const goToTransactions = (categoryIds: string[], range: { start_date: string; end_date?: string }) => {
+    const params = new URLSearchParams();
+    categoryIds.forEach((id) => params.append('category_ids', id));
+    params.set('start_date', toLocalDate(range.start_date));
+    if (range.end_date) params.set('end_date', toLocalDate(range.end_date));
     navigate(`/wallets/${activeWallet!.id}?${params}`);
   };
+
+  const goToCategory = (categoryId: string, period: DashboardPeriod) =>
+    goToTransactions([categoryId], getPeriodDateRange(period));
 
   const overBudget = budgets.filter((b) => b.is_over_budget);
   const nearLimit = budgets.filter((b) => !b.is_over_budget && b.percentage_used >= 80);
@@ -244,6 +246,7 @@ export function DashboardPage() {
           sub={t('dashboard.transactionsCount', { count: monthlySummary?.expense_count ?? 0 })}
           accent="var(--forest)"
           loading={loading}
+          onClick={() => goToTransactions([], { start_date: startOfMonth(), end_date: endOfMonth() })}
         />
         <SummaryCard
           label={t('dashboard.cardThisWeek')}
@@ -251,6 +254,7 @@ export function DashboardPage() {
           sub={t('dashboard.transactionsCount', { count: weekSummary?.expense_count ?? 0 })}
           accent="var(--amber)"
           loading={loading}
+          onClick={() => goToTransactions([], { start_date: startOfWeek() })}
         />
         <SummaryCard
           label={t('dashboard.cardDailyAvg')}
@@ -443,10 +447,15 @@ export function DashboardPage() {
                 const displayed = categoryExpanded ? sorted : sorted.slice(0, 3);
                 return (
                   <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <button
+                      onClick={() => goToTransactions(sorted.map((c) => c.category_id), getPeriodDateRange(spendingPeriod))}
+                      style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8, width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+                      onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+                    >
                       <span style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.total')}</span>
                       <span style={{ fontSize: 17, fontWeight: 600, color: 'var(--ink)' }}>{fmt(total, activeWallet.currency)}</span>
-                    </div>
+                    </button>
                     <ResponsiveContainer width="100%" height={160}>
                       <PieChart>
                         <Pie
@@ -557,10 +566,15 @@ export function DashboardPage() {
                   const displayed = incomeCategoryExpanded ? sorted : sorted.slice(0, 3);
                   return (
                     <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <button
+                        onClick={() => goToTransactions(sorted.map((c) => c.category_id), getPeriodDateRange(incomePeriod))}
+                        style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8, width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+                        onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+                      >
                         <span style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.total')}</span>
                         <span style={{ fontSize: 17, fontWeight: 600, color: 'var(--forest)' }}>{fmt(total, activeWallet.currency)}</span>
-                      </div>
+                      </button>
                       <ResponsiveContainer width="100%" height={160}>
                         <PieChart>
                           <Pie
@@ -653,21 +667,30 @@ function SummaryCard({
   sub,
   accent,
   loading,
+  onClick,
 }: {
   label: string;
   value: string | null;
   sub: string;
   accent: string;
   loading: boolean;
+  onClick?: () => void;
 }) {
   return (
-    <div style={{
-      background: 'white',
-      borderRadius: 14,
-      border: '1px solid var(--cream-darker)',
-      padding: '18px 20px',
-      borderLeft: `3px solid ${accent}`,
-    }}>
+    <div
+      onClick={onClick}
+      style={{
+        background: 'white',
+        borderRadius: 14,
+        border: '1px solid var(--cream-darker)',
+        padding: '18px 20px',
+        borderLeft: `3px solid ${accent}`,
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'box-shadow 0.12s, transform 0.12s',
+      }}
+      onMouseEnter={onClick ? (e) => { e.currentTarget.style.boxShadow = '0 4px 12px oklch(0% 0 0 / 0.06)'; e.currentTarget.style.transform = 'translateY(-1px)'; } : undefined}
+      onMouseLeave={onClick ? (e) => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; } : undefined}
+    >
       <div style={{ fontSize: 12, color: 'var(--ink-light)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
         {label}
       </div>
