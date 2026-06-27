@@ -202,6 +202,7 @@ export const expenses = {
       body: JSON.stringify({ tag_ids: [], tag_names: [], ...data }),
     }),
   update: (walletId: string, expenseId: string, data: {
+    wallet_id?: string;
     category_id?: string;
     amount?: number;
     description?: string;

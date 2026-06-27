@@ -783,6 +783,21 @@ async def update_transaction(
     await _get_wallet_or_404(wallet_id, current_user.id, session)
     transaction = await _get_transaction_or_404(transaction_id, wallet_id, session)
 
+    if body.wallet_id is not None and body.wallet_id != wallet_id:
+        if transaction.group_id is not None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot move a grouped transaction on its own; move the group instead",
+            )
+        await _get_wallet_or_404(body.wallet_id, current_user.id, session)
+        transaction.wallet_id = body.wallet_id
+        children = await session.exec(
+            select(Transaction).where(col(Transaction.group_id) == transaction.id)
+        )
+        for child in children.all():
+            child.wallet_id = body.wallet_id
+            session.add(child)
+
     if body.category_id is not None:
         await _validate_category(body.category_id, current_user.id, session)
         transaction.category_id = body.category_id

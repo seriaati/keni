@@ -39,6 +39,7 @@ class TransactionGroupCreate(BaseModel):
 
 
 class TransactionUpdate(BaseModel):
+    wallet_id: uuid.UUID | None = None
     category_id: uuid.UUID | None = None
     type: Literal["expense", "income"] | None = None
     amount: float | None = Field(default=None, ge=0)

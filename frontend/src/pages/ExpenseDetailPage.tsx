@@ -8,6 +8,7 @@ import { useToast } from '../components/ui/Toast';
 import { DatePicker } from '../components/ui/DatePicker';
 import { Modal } from '../components/ui/Modal';
 import { CategorySelect } from '../components/ui/CategorySelect';
+import { Select } from '../components/ui/Select';
 import type { AICategorizeResponse, CategoryResponse, TransactionLinkBrief, TransactionResponse, TagResponse, WalletResponse } from '../lib/types';
 import { LinkedTransactionsPicker } from '../components/LinkedTransactionsPicker';
 import { fmt, fmtDate } from '../lib/utils';
@@ -361,6 +362,7 @@ export function ExpenseDetailPage() {
     date: '',
     tag_ids: [] as string[],
     type: 'expense' as 'expense' | 'income',
+    wallet_id: '',
   });
 
   useEffect(() => {
@@ -394,6 +396,7 @@ export function ExpenseDetailPage() {
         date: exp.date.slice(0, 10),
         tag_ids: exp.tags.map((t) => t.id),
         type: exp.type,
+        wallet_id: exp.wallet_id,
       });
     }).catch(() => toast(t('expenseDetail.toastLoadFailed'), 'error'))
       .finally(() => setLoading(false));
@@ -409,6 +412,7 @@ export function ExpenseDetailPage() {
       date: expense.date.slice(0, 10),
       tag_ids: expense.tags.map((tg) => tg.id),
       type: expense.type,
+      wallet_id: expense.wallet_id,
     });
     setEditing(true);
   };
@@ -417,7 +421,9 @@ export function ExpenseDetailPage() {
     if (!walletId || !expenseId || !expense) return;
     setSaving(true);
     try {
+      const walletChanged = form.wallet_id !== walletId;
       const updated = await expensesApi.update(walletId, expenseId, {
+        wallet_id: walletChanged ? form.wallet_id : undefined,
         amount: Number(form.amount),
         description: form.description || undefined,
         category_id: form.category_id,
@@ -433,9 +439,13 @@ export function ExpenseDetailPage() {
         ...toAdd.map((id) => transactionLinks.add(expenseId, id)),
         ...toRemove.map((id) => transactionLinks.remove(expenseId, id)),
       ]);
-      setExpense({ ...updated, linked_transactions: pendingLinks });
       setEditing(false);
       toast(t('expenseDetail.toastUpdated'), 'success');
+      if (walletChanged) {
+        navigate(`/wallets/${form.wallet_id}/expenses/${expenseId}`, { replace: true });
+        return;
+      }
+      setExpense({ ...updated, linked_transactions: pendingLinks });
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed to save', 'error');
     } finally {
@@ -697,6 +707,18 @@ export function ExpenseDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Wallet (move) */}
+        {editing && !expense.group_id && allWallets.length > 1 && (
+          <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
+            <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('expenseDetail.sectionWallet')}</div>
+            <Select
+              value={form.wallet_id}
+              onChange={(v) => setForm({ ...form, wallet_id: v })}
+              options={allWallets.map((w) => ({ value: w.id, label: w.name }))}
+            />
+          </div>
+        )}
 
         {/* Category & Date */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
