@@ -436,28 +436,31 @@ export function InsightsPage() {
         />
       </div>
 
-      {loading && <p style={{ fontSize: 13, color: 'var(--ink-light)', marginBottom: 16 }}>{t('insights.loading')}</p>}
-
       {/* Cumulative line */}
       <Card title={t('insights.cumulativeTitle')} desc={t('insights.cumulativeDesc')}>
-        <ErrorBoundary fallback={<ChartError />}>
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart key={`cum-${dataVersion}`} data={cumulativeData} margin={{ top: 8, right: 12, bottom: 4, left: 4 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--cream-darker)" />
-              <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="var(--ink-light)" interval={isMobile ? 4 : 'preserveStartEnd'} />
-              <YAxis tickFormatter={compact} tick={{ fontSize: 11 }} stroke="var(--ink-light)" width={40} />
-              <Tooltip formatter={(v) => fmt(Number(v), currency)} labelFormatter={(l) => t('insights.dayN', { n: l })} />
-              <Legend wrapperStyle={legendStyle} />
-              <Line type="monotone" dataKey="previous" name={t('insights.prevPeriod')} stroke="var(--ink-light)" strokeDasharray="4 4" dot={false} connectNulls />
-              <Line type="monotone" dataKey="current" name={t('insights.thisPeriod')} stroke="var(--forest)" strokeWidth={2} dot={false} connectNulls />
-            </LineChart>
-          </ResponsiveContainer>
-        </ErrorBoundary>
+        {loading ? (
+          <ChartSkeleton height={280} />
+        ) : (
+          <ErrorBoundary fallback={<ChartError />}>
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart key={`cum-${dataVersion}`} data={cumulativeData} margin={{ top: 8, right: 12, bottom: 4, left: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--cream-darker)" />
+                <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="var(--ink-light)" interval={isMobile ? 4 : 'preserveStartEnd'} />
+                <YAxis tickFormatter={compact} tick={{ fontSize: 11 }} stroke="var(--ink-light)" width={40} />
+                <Tooltip formatter={(v) => fmt(Number(v), currency)} labelFormatter={(l) => t('insights.dayN', { n: l })} />
+                <Legend wrapperStyle={legendStyle} />
+                <Line type="monotone" dataKey="previous" name={t('insights.prevPeriod')} stroke="var(--ink-light)" strokeDasharray="4 4" dot={false} connectNulls />
+                <Line type="monotone" dataKey="current" name={t('insights.thisPeriod')} stroke="var(--forest)" strokeWidth={2} dot={false} connectNulls />
+              </LineChart>
+            </ResponsiveContainer>
+          </ErrorBoundary>
+        )}
       </Card>
 
       {/* Calendar heatmap */}
       <Card title={t('insights.heatmapTitle')} desc={t('insights.heatmapDesc')}>
-        <div ref={heatRef} style={{ overflowX: 'auto', paddingBottom: 4 }}>
+        {loading && <ChartSkeleton height={160} />}
+        <div ref={heatRef} style={{ overflowX: 'auto', paddingBottom: 4, display: loading ? 'none' : undefined }}>
           <div style={{ width: 'fit-content', margin: '0 auto' }}>
             {/* Month labels */}
             <div style={{ display: 'flex', gap: GAP, marginLeft: LABEL_W, marginBottom: 4 }}>
@@ -536,25 +539,31 @@ export function InsightsPage() {
 
       {/* Category stacked area */}
       <Card title={t('insights.areaTitle')} desc={t('insights.areaDesc')}>
-        <ErrorBoundary fallback={<ChartError />}>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart key={`area-${dataVersion}`} data={areaData} margin={{ top: 8, right: 12, bottom: 4, left: 4 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--cream-darker)" />
-              <XAxis dataKey="day" tickFormatter={(d) => fmtDateShort(d)} tick={{ fontSize: 11 }} stroke="var(--ink-light)" minTickGap={24} />
-              <YAxis tickFormatter={compact} tick={{ fontSize: 11 }} stroke="var(--ink-light)" width={40} />
-              <Tooltip formatter={(v) => fmt(Number(v), currency)} labelFormatter={(d) => fmtDateShort(d as string)} />
-              <Legend content={renderCategoryLegend} />
-              {areaCategories.map((c) => (
-                <Area key={c.name} type="monotone" dataKey={c.name} stackId="1" stroke={c.color} fill={c.color} fillOpacity={0.5} />
-              ))}
-            </AreaChart>
-          </ResponsiveContainer>
-        </ErrorBoundary>
+        {loading ? (
+          <ChartSkeleton height={300} />
+        ) : (
+          <ErrorBoundary fallback={<ChartError />}>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart key={`area-${dataVersion}`} data={areaData} margin={{ top: 8, right: 12, bottom: 4, left: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--cream-darker)" />
+                <XAxis dataKey="day" tickFormatter={(d) => fmtDateShort(d)} tick={{ fontSize: 11 }} stroke="var(--ink-light)" minTickGap={24} />
+                <YAxis tickFormatter={compact} tick={{ fontSize: 11 }} stroke="var(--ink-light)" width={40} />
+                <Tooltip formatter={(v) => fmt(Number(v), currency)} labelFormatter={(d) => fmtDateShort(d as string)} />
+                <Legend content={renderCategoryLegend} />
+                {areaCategories.map((c) => (
+                  <Area key={c.name} type="monotone" dataKey={c.name} stackId="1" stroke={c.color} fill={c.color} fillOpacity={0.5} />
+                ))}
+              </AreaChart>
+            </ResponsiveContainer>
+          </ErrorBoundary>
+        )}
       </Card>
 
       {/* Top transactions */}
       <Card title={t('insights.topTitle')} desc={t('insights.topDesc')}>
-        {topTxns.length === 0 ? (
+        {loading ? (
+          <TableSkeleton rows={DEFAULT_TOP_SHOWN} />
+        ) : topTxns.length === 0 ? (
           <p className="empty-state-desc" style={{ padding: '12px 0' }}>{t('dashboard.noData')}</p>
         ) : (
           <>
@@ -624,6 +633,20 @@ function Card({ title, desc, children }: { title: string; desc?: string; childre
         {desc && <p style={{ fontSize: 12.5, color: 'var(--ink-light)', marginTop: 8 }}>{desc}</p>}
       </div>
       {children}
+    </div>
+  );
+}
+
+function ChartSkeleton({ height }: { height: number }) {
+  return <div className="skeleton" style={{ height, width: '100%', borderRadius: 10 }} aria-hidden />;
+}
+
+function TableSkeleton({ rows }: { rows: number }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '4px 0' }} aria-hidden>
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="skeleton" style={{ height: 20, width: '100%', borderRadius: 6 }} />
+      ))}
     </div>
   );
 }
