@@ -11,6 +11,7 @@ import type {
   TransactionListResponse,
   TransactionResponse,
   TransactionSummary,
+  TransactionAnalytics,
   GroupTransactionRequest,
   RecurringTransactionResponse,
   TagResponse,
@@ -221,6 +222,16 @@ export const expenses = {
     if (params.start_date) q.set('start_date', params.start_date);
     if (params.end_date) q.set('end_date', params.end_date);
     return request<TransactionSummary>(`/wallets/${walletId}/transactions/summary?${q}`);
+  },
+  analytics: (
+    walletId: string,
+    params: { start_date?: string; end_date?: string; type?: 'expense' | 'income' } = {},
+  ) => {
+    const q = new URLSearchParams();
+    if (params.start_date) q.set('start_date', params.start_date);
+    if (params.end_date) q.set('end_date', params.end_date);
+    if (params.type) q.set('type', params.type);
+    return request<TransactionAnalytics>(`/wallets/${walletId}/transactions/analytics?${q}`);
   },
   aiParse: (walletId: string, text?: string, files?: File[], rotations?: number[]) => {
     const form = new FormData();

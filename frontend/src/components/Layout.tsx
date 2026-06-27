@@ -11,6 +11,7 @@ import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-do
 import {
   ArrowLeftRight,
   Bot,
+  ChartLine,
   ChevronDown,
   Copy,
   Download,
@@ -39,6 +40,7 @@ const NAV_AFTER_TRANSACTIONS_CONFIG = [
   { to: '/recurring', icon: RefreshCw, key: 'recurring' as const },
   { to: '/categories', icon: Tag, key: 'categories' as const },
   { to: '/tags', icon: Tags, key: 'tags' as const },
+  { to: '/insights', icon: ChartLine, key: 'insights' as const },
   { to: '/chat', icon: Bot, key: 'chat' as const },
 ];
 
@@ -438,6 +440,10 @@ export function Layout() {
               <NavLink to="/tags" className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}>
                 <Tags size={16} />
                 {t('nav.tags')}
+              </NavLink>
+              <NavLink to="/insights" className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}>
+                <ChartLine size={16} />
+                {t('nav.insights')}
               </NavLink>
             </nav>
             <div className="more-divider" />

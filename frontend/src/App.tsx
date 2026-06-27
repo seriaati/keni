@@ -14,6 +14,7 @@ import { BudgetsPage } from './pages/BudgetsPage';
 import { RecurringPage } from './pages/RecurringPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { TagsPage } from './pages/TagsPage';
+import { InsightsPage } from './pages/InsightsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AdminPage } from './pages/AdminPage';
 import { SharePage } from './pages/SharePage';
@@ -81,6 +82,7 @@ export default function App() {
         <Route path="recurring" element={<RecurringPage />} />
         <Route path="categories" element={<CategoriesPage />} />
         <Route path="tags" element={<TagsPage />} />
+        <Route path="insights" element={<InsightsPage />} />
         <Route path="chat" element={<ChatPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="share" element={<SharePage />} />

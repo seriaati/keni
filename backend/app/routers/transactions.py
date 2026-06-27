@@ -34,6 +34,7 @@ from app.schemas.transaction import (
     BulkUpdateResponse,
     CategoryBrief,
     TagBrief,
+    TransactionAnalytics,
     TransactionCreate,
     TransactionGroupCreate,
     TransactionLinkBrief,
@@ -530,6 +531,66 @@ async def get_transaction_summary(
         income_by_category=list(income_by_category.values()),
         by_period=sorted(by_period.values(), key=operator.itemgetter("period")),
     )
+
+
+@router.get("/analytics")
+async def get_transaction_analytics(  # noqa: PLR0913, PLR0917
+    wallet_id: uuid.UUID,
+    current_user: CurrentUser,
+    session: DbDep,
+    start_date: Annotated[datetime | None, Query()] = None,
+    end_date: Annotated[datetime | None, Query()] = None,
+    transaction_type: Annotated[str, Query(alias="type", pattern="^(expense|income)$")] = "expense",
+) -> TransactionAnalytics:
+    await _get_wallet_or_404(wallet_id, current_user.id, session)
+
+    day = func.date_trunc("day", col(Transaction.date))
+    filters = [
+        Transaction.wallet_id == wallet_id,
+        col(Transaction.group_id).is_(None),
+        Transaction.type == transaction_type,
+    ]
+    if start_date:
+        filters.append(col(Transaction.date) >= start_date)
+    if end_date:
+        filters.append(col(Transaction.date) <= end_date)
+
+    day_result = await session.exec(
+        select(day, func.sum(col(Transaction.amount)), func.count())
+        .where(*filters)
+        .group_by(day)
+        .order_by(day)
+    )
+    by_day = [
+        {"day": d.date().isoformat(), "total": float(total), "count": int(count)}
+        for d, total, count in day_result
+    ]
+
+    cat_result = await session.exec(
+        select(day, col(Transaction.category_id), func.sum(col(Transaction.amount)))
+        .where(*filters)
+        .group_by(day, col(Transaction.category_id))
+        .order_by(day)
+    )
+    rows = list(cat_result)
+
+    cat_ids = {cat_id for _, cat_id, _ in rows}
+    categories = {
+        c.id: c
+        for c in (await session.exec(select(Category).where(col(Category.id).in_(cat_ids)))).all()
+    }
+    by_day_category = [
+        {
+            "day": d.date().isoformat(),
+            "category_id": str(cat_id),
+            "category_name": categories[cat_id].name if cat_id in categories else "Unknown",
+            "category_color": categories[cat_id].color if cat_id in categories else None,
+            "total": float(total),
+        }
+        for d, cat_id, total in rows
+    ]
+
+    return TransactionAnalytics(by_day=by_day, by_day_category=by_day_category)
 
 
 @router.get("")

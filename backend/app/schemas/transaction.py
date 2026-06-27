@@ -107,6 +107,11 @@ class TransactionSummary(BaseModel):
     by_period: list[dict]
 
 
+class TransactionAnalytics(BaseModel):
+    by_day: list[dict]
+    by_day_category: list[dict]
+
+
 class BulkDeleteRequest(BaseModel):
     transaction_ids: list[uuid.UUID] = Field(min_length=1)
 

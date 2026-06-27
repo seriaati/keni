@@ -115,6 +115,11 @@ export interface TransactionSummary {
 
 export type ExpenseSummary = TransactionSummary;
 
+export interface TransactionAnalytics {
+  by_day: { day: string; total: number; count: number }[];
+  by_day_category: { day: string; category_id: string; category_name: string; category_color: string | null; total: number }[];
+}
+
 export interface SuggestedTag {
   name: string;
   is_new: boolean;

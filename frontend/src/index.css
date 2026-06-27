@@ -77,6 +77,15 @@ a {
   text-decoration: none;
 }
 
+.insight-link {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.insight-link:hover {
+  text-decoration: underline;
+}
+
 button {
   font-family: inherit;
   cursor: pointer;
