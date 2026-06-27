@@ -6,11 +6,12 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from fastapi import HTTPException, status
-from sqlmodel import select
+from sqlmodel import col, select
 
 from app.models.ai_provider import AIProvider
 from app.models.category import Category
 from app.models.tag import Tag
+from app.models.transaction import Transaction
 from app.models.user import User
 from app.models.wallet import Wallet
 from app.providers import get_provider
@@ -29,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     import uuid
+    from collections.abc import Sequence
 
     from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -103,6 +105,40 @@ def _encrypt_key(key: str) -> str:
 
 def _decrypt_key(encrypted: str) -> str:
     return base64.b64decode(encrypted.encode()).decode()
+
+
+_MAX_EXAMPLES = 15
+
+
+async def _recent_description_examples(
+    wallets: Sequence[Wallet], session: AsyncSession
+) -> list[tuple[str, str, str]]:
+    """Recent (description, category, type) triples to anchor the AI's description style."""
+    wallet_ids = [w.id for w in wallets]
+    if not wallet_ids:
+        return []
+    result = await session.exec(
+        select(Transaction.description, Category.name, Transaction.type)
+        .join(Category, col(Category.id) == col(Transaction.category_id))
+        .where(col(Transaction.wallet_id).in_(wallet_ids))
+        .where(col(Transaction.description).is_not(None))
+        .where(col(Transaction.description) != "")  # noqa: PLC1901
+        .order_by(col(Transaction.updated_at).desc())
+        .limit(_MAX_EXAMPLES * 4)
+    )
+    examples: list[tuple[str, str, str]] = []
+    seen: set[str] = set()
+    for desc, cat, typ in result.all():
+        if desc is None:
+            continue
+        key = desc.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        examples.append((desc, cat, typ))
+        if len(examples) >= _MAX_EXAMPLES:
+            break
+    return examples
 
 
 async def get_ai_provider_record(user_id: uuid.UUID, session: AsyncSession) -> AIProvider | None:
@@ -193,6 +229,8 @@ async def parse_transactions_with_ai(  # noqa: PLR0912, PLR0914, PLR0915, C901
     wallet_context = [(w.name, w.currency) for w in user_wallets]
     wallet_by_name = {w.name.lower(): str(w.id) for w in user_wallets}
 
+    examples = await _recent_description_examples(user_wallets, session)
+
     provider = get_provider(record.provider, api_key=api_key, model=record.model)
 
     try:
@@ -204,6 +242,7 @@ async def parse_transactions_with_ai(  # noqa: PLR0912, PLR0914, PLR0915, C901
             wallets=wallet_context if len(wallet_context) > 1 else None,
             timezone=timezone or "UTC",
             custom_prompt=custom_ai_prompt,
+            examples=examples,
         )
     except ProviderAuthError as exc:
         logger.warning("AI transaction parse failed - auth error for user %s: %s", user_id, exc)

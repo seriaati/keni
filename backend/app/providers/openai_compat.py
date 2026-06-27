@@ -130,6 +130,7 @@ class OpenAICompatibleProvider(LLMProvider):
         wallets: list[tuple[str, str]] | None = None,
         timezone: str = "UTC",
         custom_prompt: str | None = None,
+        examples: list[tuple[str, str, str]] | None = None,
     ) -> ParsedTransactionOutput:
         if not text and not images:
             msg = "At least one of text or image must be provided"
@@ -156,6 +157,7 @@ class OpenAICompatibleProvider(LLMProvider):
             timezone=timezone,
             custom_prompt=custom_prompt,
             icon_context=icon_context or None,
+            examples=examples,
         )
         parts.append(ChatCompletionContentPartTextParam(type="text", text=prompt_text))
 

@@ -299,7 +299,10 @@ rental income, etc. Default "expense" if unclear.
 - category_name: match from provided list exactly if a good match exists; otherwise invent a \
 specific name (e.g. "Electronics", "Healthcare", "Salary", "Freelance"). NEVER use "Others" \
 unless truly unclassifiable.
-- description: concise, max 100 chars
+- description: concise, max 100 chars. Capture ONLY the specific detail of the transaction. Do \
+NOT restate the category or type — those are stored separately and shown alongside the description. \
+E.g. for category "Freelance" / type income, write "Setup Discord bot for user-a", NOT \
+"Freelance income for setting up Discord bot for user-a".
 - date: ISO 8601 YYYY-MM-DD; today if unspecified
 - ai_context: brief summary of what you extracted and why you chose the category
 - suggested_tags: check provided tags first; may also suggest new ones for any concrete purchase \
@@ -367,6 +370,7 @@ def build_parse_prompt(  # noqa: PLR0913
     timezone: str = "UTC",
     custom_prompt: str | None = None,
     icon_context: dict[str, list[str]] | None = None,
+    examples: list[tuple[str, str, str]] | None = None,
 ) -> str:
     today = datetime.now(resolve_tz(timezone)).strftime("%Y-%m-%d")
     category_list = ", ".join(categories) if categories else "Others"
@@ -390,6 +394,13 @@ def build_parse_prompt(  # noqa: PLR0913
         prompt += f"Icon options for new categories: {icon_lines}\n"
     if custom_prompt:
         prompt += f"Custom instructions: {custom_prompt}\n"
+    if examples:
+        example_lines = "\n".join(f'- "{desc}" [{cat}, {typ}]' for desc, cat, typ in examples)
+        prompt += (
+            "\nThe user's recent transaction descriptions, newest first. Match this style, "
+            "wording, and casing. Note the descriptions never repeat their category or type:\n"
+            f"{example_lines}\n"
+        )
     prompt += "\n"
     prompt += (
         f"User input: {text}" if text else "Please extract the transaction from the image above."
@@ -420,6 +431,7 @@ class LLMProvider(ABC):
         wallets: list[tuple[str, str]] | None = None,
         timezone: str = "UTC",
         custom_prompt: str | None = None,
+        examples: list[tuple[str, str, str]] | None = None,
     ) -> ParsedTransactionOutput: ...
 
     @abstractmethod
