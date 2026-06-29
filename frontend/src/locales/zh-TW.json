@@ -1,6 +1,7 @@
 {
   "common": {
     "cancel": "取消",
+    "apply": "套用",
     "save": "儲存",
     "saveChanges": "儲存變更",
     "delete": "刪除",

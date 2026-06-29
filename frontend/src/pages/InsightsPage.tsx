@@ -20,6 +20,9 @@ import { useWallet } from '../contexts/WalletContext';
 import type { TransactionAnalytics, TransactionResponse } from '../lib/types';
 import { fmt, fmtDateShort } from '../lib/utils';
 import { DatePicker } from '../components/ui/DatePicker';
+import { Select } from '../components/ui/Select';
+import { Modal } from '../components/ui/Modal';
+import { Button } from '../components/ui/Button';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 
 type Preset = 'this_month' | 'last_month' | 'last_3_months' | 'this_year' | 'custom';
@@ -107,6 +110,9 @@ export function InsightsPage() {
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [type, setType] = useState<TxType>('expense');
+  const [periodModalOpen, setPeriodModalOpen] = useState(false);
+  const [draftStart, setDraftStart] = useState('');
+  const [draftEnd, setDraftEnd] = useState('');
   const [analytics, setAnalytics] = useState<TransactionAnalytics | null>(null);
   const [prevAnalytics, setPrevAnalytics] = useState<TransactionAnalytics | null>(null);
   const [topTxns, setTopTxns] = useState<TransactionResponse[]>([]);
@@ -134,13 +140,26 @@ export function InsightsPage() {
     return presetRange(preset);
   }, [preset, customStart, customEnd]);
 
-  const selectPreset = (p: Preset) => {
-    if (p === 'custom' && !customStart && !customEnd) {
-      const r = presetRange('this_month');
-      setCustomStart(localDate(r.start));
-      setCustomEnd(localDate(r.end));
+  const openCustomModal = () => {
+    const fallback = presetRange('this_month');
+    setDraftStart(customStart || localDate(fallback.start));
+    setDraftEnd(customEnd || localDate(fallback.end));
+    setPeriodModalOpen(true);
+  };
+
+  const handlePresetChange = (v: string) => {
+    if (v === 'custom') {
+      openCustomModal();
+      return;
     }
-    setPreset(p);
+    setPreset(v as Preset);
+  };
+
+  const applyCustom = () => {
+    setCustomStart(draftStart);
+    setCustomEnd(draftEnd);
+    setPreset('custom');
+    setPeriodModalOpen(false);
   };
 
   useEffect(() => {
@@ -329,14 +348,38 @@ export function InsightsPage() {
   };
 
   const visibleTop = showAllTop ? topTxns : topTxns.slice(0, DEFAULT_TOP_SHOWN);
-  const rangeParams = `category_ids=__CAT__&start_date=${localDate(start)}&end_date=${localDate(end)}`;
+  const rangeParams = `category_ids=__CAT__&start_date=${localDate(start)}&end_date=${localDate(end)}&type=${type}`;
   const categoryLink = (catId: string) =>
     `/wallets/${activeWallet.id}?${rangeParams.replace('__CAT__', catId)}`;
   const dateLink = (iso: string) => {
     const d = parseDay(iso);
-    return `/wallets/${activeWallet.id}?start_date=${localDate(d)}&end_date=${localDate(d)}`;
+    return `/wallets/${activeWallet.id}?start_date=${localDate(d)}&end_date=${localDate(d)}&type=${type}`;
   };
   const linkStyle = { color: 'var(--forest)' } as const;
+
+  const typeToggle = (
+    <div style={{ display: 'flex', gap: 6 }}>
+      {(['expense', 'income'] as TxType[]).map((tp) => (
+        <button
+          key={tp}
+          onClick={() => setType(tp)}
+          style={{
+            padding: '6px 13px',
+            borderRadius: 999,
+            fontSize: 13,
+            lineHeight: 1.4,
+            border: '1px solid',
+            borderColor: type === tp ? 'var(--forest)' : 'var(--cream-darker)',
+            background: type === tp ? 'var(--forest)' : 'white',
+            color: type === tp ? 'white' : 'var(--ink-mid)',
+            cursor: 'pointer',
+          }}
+        >
+          {t(`insights.${tp}`)}
+        </button>
+      ))}
+    </div>
+  );
 
   const renderCategoryLegend = () => (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', justifyContent: 'center', ...legendStyle }}>
@@ -360,7 +403,10 @@ export function InsightsPage() {
   );
 
   return (
-    <div className="animate-fade-in">
+    <div
+      className="animate-fade-in"
+      style={isMobile ? { paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 64px)' } : undefined}
+    >
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(26px, 4vw, 36px)', color: 'var(--ink)', fontStyle: 'italic' }}>
@@ -370,59 +416,57 @@ export function InsightsPage() {
       </div>
 
       {/* Filter bar */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: preset === 'custom' ? 12 : 24, alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {PRESETS.map((p) => (
-            <button
-              key={p}
-              onClick={() => selectPreset(p)}
-              style={{
-                padding: '6px 13px',
-                borderRadius: 999,
-                fontSize: 13,
-                lineHeight: 1.4,
-                border: '1px solid',
-                borderColor: preset === p ? 'var(--ink)' : 'var(--cream-darker)',
-                background: preset === p ? 'var(--ink)' : 'white',
-                color: preset === p ? 'white' : 'var(--ink-mid)',
-                cursor: 'pointer',
-              }}
-            >
-              {t(`insights.preset.${p}`)}
-            </button>
-          ))}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 24, alignItems: 'center' }}>
+        <div style={{ width: 180 }}>
+          <Select
+            value={preset}
+            onChange={handlePresetChange}
+            options={PRESETS.map((p) => ({ value: p, label: t(`insights.preset.${p}`) }))}
+          />
         </div>
-        <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
-          {(['expense', 'income'] as TxType[]).map((tp) => (
-            <button
-              key={tp}
-              onClick={() => setType(tp)}
-              style={{
-                padding: '6px 13px',
-                borderRadius: 999,
-                fontSize: 13,
-                lineHeight: 1.4,
-                border: '1px solid',
-                borderColor: type === tp ? 'var(--forest)' : 'var(--cream-darker)',
-                background: type === tp ? 'var(--forest)' : 'white',
-                color: type === tp ? 'white' : 'var(--ink-mid)',
-                cursor: 'pointer',
-              }}
-            >
-              {t(`insights.${tp}`)}
-            </button>
-          ))}
-        </div>
+        {preset === 'custom' && (
+          <button
+            onClick={openCustomModal}
+            style={{
+              padding: '6px 13px',
+              borderRadius: 999,
+              fontSize: 13,
+              lineHeight: 1.4,
+              border: '1px solid var(--cream-darker)',
+              background: 'white',
+              color: 'var(--ink-mid)',
+              cursor: 'pointer',
+            }}
+          >
+            {`${fmtDateShort(localDate(start))} ${t('insights.rangeTo')} ${fmtDateShort(localDate(end))}`}
+          </button>
+        )}
+        {!isMobile && <div style={{ marginLeft: 'auto' }}>{typeToggle}</div>}
       </div>
 
-      {/* Custom range pickers */}
-      {preset === 'custom' && (
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 24, flexWrap: 'wrap' }}>
-          <DatePicker value={customStart} onChange={setCustomStart} />
+      {/* Custom range modal */}
+      <Modal
+        open={periodModalOpen}
+        onClose={() => setPeriodModalOpen(false)}
+        title={t('insights.preset.custom')}
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setPeriodModalOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={applyCustom} disabled={!draftStart || !draftEnd || draftStart > draftEnd}>
+              {t('common.apply')}
+            </Button>
+          </>
+        }
+      >
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <DatePicker value={draftStart} onChange={setDraftStart} />
           <span style={{ fontSize: 13, color: 'var(--ink-light)' }}>{t('insights.rangeTo')}</span>
-          <DatePicker value={customEnd} onChange={setCustomEnd} />
+          <DatePicker value={draftEnd} onChange={setDraftEnd} />
         </div>
-      )}
+      </Modal>
 
       {/* Headline stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
@@ -609,6 +653,30 @@ export function InsightsPage() {
           </>
         )}
       </Card>
+
+      {/* Mobile expense/income toolbar */}
+      {isMobile && (
+        <div
+          role="toolbar"
+          aria-label={t('insights.expense')}
+          style={{
+            position: 'fixed',
+            bottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 8px)',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 500,
+            display: 'flex',
+            gap: 8,
+            background: 'white',
+            border: '1px solid var(--cream-darker)',
+            borderRadius: 100,
+            padding: '6px 8px',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+          }}
+        >
+          {typeToggle}
+        </div>
+      )}
     </div>
   );
 }
