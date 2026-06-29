@@ -219,18 +219,13 @@ export function MultiCategorySelect({
         {selectedCategories.length === 0 ? (
           <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{placeholder}</span>
         ) : (
-          <span style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden' }}>
-            {selectedCategories.slice(0, 2).map((cat) => (
-              <span
-                key={cat.id}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0, maxWidth: 120 }}
-              >
-                <CategoryIcon iconName={cat.icon} color={cat.color} size={10} containerSize={18} borderRadius={4} fallbackLetter={cat.name[0]} />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat.name}</span>
-              </span>
-            ))}
-            {selectedCategories.length > 2 && (
-              <span style={{ flexShrink: 0, color: 'var(--ink-faint)', fontSize: 13 }}>+{selectedCategories.length - 2}</span>
+          <span style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
+              <CategoryIcon iconName={selectedCategories[0].icon} color={selectedCategories[0].color} size={10} containerSize={18} borderRadius={4} fallbackLetter={selectedCategories[0].name[0]} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedCategories[0].name}</span>
+            </span>
+            {selectedCategories.length > 1 && (
+              <span style={{ flexShrink: 0, color: 'var(--ink-faint)', fontSize: 13 }}>(+{selectedCategories.length - 1})</span>
             )}
           </span>
         )}
