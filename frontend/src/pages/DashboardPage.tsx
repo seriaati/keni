@@ -470,7 +470,7 @@ export function DashboardPage() {
                           cursor="pointer"
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any
                           onClick={(data: any) => goToCategory(data.category_id as string, spendingPeriod)}
-                          shape={(props, index) => (
+                          shape={(props) => (
                             <Sector
                               cx={props.cx}
                               cy={props.cy}
@@ -479,7 +479,7 @@ export function DashboardPage() {
                               startAngle={props.startAngle}
                               endAngle={props.endAngle}
                               cornerRadius={props.cornerRadius}
-                              fill={sorted[index]?.category_color ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length]}
+                              fill={sorted[props.index]?.category_color ?? FALLBACK_COLORS[props.index % FALLBACK_COLORS.length]}
                               style={{ cursor: 'pointer' }}
                             />
                           )}
@@ -588,7 +588,7 @@ export function DashboardPage() {
                             paddingAngle={2}
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             onClick={(data: any) => goToCategory(data.category_id as string, incomePeriod)}
-                            shape={(props, index) => (
+                            shape={(props) => (
                               <Sector
                                 cx={props.cx}
                                 cy={props.cy}
@@ -597,7 +597,7 @@ export function DashboardPage() {
                                 startAngle={props.startAngle}
                                 endAngle={props.endAngle}
                                 cornerRadius={props.cornerRadius}
-                                fill={sorted[index]?.category_color ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length]}
+                                fill={sorted[props.index]?.category_color ?? FALLBACK_COLORS[props.index % FALLBACK_COLORS.length]}
                                 style={{ cursor: 'pointer' }}
                               />
                             )}
