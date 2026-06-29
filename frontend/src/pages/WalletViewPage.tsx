@@ -100,6 +100,7 @@ export function WalletViewPage() {
   const endDate = searchParams.get('end_date') ?? '';
   const minAmount = searchParams.get('min_amount') ?? '';
   const maxAmount = searchParams.get('max_amount') ?? '';
+  const typeFilter = searchParams.get('type') ?? '';
 
   const PAGE_SIZE = 20;
 
@@ -140,6 +141,7 @@ export function WalletViewPage() {
           end_date: endDate || undefined,
           min_amount: minAmount ? Number(minAmount) : undefined,
           max_amount: maxAmount ? Number(maxAmount) : undefined,
+          type: typeFilter === 'expense' || typeFilter === 'income' ? typeFilter : undefined,
         }),
       ]);
       setWallet(w);
@@ -151,7 +153,7 @@ export function WalletViewPage() {
     } finally {
       setLoading(false);
     }
-  }, [walletId, page, search, selectedCategoryIds, selectedTagIds, sortBy, sortOrder, startDate, endDate, minAmount, maxAmount, toast, expenseAddedKey]);
+  }, [walletId, page, search, selectedCategoryIds, selectedTagIds, sortBy, sortOrder, startDate, endDate, minAmount, maxAmount, typeFilter, toast, expenseAddedKey]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -430,10 +432,10 @@ export function WalletViewPage() {
   };
 
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
-  const hasFilters = search || selectedCategoryIds.length > 0 || selectedTagIds.length > 0 || startDate || endDate || minAmount || maxAmount;
+  const hasFilters = search || selectedCategoryIds.length > 0 || selectedTagIds.length > 0 || startDate || endDate || minAmount || maxAmount || typeFilter;
   // Count of filters controlled by the advanced panel (search & category have their own UI)
   const panelFilterCount =
-    (startDate ? 1 : 0) + (endDate ? 1 : 0) + (minAmount ? 1 : 0) + (maxAmount ? 1 : 0) + selectedTagIds.length;
+    (startDate ? 1 : 0) + (endDate ? 1 : 0) + (minAmount ? 1 : 0) + (maxAmount ? 1 : 0) + (typeFilter ? 1 : 0) + selectedTagIds.length;
   const selCount = selectedIds.size;
 
   // Tags that can still match given the other active filters; ineligible ones are dimmed, not hidden.
@@ -849,6 +851,18 @@ export function WalletViewPage() {
             <input className="input" type="number" placeholder="∞" value={maxAmount} onChange={(e) => setParam({ max_amount: e.target.value, page: null })} />
           </div>
           <div className="input-group">
+            <label className="input-label">{t('walletView.filterType')}</label>
+            <Select
+              value={typeFilter}
+              onChange={(v) => setParam({ type: v || null, page: null })}
+              options={[
+                { value: '', label: t('walletView.filterTypeAll') },
+                { value: 'expense', label: t('walletView.filterTypeExpense') },
+                { value: 'income', label: t('walletView.filterTypeIncome') },
+              ]}
+            />
+          </div>
+          <div className="input-group">
             <label className="input-label">{t('walletView.filterSortBy')}</label>
             <Select
               value={sortBy}
@@ -898,7 +912,7 @@ export function WalletViewPage() {
             <div style={{ display: 'flex', alignItems: 'flex-end' }}>
               <button
                 className="btn btn-ghost btn-md"
-                onClick={() => setParam({ q: null, category_ids: null, tag_ids: null, start_date: null, end_date: null, min_amount: null, max_amount: null, page: null })}
+                onClick={() => setParam({ q: null, category_ids: null, tag_ids: null, start_date: null, end_date: null, min_amount: null, max_amount: null, type: null, page: null })}
               >
                 <X size={14} /> {t('walletView.filterClearAll')}
               </button>
