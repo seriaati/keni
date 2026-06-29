@@ -541,10 +541,14 @@ async def get_transaction_analytics(  # noqa: PLR0913, PLR0917
     start_date: Annotated[datetime | None, Query()] = None,
     end_date: Annotated[datetime | None, Query()] = None,
     transaction_type: Annotated[str, Query(alias="type", pattern="^(expense|income)$")] = "expense",
+    x_timezone: Annotated[str | None, Header()] = None,
 ) -> TransactionAnalytics:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
 
-    day = func.date_trunc("day", col(Transaction.date))
+    # Bucket days in the user's local timezone, not the DB session tz (UTC),
+    # so transactions near midnight land on the correct calendar day.
+    tz = current_user.timezone or x_timezone or "UTC"
+    day = func.date_trunc("day", func.timezone(tz, col(Transaction.date)))
     filters = [
         Transaction.wallet_id == wallet_id,
         col(Transaction.group_id).is_(None),
