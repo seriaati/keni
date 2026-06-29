@@ -144,3 +144,5 @@ vite.config.ts.timestamp-*
 .vite/
 
 dev-dist/
+
+.serena/
