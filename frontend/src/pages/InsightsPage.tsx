@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
-import { Wallet } from 'lucide-react';
+import { Wallet, X } from 'lucide-react';
 import {
   Area,
   AreaChart,
@@ -15,14 +15,16 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { expenses as expensesApi } from '../lib/api';
+import { expenses as expensesApi, categories as categoriesApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
-import type { TransactionAnalytics, TransactionResponse } from '../lib/types';
+import type { CategoryResponse, TransactionAnalytics, TransactionResponse } from '../lib/types';
 import { fmt, fmtDateShort } from '../lib/utils';
 import { DatePicker } from '../components/ui/DatePicker';
 import { Select } from '../components/ui/Select';
 import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
+import { MultiCategorySelect } from '../components/ui/MultiCategorySelect';
+import { CategoryIcon } from '../lib/categoryIcons';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 
 type Preset = 'this_month' | 'last_month' | 'last_3_months' | 'this_year' | 'custom';
@@ -40,6 +42,7 @@ const PALETTE = [
   'oklch(55% 0.10 240)',
 ];
 const TOP_CATEGORIES = 8;
+const DRAWER_WIDTH = 380;
 const TOP_TRANSACTIONS = 50;
 const DEFAULT_TOP_SHOWN = 5;
 
@@ -79,7 +82,7 @@ function toParams(start: Date, end: Date) {
   return { start_date: start.toISOString(), end_date: endOfDay.toISOString() };
 }
 
-function cumulativeByOffset(byDay: TransactionAnalytics['by_day'], start: Date) {
+function cumulativeByOffset(byDay: { day: string; total: number }[], start: Date) {
   const sorted = [...byDay].sort((a, b) => a.day.localeCompare(b.day));
   const startOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate());
   let run = 0;
@@ -90,6 +93,22 @@ function cumulativeByOffset(byDay: TransactionAnalytics['by_day'], start: Date) 
     out.set(offset, run);
   }
   return out;
+}
+
+// Daily totals, optionally narrowed to selected categories (uses by_day_category pivot)
+function dailyTotals(
+  byDay: TransactionAnalytics['by_day'],
+  byDayCategory: TransactionAnalytics['by_day_category'],
+  categoryIds: string[],
+): { day: string; total: number }[] {
+  if (categoryIds.length === 0) return byDay;
+  const set = new Set(categoryIds);
+  const map = new Map<string, number>();
+  for (const r of byDayCategory) {
+    if (!set.has(r.category_id)) continue;
+    map.set(r.day, (map.get(r.day) ?? 0) + r.total);
+  }
+  return [...map.entries()].map(([day, total]) => ({ day, total }));
 }
 
 interface HeatTip {
@@ -120,6 +139,11 @@ export function InsightsPage() {
   const [loading, setLoading] = useState(true);
   const [dataVersion, setDataVersion] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const [categories, setCategories] = useState<CategoryResponse[]>([]);
+  const [lineCategoryIds, setLineCategoryIds] = useState<string[]>([]);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [dayTxns, setDayTxns] = useState<TransactionResponse[]>([]);
+  const [dayLoading, setDayLoading] = useState(false);
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 640px)');
@@ -127,6 +151,10 @@ export function InsightsPage() {
     update();
     mq.addEventListener('change', update);
     return () => mq.removeEventListener('change', update);
+  }, []);
+
+  useEffect(() => {
+    categoriesApi.list().then(setCategories).catch(() => {});
   }, []);
 
   const { start, end } = useMemo(() => {
@@ -204,9 +232,11 @@ export function InsightsPage() {
 
   // Cumulative line: current vs previous period, aligned by day offset
   const cumulativeData = useMemo(() => {
-    const cur = cumulativeByOffset(analytics?.by_day ?? [], start);
+    const curDaily = dailyTotals(analytics?.by_day ?? [], analytics?.by_day_category ?? [], lineCategoryIds);
+    const prevDaily = dailyTotals(prevAnalytics?.by_day ?? [], prevAnalytics?.by_day_category ?? [], lineCategoryIds);
+    const cur = cumulativeByOffset(curDaily, start);
     const prevRange = previousRange(start, end);
-    const prev = cumulativeByOffset(prevAnalytics?.by_day ?? [], prevRange.start);
+    const prev = cumulativeByOffset(prevDaily, prevRange.start);
     const maxOffset = Math.max(0, ...cur.keys(), ...prev.keys());
     const rows: { day: number; current: number | null; previous: number | null }[] = [];
     let curRun = 0;
@@ -223,7 +253,7 @@ export function InsightsPage() {
       });
     }
     return rows;
-  }, [analytics, prevAnalytics, start, end]);
+  }, [analytics, prevAnalytics, start, end, lineCategoryIds]);
 
   // Category stacked area: pivot by_day_category, keep top N + Other
   const { areaData, areaCategories } = useMemo(() => {
@@ -290,14 +320,16 @@ export function InsightsPage() {
   }, [analytics, start, end]);
 
   // Responsive heatmap cell size — grow blocks to fill width on small ranges
-  const heatRef = useRef<HTMLDivElement>(null);
   const [heatWidth, setHeatWidth] = useState(0);
-  useEffect(() => {
-    const el = heatRef.current;
+  const roRef = useRef<ResizeObserver | null>(null);
+  // Callback ref: the heatmap node only mounts once activeWallet resolves, so a
+  // mount-time effect can miss it. Attach the observer whenever the node appears.
+  const heatRef = useCallback((el: HTMLDivElement | null) => {
+    roRef.current?.disconnect();
     if (!el) return;
     const ro = new ResizeObserver((entries) => setHeatWidth(entries[0].contentRect.width));
     ro.observe(el);
-    return () => ro.disconnect();
+    roRef.current = ro;
   }, []);
 
   // Heatmap tooltip (hover on desktop, tap on mobile)
@@ -314,6 +346,28 @@ export function InsightsPage() {
     document.addEventListener('pointerdown', onDown);
     return () => document.removeEventListener('pointerdown', onDown);
   }, [tip]);
+
+  // Day drawer (desktop): fetch the clicked day's transactions, scoped to type + selected categories
+  useEffect(() => {
+    if (!activeWallet || !selectedDay) return;
+    setDayLoading(true);
+    const dayStart = parseDay(selectedDay);
+    const dayEnd = new Date(dayStart.getFullYear(), dayStart.getMonth(), dayStart.getDate(), 23, 59, 59, 999);
+    expensesApi
+      .list(activeWallet.id, {
+        start_date: dayStart.toISOString(),
+        end_date: dayEnd.toISOString(),
+        type,
+        category_ids: lineCategoryIds.length > 0 ? lineCategoryIds : undefined,
+        sort_by: 'amount',
+        sort_order: 'desc',
+        page: 1,
+        page_size: 100,
+      })
+      .then((res) => setDayTxns(res.items))
+      .catch(() => setDayTxns([]))
+      .finally(() => setDayLoading(false));
+  }, [activeWallet, selectedDay, type, lineCategoryIds]);
 
   if (!activeWallet) {
     return (
@@ -356,6 +410,44 @@ export function InsightsPage() {
     return `/wallets/${activeWallet.id}?start_date=${localDate(d)}&end_date=${localDate(d)}&type=${type}`;
   };
   const linkStyle = { color: 'var(--forest)' } as const;
+
+  const cumulativeTitle = type === 'income' ? t('insights.cumulativeTitleIncome') : t('insights.cumulativeTitle');
+  const cumulativeDesc = type === 'income' ? t('insights.cumulativeDescIncome') : t('insights.cumulativeDesc');
+
+  // Only offer categories that actually have data this period
+  const presentCategoryIds = new Set((analytics?.by_day_category ?? []).map((r) => r.category_id));
+  const lineCategoryOptions = categories.filter((c) => presentCategoryIds.has(c.id));
+
+  // Map a cumulative-chart X value (day offset + 1) back to an ISO date in the current period
+  const startOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const offsetToIso = (offset: number) => {
+    const d = new Date(startOnly);
+    d.setDate(d.getDate() + offset);
+    return localDate(d);
+  };
+  // Local-day ISO bounds — matches how the chart buckets days (DB date_trunc in session tz)
+  const dayBoundsISO = (iso: string) => {
+    const d = parseDay(iso);
+    return {
+      start: d.toISOString(),
+      end: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).toISOString(),
+    };
+  };
+  const dayFilterLink = (iso: string) => {
+    const { start: s, end: e } = dayBoundsISO(iso);
+    const p = new URLSearchParams();
+    p.set('start_date', s);
+    p.set('end_date', e);
+    p.set('type', type);
+    for (const id of lineCategoryIds) p.append('category_ids', id);
+    return `/wallets/${activeWallet.id}?${p.toString()}`;
+  };
+  const handleLineClick = (state: { activeLabel?: string | number }) => {
+    if (state?.activeLabel == null) return;
+    const iso = offsetToIso(Number(state.activeLabel) - 1);
+    if (isMobile) navigate(dayFilterLink(iso));
+    else setSelectedDay(iso);
+  };
 
   const typeToggle = (
     <div style={{ display: 'flex', gap: 6 }}>
@@ -405,7 +497,11 @@ export function InsightsPage() {
   return (
     <div
       className="animate-fade-in"
-      style={isMobile ? { paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 64px)' } : undefined}
+      style={{
+        ...(isMobile ? { paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 64px)' } : null),
+        ...(!isMobile && selectedDay ? { paddingRight: DRAWER_WIDTH } : null),
+        transition: 'padding-right 0.2s ease',
+      }}
     >
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
@@ -481,20 +577,28 @@ export function InsightsPage() {
       </div>
 
       {/* Cumulative line */}
-      <Card title={t('insights.cumulativeTitle')} desc={t('insights.cumulativeDesc')}>
+      <Card title={cumulativeTitle} desc={cumulativeDesc}>
+        <div style={{ marginBottom: 24 }}>
+          <MultiCategorySelect
+            value={lineCategoryIds}
+            categories={lineCategoryOptions}
+            onChange={setLineCategoryIds}
+            placeholder={t('insights.allCategories')}
+          />
+        </div>
         {loading ? (
           <ChartSkeleton height={280} />
         ) : (
           <ErrorBoundary fallback={<ChartError />}>
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart key={`cum-${dataVersion}`} data={cumulativeData} margin={{ top: 8, right: 12, bottom: 4, left: 4 }}>
+              <LineChart key={`cum-${dataVersion}`} data={cumulativeData} margin={{ top: 8, right: 12, bottom: 4, left: 4 }} onClick={handleLineClick} style={{ cursor: 'pointer' }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--cream-darker)" />
                 <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="var(--ink-light)" interval={isMobile ? 4 : 'preserveStartEnd'} />
                 <YAxis tickFormatter={compact} tick={{ fontSize: 11 }} stroke="var(--ink-light)" width={40} />
                 <Tooltip formatter={(v) => fmt(Number(v), currency)} labelFormatter={(l) => t('insights.dayN', { n: l })} />
                 <Legend wrapperStyle={legendStyle} />
-                <Line type="monotone" dataKey="previous" name={t('insights.prevPeriod')} stroke="var(--ink-light)" strokeDasharray="4 4" dot={false} connectNulls />
-                <Line type="monotone" dataKey="current" name={t('insights.thisPeriod')} stroke="var(--forest)" strokeWidth={2} dot={false} connectNulls />
+                <Line type="monotone" dataKey="previous" name={t('insights.prevPeriod')} stroke="var(--ink-light)" strokeDasharray="4 4" dot={false} connectNulls isAnimationActive={false} />
+                <Line type="monotone" dataKey="current" name={t('insights.thisPeriod')} stroke="var(--forest)" strokeWidth={2} dot={false} connectNulls isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           </ErrorBoundary>
@@ -595,7 +699,7 @@ export function InsightsPage() {
                 <Tooltip formatter={(v) => fmt(Number(v), currency)} labelFormatter={(d) => fmtDateShort(d as string)} />
                 <Legend content={renderCategoryLegend} />
                 {areaCategories.map((c) => (
-                  <Area key={c.name} type="monotone" dataKey={c.name} stackId="1" stroke={c.color} fill={c.color} fillOpacity={0.5} />
+                  <Area key={c.name} type="monotone" dataKey={c.name} stackId="1" stroke={c.color} fill={c.color} fillOpacity={0.5} isAnimationActive={false} />
                 ))}
               </AreaChart>
             </ResponsiveContainer>
@@ -653,6 +757,19 @@ export function InsightsPage() {
           </>
         )}
       </Card>
+
+      {/* Day transactions drawer (desktop) */}
+      {!isMobile && selectedDay && (
+        <DayDrawer
+          iso={selectedDay}
+          txns={dayTxns}
+          loading={dayLoading}
+          currency={currency}
+          onClose={() => setSelectedDay(null)}
+          onViewAll={() => { navigate(dayFilterLink(selectedDay)); setSelectedDay(null); }}
+          onOpenTxn={(id) => navigate(`/wallets/${activeWallet.id}/expenses/${id}`)}
+        />
+      )}
 
       {/* Mobile expense/income toolbar */}
       {isMobile && (
@@ -715,6 +832,105 @@ function TableSkeleton({ rows }: { rows: number }) {
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="skeleton" style={{ height: 20, width: '100%', borderRadius: 6 }} />
       ))}
+    </div>
+  );
+}
+
+function DayDrawer({
+  iso,
+  txns,
+  loading,
+  currency,
+  onClose,
+  onViewAll,
+  onOpenTxn,
+}: {
+  iso: string;
+  txns: TransactionResponse[];
+  loading: boolean;
+  currency: string;
+  onClose: () => void;
+  onViewAll: () => void;
+  onOpenTxn: (id: string) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        right: 0,
+        bottom: 0,
+        width: DRAWER_WIDTH,
+        zIndex: 600,
+        background: 'white',
+        borderLeft: '1px solid var(--cream-darker)',
+        display: 'flex',
+        flexDirection: 'column',
+        animation: 'slideInRight 0.2s ease both',
+        willChange: 'transform',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--cream-darker)' }}>
+        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{fmtDateShort(iso)}</div>
+        <button
+          onClick={onClose}
+          style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--ink-light)', display: 'flex', padding: 4 }}
+          aria-label={t('common.cancel')}
+        >
+          <X size={18} />
+        </button>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 16 }} aria-hidden>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="skeleton" style={{ height: 48, borderRadius: 10 }} />
+            ))}
+          </div>
+        ) : txns.length === 0 ? (
+          <p className="empty-state-desc" style={{ padding: '24px 20px', textAlign: 'center' }}>{t('insights.drawerEmpty')}</p>
+        ) : (
+          txns.map((tx) => (
+            <div
+              key={tx.id}
+              onClick={() => onOpenTxn(tx.id)}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: '1px solid var(--cream)', cursor: 'pointer' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'var(--cream)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
+            >
+              <CategoryIcon
+                iconName={tx.category.icon}
+                color={tx.category.color}
+                size={16}
+                containerSize={36}
+                borderRadius={10}
+                fallbackLetter={tx.category.name[0]}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {tx.description ?? tx.category.name}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--ink-faint)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {tx.category.name}
+                </div>
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: tx.type === 'income' ? 'var(--forest)' : 'var(--ink)', flexShrink: 0 }}>
+                {tx.type === 'income' ? '+' : ''}{fmt(tx.amount, currency)}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+      <div style={{ padding: '12px 20px', borderTop: '1px solid var(--cream-darker)' }}>
+        <button
+          onClick={onViewAll}
+          className="btn btn-secondary btn-md"
+          style={{ width: '100%', justifyContent: 'center' }}
+        >
+          {t('insights.drawerViewAll')}
+        </button>
+      </div>
     </div>
   );
 }
