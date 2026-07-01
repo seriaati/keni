@@ -638,10 +638,11 @@ export function InsightsPage() {
                         onPointerEnter={(e) => { if (!pinnedRef.current && e.pointerType === 'mouse') showTip(c, e.currentTarget, false); }}
                         onPointerLeave={(e) => { if (!pinnedRef.current && e.pointerType === 'mouse') setTip(null); }}
                         onClick={(e) => {
-                          // Desktop: tooltip already shown on hover, click navigates.
+                          // Desktop: tooltip already shown on hover, click opens the day drawer.
                           // Touch: first tap shows tooltip, second tap on the same cell navigates.
                           if (canHover || (pinnedRef.current && tip?.iso === c.iso)) {
-                            navigate(dateLink(c.iso));
+                            if (isMobile) navigate(dayFilterLink(c.iso));
+                            else setSelectedDay(c.iso);
                             return;
                           }
                           showTip(c, e.currentTarget, true);
