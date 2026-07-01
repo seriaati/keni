@@ -392,7 +392,7 @@ export function InsightsPage() {
   const weekCount = heatmap.weeks.length;
   const avail = Math.max(0, heatWidth - LABEL_W);
   const rawCell = weekCount > 0 ? Math.floor((avail - GAP * (weekCount - 1)) / weekCount) : 14;
-  const cell = Math.max(13, Math.min(46, rawCell));
+  const cell = Math.max(13, Math.min(30, rawCell));
   const WEEKDAYS =[t('insights.sun'), t('insights.mon'), t('insights.tue'), t('insights.wed'), t('insights.thu'), t('insights.fri'), t('insights.sat')];
 
   const showTip = (c: { iso: string; total: number }, el: HTMLElement, pin: boolean) => {
@@ -611,7 +611,7 @@ export function InsightsPage() {
         <div ref={heatRef} style={{ overflowX: 'auto', paddingBottom: 4, display: loading ? 'none' : undefined }}>
           <div style={{ width: 'fit-content', margin: '0 auto' }}>
             {/* Month labels */}
-            <div style={{ display: 'flex', gap: GAP, marginLeft: LABEL_W, marginBottom: 4 }}>
+            <div style={{ display: 'flex', gap: GAP, marginLeft: LABEL_W, marginBottom: 4, height: 14 }}>
               {heatmap.monthCols.map((label, wi) => (
                 <div key={wi} style={{ width: cell, fontSize: 10, color: 'var(--ink-light)', whiteSpace: 'nowrap', position: 'relative' }}>
                   {label && <span style={{ position: 'absolute', left: 0 }}>{label}</span>}
@@ -622,7 +622,7 @@ export function InsightsPage() {
               {/* Weekday labels */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: GAP, width: LABEL_W - GAP }}>
                 {WEEKDAYS.map((wd, i) => (
-                  <div key={i} style={{ height: cell, fontSize: 10, color: 'var(--ink-light)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                  <div key={i} style={{ height: cell, fontSize: 10, color: 'var(--ink-light)', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
                     {i % 2 === 1 ? wd : ''}
                   </div>
                 ))}
