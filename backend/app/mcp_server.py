@@ -5,7 +5,7 @@ import operator
 import time
 import uuid
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -21,7 +21,9 @@ from sqlmodel import col, select
 
 from app.config import settings as app_settings
 from app.database import get_session
+from app.models.budget import Budget
 from app.models.category import Category
+from app.models.recurring import RecurringTransaction
 from app.models.tag import Tag
 from app.models.transaction import Transaction, TransactionLink, TransactionTag
 from app.models.user import User
@@ -56,7 +58,9 @@ mcp = FastMCP(
     ),
     instructions=(
         "Keni is a personal finance tracker. "
-        "Use these tools to create, query, update, and delete transaction records on behalf of the authenticated user. "
+        "Use these tools to manage transactions (single, batch, and parent-child groups), "
+        "recurring transactions, budgets, wallets, categories, tags, and transaction links "
+        "on behalf of the authenticated user. "
         "Authentication is handled via Bearer token in the Authorization header."
     ),
     auth_server_provider=oauth_provider,
@@ -197,6 +201,110 @@ async def list_wallets() -> list[dict[str, Any]]:
     return []
 
 
+def _wallet_to_dict(w: Wallet) -> dict[str, Any]:
+    return {
+        "id": str(w.id),
+        "name": w.name,
+        "currency": w.currency,
+        "created_at": w.created_at.isoformat(),
+    }
+
+
+@mcp.tool()
+async def create_wallet(name: str, currency: str) -> dict[str, Any]:
+    """
+    Create a new wallet.
+
+    Args:
+        name: Wallet name (1-100 characters).
+        currency: Currency code for the wallet (e.g. USD, EUR).
+    """
+    user = await _get_authenticated_user()
+    if not name.strip() or len(name) > 100:
+        return {"error": "name must be 1-100 characters"}
+    if not currency.strip() or len(currency) > 10:
+        return {"error": "currency must be 1-10 characters"}
+
+    async for session in get_session():
+        wallet = Wallet(user_id=user.id, name=name, currency=currency)
+        session.add(wallet)
+        await session.commit()
+        await session.refresh(wallet)
+        return _wallet_to_dict(wallet)
+    return {"error": "Database error"}
+
+
+@mcp.tool()
+async def update_wallet(
+    wallet_id: str, name: str | None = None, currency: str | None = None
+) -> dict[str, Any]:
+    """
+    Update a wallet's name and/or currency. Omitted fields remain unchanged.
+
+    Args:
+        wallet_id: UUID of the wallet to update.
+        name: New wallet name (1-100 characters).
+        currency: New currency code (e.g. USD, EUR).
+    """
+    user = await _get_authenticated_user()
+    w_id = _parse_uuid(wallet_id, "wallet_id")
+    if isinstance(w_id, str):
+        return {"error": w_id}
+    if name is not None and (not name.strip() or len(name) > 100):
+        return {"error": "name must be 1-100 characters"}
+    if currency is not None and (not currency.strip() or len(currency) > 10):
+        return {"error": "currency must be 1-10 characters"}
+
+    async for session in get_session():
+        result = await session.exec(
+            select(Wallet).where(Wallet.id == w_id, Wallet.user_id == user.id)
+        )
+        wallet = result.first()
+        if not wallet:
+            return {"error": "Wallet not found"}
+
+        if name is not None:
+            wallet.name = name
+        if currency is not None:
+            wallet.currency = currency
+
+        session.add(wallet)
+        await session.commit()
+        await session.refresh(wallet)
+        return _wallet_to_dict(wallet)
+    return {"error": "Database error"}
+
+
+@mcp.tool()
+async def delete_wallet(wallet_id: str) -> dict[str, Any]:
+    """
+    Delete a wallet permanently.
+
+    WARNING: this also permanently deletes ALL transactions and recurring transactions
+    in the wallet. Budgets scoped to the wallet become all-wallet budgets.
+
+    Args:
+        wallet_id: UUID of the wallet to delete.
+    """
+    user = await _get_authenticated_user()
+    w_id = _parse_uuid(wallet_id, "wallet_id")
+    if isinstance(w_id, str):
+        return {"error": w_id}
+
+    async for session in get_session():
+        result = await session.exec(
+            select(Wallet).where(Wallet.id == w_id, Wallet.user_id == user.id)
+        )
+        wallet = result.first()
+        if not wallet:
+            return {"error": "Wallet not found"}
+
+        await session.delete(wallet)
+        await session.commit()
+        return {"deleted": wallet_id}
+    return {"error": "Database error"}
+
+
 @mcp.tool()
 async def list_categories() -> list[dict[str, Any]]:
     """List all categories belonging to the authenticated user."""
@@ -216,6 +324,139 @@ async def list_categories() -> list[dict[str, Any]]:
     return []
 
 
+def _category_to_dict(c: Category) -> dict[str, Any]:
+    return {
+        "id": str(c.id),
+        "name": c.name,
+        "icon": c.icon,
+        "color": c.color,
+        "is_system": c.is_system,
+    }
+
+
+@mcp.tool()
+async def create_category(
+    name: str, icon: str | None = None, color: str | None = None
+) -> dict[str, Any]:
+    """
+    Create a new category.
+
+    Args:
+        name: Category name (1-100 characters).
+        icon: Optional icon name (max 50 characters).
+        color: Optional color value (max 20 characters).
+    """
+    user = await _get_authenticated_user()
+    if not name.strip() or len(name) > 100:
+        return {"error": "name must be 1-100 characters"}
+    if icon is not None and len(icon) > 50:
+        return {"error": "icon must be at most 50 characters"}
+    if color is not None and len(color) > 20:
+        return {"error": "color must be at most 20 characters"}
+
+    async for session in get_session():
+        cat = Category(user_id=user.id, name=name, icon=icon, color=color, is_system=False)
+        session.add(cat)
+        await session.commit()
+        await session.refresh(cat)
+        return _category_to_dict(cat)
+    return {"error": "Database error"}
+
+
+@mcp.tool()
+async def update_category(  # noqa: PLR0911
+    category_id: str, name: str | None = None, icon: str | None = None, color: str | None = None
+) -> dict[str, Any]:
+    """
+    Update a category's name, icon, and/or color. Omitted fields remain unchanged.
+
+    The system "Others" category cannot be modified.
+
+    Args:
+        category_id: UUID of the category to update.
+        name: New category name (1-100 characters).
+        icon: New icon name (max 50 characters).
+        color: New color value (max 20 characters).
+    """
+    user = await _get_authenticated_user()
+    c_id = _parse_uuid(category_id, "category_id")
+    if isinstance(c_id, str):
+        return {"error": c_id}
+    if name is not None and (not name.strip() or len(name) > 100):
+        return {"error": "name must be 1-100 characters"}
+    if icon is not None and len(icon) > 50:
+        return {"error": "icon must be at most 50 characters"}
+    if color is not None and len(color) > 20:
+        return {"error": "color must be at most 20 characters"}
+
+    async for session in get_session():
+        result = await session.exec(
+            select(Category).where(Category.id == c_id, Category.user_id == user.id)
+        )
+        cat = result.first()
+        if not cat:
+            return {"error": "Category not found"}
+        if cat.is_system:
+            return {"error": "Cannot modify the system 'Others' category"}
+
+        if name is not None:
+            cat.name = name
+        if icon is not None:
+            cat.icon = icon
+        if color is not None:
+            cat.color = color
+
+        session.add(cat)
+        await session.commit()
+        await session.refresh(cat)
+        return _category_to_dict(cat)
+    return {"error": "Database error"}
+
+
+@mcp.tool()
+async def delete_category(category_id: str) -> dict[str, Any]:
+    """
+    Delete a category. Transactions in the category are reassigned to the system
+    "Others" category. The system "Others" category itself cannot be deleted.
+
+    Args:
+        category_id: UUID of the category to delete.
+    """
+    user = await _get_authenticated_user()
+    c_id = _parse_uuid(category_id, "category_id")
+    if isinstance(c_id, str):
+        return {"error": c_id}
+
+    async for session in get_session():
+        result = await session.exec(
+            select(Category).where(Category.id == c_id, Category.user_id == user.id)
+        )
+        cat = result.first()
+        if not cat:
+            return {"error": "Category not found"}
+        if cat.is_system:
+            return {"error": "Cannot delete the system 'Others' category"}
+
+        others_result = await session.exec(
+            select(Category).where(Category.user_id == user.id, Category.is_system)
+        )
+        others = others_result.first()
+        if not others:
+            return {"error": "System category not found"}
+
+        t_result = await session.exec(select(Transaction).where(Transaction.category_id == c_id))
+        reassigned = 0
+        for transaction in t_result.all():
+            transaction.category_id = others.id
+            session.add(transaction)
+            reassigned += 1
+
+        await session.delete(cat)
+        await session.commit()
+        return {"deleted": category_id, "transactions_reassigned": reassigned}
+    return {"error": "Database error"}
+
+
 @mcp.tool()
 async def list_tags() -> list[dict[str, Any]]:
     """List all tags belonging to the authenticated user."""
@@ -232,6 +473,104 @@ async def list_tags() -> list[dict[str, Any]]:
             for t in result.all()
         ]
     return []
+
+
+def _tag_to_dict(t: Tag) -> dict[str, Any]:
+    return {
+        "id": str(t.id),
+        "name": t.name,
+        "color": t.color,
+        "created_at": t.created_at.isoformat(),
+    }
+
+
+@mcp.tool()
+async def create_tag(name: str, color: str | None = None) -> dict[str, Any]:
+    """
+    Create a new tag.
+
+    Args:
+        name: Tag name (1-100 characters).
+        color: Optional color value (max 20 characters).
+    """
+    user = await _get_authenticated_user()
+    if not name.strip() or len(name) > 100:
+        return {"error": "name must be 1-100 characters"}
+    if color is not None and len(color) > 20:
+        return {"error": "color must be at most 20 characters"}
+
+    async for session in get_session():
+        tag = Tag(user_id=user.id, name=name, color=color)
+        session.add(tag)
+        await session.commit()
+        await session.refresh(tag)
+        return _tag_to_dict(tag)
+    return {"error": "Database error"}
+
+
+@mcp.tool()
+async def update_tag(
+    tag_id: str, name: str | None = None, color: str | None = None
+) -> dict[str, Any]:
+    """
+    Update a tag's name and/or color. Omitted fields remain unchanged.
+
+    Args:
+        tag_id: UUID of the tag to update.
+        name: New tag name (1-100 characters).
+        color: New color value (max 20 characters).
+    """
+    user = await _get_authenticated_user()
+    t_id = _parse_uuid(tag_id, "tag_id")
+    if isinstance(t_id, str):
+        return {"error": t_id}
+    if name is not None and (not name.strip() or len(name) > 100):
+        return {"error": "name must be 1-100 characters"}
+    if color is not None and len(color) > 20:
+        return {"error": "color must be at most 20 characters"}
+
+    async for session in get_session():
+        result = await session.exec(select(Tag).where(Tag.id == t_id, Tag.user_id == user.id))
+        tag = result.first()
+        if not tag:
+            return {"error": "Tag not found"}
+
+        if name is not None:
+            tag.name = name
+        if color is not None:
+            tag.color = color
+
+        session.add(tag)
+        await session.commit()
+        await session.refresh(tag)
+        return _tag_to_dict(tag)
+    return {"error": "Database error"}
+
+
+@mcp.tool()
+async def delete_tag(tag_id: str) -> dict[str, Any]:
+    """
+    Delete a tag. The tag is removed from all transactions it is attached to;
+    the transactions themselves are not deleted.
+
+    Args:
+        tag_id: UUID of the tag to delete.
+    """
+    user = await _get_authenticated_user()
+    t_id = _parse_uuid(tag_id, "tag_id")
+    if isinstance(t_id, str):
+        return {"error": t_id}
+
+    async for session in get_session():
+        result = await session.exec(select(Tag).where(Tag.id == t_id, Tag.user_id == user.id))
+        tag = result.first()
+        if not tag:
+            return {"error": "Tag not found"}
+
+        await session.delete(tag)
+        await session.commit()
+        return {"deleted": tag_id}
+    return {"error": "Database error"}
 
 
 @dataclass
@@ -540,6 +879,20 @@ async def get_summary(params: GetSummaryInput) -> dict[str, Any]:
 
 
 @dataclass
+class TransactionItemInput:
+    amount: float
+    type: str = "expense"
+    category_id: str | None = None
+    category_name: str | None = None
+    category_icon: str | None = None
+    description: str | None = None
+    date: str | None = None
+    tag_ids: list[str] = field(default_factory=list)
+    tag_names: list[str] = field(default_factory=list)
+    ai_context: str | None = None
+
+
+@dataclass
 class CreateTransactionInput:
     wallet_id: str
     amount: float
@@ -554,24 +907,113 @@ class CreateTransactionInput:
     ai_context: str | None = None
 
 
-async def _insert_transaction(  # noqa: C901, PLR0911, PLR0912
+def _validate_item(item: TransactionItemInput) -> str | None:
+    if item.amount < 0:
+        return "Amount must not be negative"
+    if item.type not in {"expense", "income"}:
+        return "type must be 'expense' or 'income'"
+    if item.category_id and item.category_name:
+        return "Provide either category_id or category_name, not both"
+    if not item.category_id and not item.category_name:
+        return "Provide either category_id or category_name"
+    if item.date:
+        parsed_dt = _parse_dt(item.date, "date")
+        if isinstance(parsed_dt, str):
+            return parsed_dt
+    return None
+
+
+async def _insert_item(
+    session: Any,
+    user_id: uuid.UUID,
+    wallet_id: uuid.UUID,
+    item: TransactionItemInput,
+    group_id: uuid.UUID | None = None,
+) -> dict[str, Any] | str:
+    """Insert one transaction on an open session without committing. Returns dict or error."""
+    if item.category_id:
+        c_id = _parse_uuid(item.category_id, "category_id")
+        if isinstance(c_id, str):
+            return c_id
+        cat_result = await session.exec(
+            select(Category).where(Category.id == c_id, Category.user_id == user_id)
+        )
+        cat = cat_result.first()
+        if not cat:
+            return "Category not found"
+    else:
+        assert item.category_name is not None
+        cat = await find_or_create_category(
+            user_id=user_id, name=item.category_name, session=session, icon=item.category_icon
+        )
+
+    all_tag_ids: list[uuid.UUID] = []
+    for tid in item.tag_ids:
+        parsed_tid = _parse_uuid(tid, "tag_id")
+        if isinstance(parsed_tid, str):
+            return parsed_tid
+        tag_check = await session.exec(
+            select(Tag).where(Tag.id == parsed_tid, Tag.user_id == user_id)
+        )
+        if not tag_check.first():
+            return f"Tag {tid} not found"
+        all_tag_ids.append(parsed_tid)
+
+    for name in item.tag_names:
+        tag = await find_or_create_tag(user_id=user_id, name=name, session=session)
+        if tag.id not in all_tag_ids:
+            all_tag_ids.append(tag.id)
+
+    transaction_date: datetime = datetime.now(UTC)
+    if item.date:
+        parsed_dt = _parse_dt(item.date, "date")
+        if isinstance(parsed_dt, str):
+            return parsed_dt
+        transaction_date = parsed_dt
+
+    transaction = Transaction(
+        wallet_id=wallet_id,
+        category_id=cat.id,
+        group_id=group_id,
+        type=item.type,
+        amount=item.amount,
+        description=item.description,
+        date=transaction_date,
+        ai_context=item.ai_context,
+    )
+    session.add(transaction)
+    await session.flush()
+
+    for tag_id in all_tag_ids:
+        session.add(TransactionTag(transaction_id=transaction.id, tag_id=tag_id))
+
+    await session.refresh(transaction)
+    tags = [{"id": str(tid), "name": None, "color": None} for tid in all_tag_ids]
+    return _transaction_to_dict(transaction, cat, tags)
+
+
+async def _insert_transaction(
     params: CreateTransactionInput, user_id: uuid.UUID
 ) -> dict[str, Any] | str:
     w_id = _parse_uuid(params.wallet_id, "wallet_id")
     if isinstance(w_id, str):
         return w_id
 
-    if params.category_id and params.category_name:
-        return "Provide either category_id or category_name, not both"
-    if not params.category_id and not params.category_name:
-        return "Provide either category_id or category_name"
-
-    transaction_date: datetime = datetime.now(UTC)
-    if params.date:
-        parsed_dt = _parse_dt(params.date, "date")
-        if isinstance(parsed_dt, str):
-            return parsed_dt
-        transaction_date = parsed_dt
+    item = TransactionItemInput(
+        amount=params.amount,
+        type=params.type,
+        category_id=params.category_id,
+        category_name=params.category_name,
+        category_icon=params.category_icon,
+        description=params.description,
+        date=params.date,
+        tag_ids=params.tag_ids,
+        tag_names=params.tag_names,
+        ai_context=params.ai_context,
+    )
+    err = _validate_item(item)
+    if err:
+        return err
 
     async for session in get_session():
         wallet_result = await session.exec(
@@ -580,64 +1022,11 @@ async def _insert_transaction(  # noqa: C901, PLR0911, PLR0912
         if not wallet_result.first():
             return "Wallet not found"
 
-        if params.category_id:
-            c_id = _parse_uuid(params.category_id, "category_id")
-            if isinstance(c_id, str):
-                return c_id
-            cat_result = await session.exec(
-                select(Category).where(Category.id == c_id, Category.user_id == user_id)
-            )
-            cat = cat_result.first()
-            if not cat:
-                return "Category not found"
-            resolved_category_id = c_id
-        else:
-            assert params.category_name is not None
-            cat = await find_or_create_category(
-                user_id=user_id,
-                name=params.category_name,
-                session=session,
-                icon=params.category_icon,
-            )
-            resolved_category_id = cat.id
-
-        all_tag_ids: list[uuid.UUID] = []
-        for tid in params.tag_ids:
-            parsed_tid = _parse_uuid(tid, "tag_id")
-            if isinstance(parsed_tid, str):
-                return parsed_tid
-            tag_check = await session.exec(
-                select(Tag).where(Tag.id == parsed_tid, Tag.user_id == user_id)
-            )
-            if not tag_check.first():
-                return f"Tag {tid} not found"
-            all_tag_ids.append(parsed_tid)
-
-        for name in params.tag_names:
-            tag = await find_or_create_tag(user_id=user_id, name=name, session=session)
-            if tag.id not in all_tag_ids:
-                all_tag_ids.append(tag.id)
-
-        transaction = Transaction(
-            wallet_id=w_id,
-            category_id=resolved_category_id,
-            type=params.type,
-            amount=params.amount,
-            description=params.description,
-            date=transaction_date,
-            ai_context=params.ai_context,
-        )
-        session.add(transaction)
-        await session.flush()
-
-        for tag_id in all_tag_ids:
-            session.add(TransactionTag(transaction_id=transaction.id, tag_id=tag_id))
-
+        result = await _insert_item(session, user_id, w_id, item)
+        if isinstance(result, str):
+            return result
         await session.commit()
-        await session.refresh(transaction)
-
-        tags = [{"id": str(tid), "name": None, "color": None} for tid in all_tag_ids]
-        return _transaction_to_dict(transaction, cat, tags)
+        return result
     return "Database error"
 
 
@@ -672,6 +1061,132 @@ async def create_transaction(params: CreateTransactionInput) -> dict[str, Any]:
     if isinstance(result, str):
         return {"error": result}
     return result
+
+
+@dataclass
+class CreateTransactionsInput:
+    wallet_id: str
+    items: list[TransactionItemInput]
+
+
+@mcp.tool()
+async def create_transactions(params: CreateTransactionsInput) -> dict[str, Any]:  # noqa: PLR0911
+    """
+    Create multiple independent transactions in one wallet in a single call.
+
+    All items are created atomically — if any item is invalid, nothing is created.
+    Each item accepts the same fields as create_transaction (category by ID or name,
+    tags by ID or name, created automatically if new).
+
+    Args:
+        params.wallet_id: UUID of the wallet to add the transactions to.
+        params.items: List of transactions to create. Per item: amount (required),
+            type ("expense"/"income"), category_id or category_name, category_icon,
+            description, date (ISO 8601), tag_ids, tag_names, ai_context.
+    """
+    user = await _get_authenticated_user()
+    if not params.items:
+        return {"error": "items must not be empty"}
+    w_id = _parse_uuid(params.wallet_id, "wallet_id")
+    if isinstance(w_id, str):
+        return {"error": w_id}
+    for i, item in enumerate(params.items):
+        err = _validate_item(item)
+        if err:
+            return {"error": f"items[{i}]: {err}"}
+
+    async for session in get_session():
+        wallet_result = await session.exec(
+            select(Wallet).where(Wallet.id == w_id, Wallet.user_id == user.id)
+        )
+        if not wallet_result.first():
+            return {"error": "Wallet not found"}
+
+        created: list[dict[str, Any]] = []
+        for i, item in enumerate(params.items):
+            result = await _insert_item(session, user.id, w_id, item)
+            if isinstance(result, str):
+                await session.rollback()
+                return {"error": f"items[{i}]: {result}"}
+            created.append(result)
+
+        await session.commit()
+        return {"created": created, "count": len(created)}
+    return {"error": "Database error"}
+
+
+@dataclass
+class CreateTransactionGroupInput:
+    wallet_id: str
+    parent: TransactionItemInput
+    children: list[TransactionItemInput]
+
+
+@mcp.tool()
+async def create_transaction_group(params: CreateTransactionGroupInput) -> dict[str, Any]:  # noqa: PLR0911
+    """
+    Create a parent transaction with child transactions (e.g. an itemized receipt).
+
+    The parent represents the whole purchase; each child is one item of it. The sum of
+    the children's amounts must equal the parent's amount. Children are hidden from
+    normal transaction lists and summaries — only the parent is counted. Deleting the
+    parent deletes all children. Everything is created atomically.
+
+    Args:
+        params.wallet_id: UUID of the wallet to add the group to.
+        params.parent: The parent transaction. Same fields as create_transaction items.
+        params.children: Child transactions (at least one). Amounts must sum to the
+            parent's amount.
+    """
+    user = await _get_authenticated_user()
+    if not params.children:
+        return {"error": "children must not be empty"}
+    w_id = _parse_uuid(params.wallet_id, "wallet_id")
+    if isinstance(w_id, str):
+        return {"error": w_id}
+
+    err = _validate_item(params.parent)
+    if err:
+        return {"error": f"parent: {err}"}
+    for i, child in enumerate(params.children):
+        err = _validate_item(child)
+        if err:
+            return {"error": f"children[{i}]: {err}"}
+
+    children_total = sum(child.amount for child in params.children)
+    if abs(children_total - params.parent.amount) > 0.001:
+        return {
+            "error": (
+                f"Sum of children amounts ({children_total}) must equal "
+                f"parent amount ({params.parent.amount})"
+            )
+        }
+
+    async for session in get_session():
+        wallet_result = await session.exec(
+            select(Wallet).where(Wallet.id == w_id, Wallet.user_id == user.id)
+        )
+        if not wallet_result.first():
+            return {"error": "Wallet not found"}
+
+        parent_result = await _insert_item(session, user.id, w_id, params.parent)
+        if isinstance(parent_result, str):
+            await session.rollback()
+            return {"error": f"parent: {parent_result}"}
+        parent_id = uuid.UUID(parent_result["id"])
+
+        child_dicts: list[dict[str, Any]] = []
+        for i, child in enumerate(params.children):
+            child_result = await _insert_item(session, user.id, w_id, child, group_id=parent_id)
+            if isinstance(child_result, str):
+                await session.rollback()
+                return {"error": f"children[{i}]: {child_result}"}
+            child_dicts.append(child_result)
+
+        await session.commit()
+        parent_result["children"] = child_dicts
+        return parent_result
+    return {"error": "Database error"}
 
 
 @dataclass
@@ -843,6 +1358,105 @@ async def delete_transaction(wallet_id: str, transaction_id: str) -> dict[str, A
         await session.delete(t)
         await session.commit()
         return {"deleted": transaction_id}
+    return {"error": "Database error"}
+
+
+async def _get_owned_transaction(
+    transaction_id: uuid.UUID, user_id: uuid.UUID, session: Any
+) -> Transaction | None:
+    result = await session.exec(
+        select(Transaction)
+        .join(Wallet, col(Transaction.wallet_id) == col(Wallet.id))
+        .where(Transaction.id == transaction_id, Wallet.user_id == user_id)
+    )
+    return result.first()
+
+
+def _canonical_link_ids(a: uuid.UUID, b: uuid.UUID) -> tuple[uuid.UUID, uuid.UUID]:
+    if str(a) < str(b):
+        return a, b
+    return b, a
+
+
+@mcp.tool()
+async def link_transactions(transaction_id: str, target_transaction_id: str) -> dict[str, Any]:  # noqa: PLR0911
+    """
+    Link two transactions together (e.g. a refund to its original purchase).
+
+    Links are bidirectional and can span different wallets of the same user.
+    Linked transactions appear in each other's "linked_transactions" in get_transaction.
+
+    Args:
+        transaction_id: UUID of the first transaction.
+        target_transaction_id: UUID of the transaction to link it to.
+    """
+    user = await _get_authenticated_user()
+    t_id = _parse_uuid(transaction_id, "transaction_id")
+    if isinstance(t_id, str):
+        return {"error": t_id}
+    target_id = _parse_uuid(target_transaction_id, "target_transaction_id")
+    if isinstance(target_id, str):
+        return {"error": target_id}
+    if t_id == target_id:
+        return {"error": "Cannot link a transaction to itself"}
+
+    async for session in get_session():
+        if not await _get_owned_transaction(t_id, user.id, session):
+            return {"error": "Transaction not found"}
+        if not await _get_owned_transaction(target_id, user.id, session):
+            return {"error": "Target transaction not found"}
+
+        id_a, id_b = _canonical_link_ids(t_id, target_id)
+        existing = await session.exec(
+            select(TransactionLink).where(
+                TransactionLink.transaction_id_a == id_a, TransactionLink.transaction_id_b == id_b
+            )
+        )
+        if existing.first():
+            return {"error": "Link already exists"}
+
+        session.add(TransactionLink(transaction_id_a=id_a, transaction_id_b=id_b))
+        await session.commit()
+        return {"linked": [str(id_a), str(id_b)]}
+    return {"error": "Database error"}
+
+
+@mcp.tool()
+async def unlink_transactions(transaction_id: str, target_transaction_id: str) -> dict[str, Any]:  # noqa: PLR0911
+    """
+    Remove the link between two transactions. The transactions themselves are not deleted.
+
+    Args:
+        transaction_id: UUID of the first transaction.
+        target_transaction_id: UUID of the linked transaction to unlink.
+    """
+    user = await _get_authenticated_user()
+    t_id = _parse_uuid(transaction_id, "transaction_id")
+    if isinstance(t_id, str):
+        return {"error": t_id}
+    target_id = _parse_uuid(target_transaction_id, "target_transaction_id")
+    if isinstance(target_id, str):
+        return {"error": target_id}
+
+    async for session in get_session():
+        if not await _get_owned_transaction(t_id, user.id, session):
+            return {"error": "Transaction not found"}
+        if not await _get_owned_transaction(target_id, user.id, session):
+            return {"error": "Target transaction not found"}
+
+        id_a, id_b = _canonical_link_ids(t_id, target_id)
+        result = await session.exec(
+            select(TransactionLink).where(
+                TransactionLink.transaction_id_a == id_a, TransactionLink.transaction_id_b == id_b
+            )
+        )
+        link = result.first()
+        if not link:
+            return {"error": "Link not found"}
+
+        await session.delete(link)
+        await session.commit()
+        return {"unlinked": [str(id_a), str(id_b)]}
     return {"error": "Database error"}
 
 
@@ -1043,6 +1657,518 @@ async def get_monthly_trend(params: GetMonthlyTrendInput) -> dict[str, Any]:
             : params.months
         ]
         return {"trend": trend}
+    return {"error": "Database error"}
+
+
+_FREQUENCIES = {"daily", "weekly", "bi-weekly", "monthly", "yearly"}
+
+
+def _recurring_to_dict(r: RecurringTransaction) -> dict[str, Any]:
+    return {
+        "id": str(r.id),
+        "wallet_id": str(r.wallet_id),
+        "category_id": str(r.category_id),
+        "type": r.type,
+        "amount": r.amount,
+        "description": r.description,
+        "frequency": r.frequency,
+        "next_due": r.next_due.isoformat(),
+        "is_active": r.is_active,
+        "created_at": r.created_at.isoformat(),
+    }
+
+
+def _parse_next_due(value: str) -> datetime | str:
+    parsed = _parse_dt(value, "next_due")
+    if isinstance(parsed, str):
+        return parsed
+    if parsed.date() < datetime.now(UTC).date():
+        return "next_due cannot be in the past"
+    return parsed
+
+
+@mcp.tool()
+async def list_recurring_transactions(wallet_id: str) -> dict[str, Any]:
+    """
+    List recurring transactions (subscriptions, salaries, rent, ...) for a wallet.
+
+    Each recurring transaction automatically creates a real transaction every time it
+    comes due, then advances next_due by its frequency.
+
+    Args:
+        wallet_id: UUID of the wallet.
+    """
+    user = await _get_authenticated_user()
+    w_id = _parse_uuid(wallet_id, "wallet_id")
+    if isinstance(w_id, str):
+        return {"error": w_id}
+
+    async for session in get_session():
+        wallet_result = await session.exec(
+            select(Wallet).where(Wallet.id == w_id, Wallet.user_id == user.id)
+        )
+        if not wallet_result.first():
+            return {"error": "Wallet not found"}
+
+        result = await session.exec(
+            select(RecurringTransaction).where(RecurringTransaction.wallet_id == w_id)
+        )
+        return {"items": [_recurring_to_dict(r) for r in result.all()]}
+    return {"error": "Database error"}
+
+
+@dataclass
+class CreateRecurringInput:
+    wallet_id: str
+    amount: float
+    frequency: str
+    next_due: str
+    type: str = "expense"
+    category_id: str | None = None
+    category_name: str | None = None
+    description: str | None = None
+
+
+@mcp.tool()
+async def create_recurring_transaction(params: CreateRecurringInput) -> dict[str, Any]:  # noqa: PLR0911, PLR0912
+    """
+    Create a recurring transaction (subscription, salary, rent, ...).
+
+    A real transaction is created automatically every time it comes due, starting at
+    next_due, then repeating at the given frequency.
+
+    Args:
+        params.wallet_id: UUID of the wallet.
+        params.amount: Amount per occurrence (must be positive).
+        params.frequency: "daily", "weekly", "bi-weekly", "monthly", or "yearly".
+        params.next_due: ISO 8601 date of the next occurrence (must not be in the past).
+        params.type: Transaction type: "expense" (default) or "income".
+        params.category_id: UUID of an existing category (mutually exclusive with category_name).
+        params.category_name: Name of the category — matched case-insensitively or created if new.
+        params.description: Optional description (e.g. "Netflix").
+    """
+    user = await _get_authenticated_user()
+    w_id = _parse_uuid(params.wallet_id, "wallet_id")
+    if isinstance(w_id, str):
+        return {"error": w_id}
+    if params.amount <= 0:
+        return {"error": "Amount must be positive"}
+    if params.type not in {"expense", "income"}:
+        return {"error": "type must be 'expense' or 'income'"}
+    if params.frequency not in _FREQUENCIES:
+        return {"error": f"frequency must be one of {sorted(_FREQUENCIES)}"}
+    if params.category_id and params.category_name:
+        return {"error": "Provide either category_id or category_name, not both"}
+    if not params.category_id and not params.category_name:
+        return {"error": "Provide either category_id or category_name"}
+    next_due = _parse_next_due(params.next_due)
+    if isinstance(next_due, str):
+        return {"error": next_due}
+
+    async for session in get_session():
+        wallet_result = await session.exec(
+            select(Wallet).where(Wallet.id == w_id, Wallet.user_id == user.id)
+        )
+        if not wallet_result.first():
+            return {"error": "Wallet not found"}
+
+        if params.category_id:
+            c_id = _parse_uuid(params.category_id, "category_id")
+            if isinstance(c_id, str):
+                return {"error": c_id}
+            cat_result = await session.exec(
+                select(Category).where(Category.id == c_id, Category.user_id == user.id)
+            )
+            if not cat_result.first():
+                return {"error": "Category not found"}
+            resolved_category_id = c_id
+        else:
+            assert params.category_name is not None
+            category = await find_or_create_category(
+                user_id=user.id, name=params.category_name, session=session
+            )
+            resolved_category_id = category.id
+
+        recurring = RecurringTransaction(
+            wallet_id=w_id,
+            category_id=resolved_category_id,
+            type=params.type,
+            amount=params.amount,
+            description=params.description,
+            frequency=params.frequency,
+            next_due=next_due,
+        )
+        session.add(recurring)
+        await session.commit()
+        await session.refresh(recurring)
+        return _recurring_to_dict(recurring)
+    return {"error": "Database error"}
+
+
+@dataclass
+class UpdateRecurringInput:
+    wallet_id: str
+    recurring_id: str
+    category_id: str | None = None
+    type: str | None = None
+    amount: float | None = None
+    description: str | None = None
+    frequency: str | None = None
+    next_due: str | None = None
+    is_active: bool | None = None
+
+
+@mcp.tool()
+async def update_recurring_transaction(params: UpdateRecurringInput) -> dict[str, Any]:  # noqa: C901, PLR0911, PLR0912
+    """
+    Update a recurring transaction. Only provided fields are changed.
+
+    Set is_active to false to pause a subscription without deleting it.
+
+    Args:
+        params.wallet_id: UUID of the wallet containing the recurring transaction.
+        params.recurring_id: UUID of the recurring transaction to update.
+        params.category_id: New category UUID.
+        params.type: New type: "expense" or "income".
+        params.amount: New amount per occurrence (must be positive).
+        params.description: New description.
+        params.frequency: New frequency: "daily", "weekly", "bi-weekly", "monthly", or "yearly".
+        params.next_due: New next occurrence date (ISO 8601, must not be in the past).
+        params.is_active: Set false to pause, true to resume.
+    """
+    user = await _get_authenticated_user()
+    w_id = _parse_uuid(params.wallet_id, "wallet_id")
+    if isinstance(w_id, str):
+        return {"error": w_id}
+    r_id = _parse_uuid(params.recurring_id, "recurring_id")
+    if isinstance(r_id, str):
+        return {"error": r_id}
+    if params.amount is not None and params.amount <= 0:
+        return {"error": "Amount must be positive"}
+    if params.type is not None and params.type not in {"expense", "income"}:
+        return {"error": "type must be 'expense' or 'income'"}
+    if params.frequency is not None and params.frequency not in _FREQUENCIES:
+        return {"error": f"frequency must be one of {sorted(_FREQUENCIES)}"}
+
+    next_due: datetime | None = None
+    if params.next_due is not None:
+        parsed_due = _parse_next_due(params.next_due)
+        if isinstance(parsed_due, str):
+            return {"error": parsed_due}
+        next_due = parsed_due
+
+    async for session in get_session():
+        wallet_result = await session.exec(
+            select(Wallet).where(Wallet.id == w_id, Wallet.user_id == user.id)
+        )
+        if not wallet_result.first():
+            return {"error": "Wallet not found"}
+
+        result = await session.exec(
+            select(RecurringTransaction).where(
+                RecurringTransaction.id == r_id, RecurringTransaction.wallet_id == w_id
+            )
+        )
+        recurring = result.first()
+        if not recurring:
+            return {"error": "Recurring transaction not found"}
+
+        if params.category_id is not None:
+            c_id = _parse_uuid(params.category_id, "category_id")
+            if isinstance(c_id, str):
+                return {"error": c_id}
+            cat_result = await session.exec(
+                select(Category).where(Category.id == c_id, Category.user_id == user.id)
+            )
+            if not cat_result.first():
+                return {"error": "Category not found"}
+            recurring.category_id = c_id
+
+        if params.type is not None:
+            recurring.type = params.type
+        if params.amount is not None:
+            recurring.amount = params.amount
+        if params.description is not None:
+            recurring.description = params.description
+        if params.frequency is not None:
+            recurring.frequency = params.frequency
+        if next_due is not None:
+            recurring.next_due = next_due
+        if params.is_active is not None:
+            recurring.is_active = params.is_active
+
+        session.add(recurring)
+        await session.commit()
+        await session.refresh(recurring)
+        return _recurring_to_dict(recurring)
+    return {"error": "Database error"}
+
+
+@mcp.tool()
+async def delete_recurring_transaction(wallet_id: str, recurring_id: str) -> dict[str, Any]:
+    """
+    Delete a recurring transaction. Transactions it already created are not affected.
+
+    Args:
+        wallet_id: UUID of the wallet containing the recurring transaction.
+        recurring_id: UUID of the recurring transaction to delete.
+    """
+    user = await _get_authenticated_user()
+    w_id = _parse_uuid(wallet_id, "wallet_id")
+    if isinstance(w_id, str):
+        return {"error": w_id}
+    r_id = _parse_uuid(recurring_id, "recurring_id")
+    if isinstance(r_id, str):
+        return {"error": r_id}
+
+    async for session in get_session():
+        wallet_result = await session.exec(
+            select(Wallet).where(Wallet.id == w_id, Wallet.user_id == user.id)
+        )
+        if not wallet_result.first():
+            return {"error": "Wallet not found"}
+
+        result = await session.exec(
+            select(RecurringTransaction).where(
+                RecurringTransaction.id == r_id, RecurringTransaction.wallet_id == w_id
+            )
+        )
+        recurring = result.first()
+        if not recurring:
+            return {"error": "Recurring transaction not found"}
+
+        await session.delete(recurring)
+        await session.commit()
+        return {"deleted": recurring_id}
+    return {"error": "Database error"}
+
+
+_BUDGET_PERIODS = {"weekly", "monthly"}
+
+
+def _budget_period_start(period: str) -> datetime:
+    now = datetime.now(UTC)
+    if period == "weekly":
+        return now - timedelta(days=now.weekday())
+    return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+
+async def _budget_to_dict(budget: Budget, session: Any) -> dict[str, Any]:
+    period_start = _budget_period_start(budget.period)
+    query = select(Transaction).where(
+        col(Transaction.date) >= period_start,
+        Transaction.type == "expense",
+        col(Transaction.group_id).is_(None),
+    )
+    if budget.wallet_id is not None:
+        query = query.where(Transaction.wallet_id == budget.wallet_id)
+    else:
+        wallets_result = await session.exec(select(Wallet).where(Wallet.user_id == budget.user_id))
+        wallet_ids = [w.id for w in wallets_result.all()]
+        query = query.where(col(Transaction.wallet_id).in_(wallet_ids)) if wallet_ids else None
+    if query is not None and budget.category_id is not None:
+        query = query.where(Transaction.category_id == budget.category_id)
+
+    spent = 0.0
+    if query is not None:
+        result = await session.exec(query)
+        spent = sum(e.amount for e in result.all())
+
+    percentage_used = (spent / budget.amount * 100) if budget.amount > 0 else 0.0
+    return {
+        "id": str(budget.id),
+        "wallet_id": str(budget.wallet_id) if budget.wallet_id else None,
+        "category_id": str(budget.category_id) if budget.category_id else None,
+        "amount": budget.amount,
+        "period": budget.period,
+        "start_date": budget.start_date.isoformat(),
+        "created_at": budget.created_at.isoformat(),
+        "spent": spent,
+        "remaining": budget.amount - spent,
+        "percentage_used": round(percentage_used, 2),
+        "is_over_budget": spent > budget.amount,
+    }
+
+
+@mcp.tool()
+async def list_budgets() -> dict[str, Any]:
+    """
+    List all budgets with their current spending status.
+
+    Each budget includes spent, remaining, percentage_used, and is_over_budget for the
+    current period. A budget without wallet_id covers all wallets; without category_id
+    it covers all categories.
+    """
+    user = await _get_authenticated_user()
+    async for session in get_session():
+        result = await session.exec(select(Budget).where(Budget.user_id == user.id))
+        return {"items": [await _budget_to_dict(b, session) for b in result.all()]}
+    return {"error": "Database error"}
+
+
+@dataclass
+class CreateBudgetInput:
+    amount: float
+    period: str
+    wallet_id: str | None = None
+    category_id: str | None = None
+
+
+@mcp.tool()
+async def create_budget(params: CreateBudgetInput) -> dict[str, Any]:  # noqa: PLR0911
+    """
+    Create a spending budget.
+
+    Args:
+        params.amount: Budget limit per period (must be positive).
+        params.period: "weekly" or "monthly".
+        params.wallet_id: Optional wallet UUID to scope the budget to (all wallets if omitted).
+        params.category_id: Optional category UUID to scope the budget to (all categories if omitted).
+    """
+    user = await _get_authenticated_user()
+    if params.amount <= 0:
+        return {"error": "Amount must be positive"}
+    if params.period not in _BUDGET_PERIODS:
+        return {"error": "period must be 'weekly' or 'monthly'"}
+
+    async for session in get_session():
+        w_id: uuid.UUID | None = None
+        if params.wallet_id is not None:
+            parsed_w = _parse_uuid(params.wallet_id, "wallet_id")
+            if isinstance(parsed_w, str):
+                return {"error": parsed_w}
+            wallet_result = await session.exec(
+                select(Wallet).where(Wallet.id == parsed_w, Wallet.user_id == user.id)
+            )
+            if not wallet_result.first():
+                return {"error": "Wallet not found"}
+            w_id = parsed_w
+
+        c_id: uuid.UUID | None = None
+        if params.category_id is not None:
+            parsed_c = _parse_uuid(params.category_id, "category_id")
+            if isinstance(parsed_c, str):
+                return {"error": parsed_c}
+            cat_result = await session.exec(
+                select(Category).where(Category.id == parsed_c, Category.user_id == user.id)
+            )
+            if not cat_result.first():
+                return {"error": "Category not found"}
+            c_id = parsed_c
+
+        budget = Budget(
+            user_id=user.id,
+            wallet_id=w_id,
+            category_id=c_id,
+            amount=params.amount,
+            period=params.period,
+        )
+        session.add(budget)
+        await session.commit()
+        await session.refresh(budget)
+        return await _budget_to_dict(budget, session)
+    return {"error": "Database error"}
+
+
+@dataclass
+class UpdateBudgetInput:
+    budget_id: str
+    amount: float | None = None
+    period: str | None = None
+    wallet_id: str | None = None
+    category_id: str | None = None
+
+
+@mcp.tool()
+async def update_budget(params: UpdateBudgetInput) -> dict[str, Any]:  # noqa: PLR0911, PLR0912
+    """
+    Update a budget. Only provided fields are changed.
+
+    Note: wallet_id and category_id can be changed but not cleared back to
+    all-wallets/all-categories scope.
+
+    Args:
+        params.budget_id: UUID of the budget to update.
+        params.amount: New budget limit (must be positive).
+        params.period: New period: "weekly" or "monthly".
+        params.wallet_id: New wallet UUID to scope the budget to.
+        params.category_id: New category UUID to scope the budget to.
+    """
+    user = await _get_authenticated_user()
+    b_id = _parse_uuid(params.budget_id, "budget_id")
+    if isinstance(b_id, str):
+        return {"error": b_id}
+    if params.amount is not None and params.amount <= 0:
+        return {"error": "Amount must be positive"}
+    if params.period is not None and params.period not in _BUDGET_PERIODS:
+        return {"error": "period must be 'weekly' or 'monthly'"}
+
+    async for session in get_session():
+        result = await session.exec(
+            select(Budget).where(Budget.id == b_id, Budget.user_id == user.id)
+        )
+        budget = result.first()
+        if not budget:
+            return {"error": "Budget not found"}
+
+        if params.wallet_id is not None:
+            parsed_w = _parse_uuid(params.wallet_id, "wallet_id")
+            if isinstance(parsed_w, str):
+                return {"error": parsed_w}
+            wallet_result = await session.exec(
+                select(Wallet).where(Wallet.id == parsed_w, Wallet.user_id == user.id)
+            )
+            if not wallet_result.first():
+                return {"error": "Wallet not found"}
+            budget.wallet_id = parsed_w
+
+        if params.category_id is not None:
+            parsed_c = _parse_uuid(params.category_id, "category_id")
+            if isinstance(parsed_c, str):
+                return {"error": parsed_c}
+            cat_result = await session.exec(
+                select(Category).where(Category.id == parsed_c, Category.user_id == user.id)
+            )
+            if not cat_result.first():
+                return {"error": "Category not found"}
+            budget.category_id = parsed_c
+
+        if params.amount is not None:
+            budget.amount = params.amount
+        if params.period is not None:
+            budget.period = params.period
+
+        session.add(budget)
+        await session.commit()
+        await session.refresh(budget)
+        return await _budget_to_dict(budget, session)
+    return {"error": "Database error"}
+
+
+@mcp.tool()
+async def delete_budget(budget_id: str) -> dict[str, Any]:
+    """
+    Delete a budget. Transactions are not affected.
+
+    Args:
+        budget_id: UUID of the budget to delete.
+    """
+    user = await _get_authenticated_user()
+    b_id = _parse_uuid(budget_id, "budget_id")
+    if isinstance(b_id, str):
+        return {"error": b_id}
+
+    async for session in get_session():
+        result = await session.exec(
+            select(Budget).where(Budget.id == b_id, Budget.user_id == user.id)
+        )
+        budget = result.first()
+        if not budget:
+            return {"error": "Budget not found"}
+
+        await session.delete(budget)
+        await session.commit()
+        return {"deleted": budget_id}
     return {"error": "Database error"}
 
 
