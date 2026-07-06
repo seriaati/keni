@@ -63,7 +63,9 @@ async def _compute_spent(budget: Budget, session: AsyncSession) -> float:
     period_start = _period_start(budget.period)
 
     query = select(Transaction).where(
-        col(Transaction.date) >= period_start, Transaction.type == "expense"
+        col(Transaction.date) >= period_start,
+        Transaction.type == "expense",
+        col(Transaction.group_id).is_(None),
     )
 
     if budget.wallet_id is not None:
