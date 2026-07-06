@@ -81,7 +81,7 @@ export function MultipleReview({
     <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ fontSize: 12, color: 'var(--ink-light)', fontWeight: 600 }}>
-          {mixedLabel} {expenses.length === 1 ? 'entry' : 'entries'} detected — each saved independently
+          {mixedLabel} {expenses.length === 1 ? 'entry' : 'entries'} detected
         </div>
         <button
           className="btn btn-secondary btn-sm"
