@@ -41,6 +41,7 @@ export function WalletViewPage() {
 
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
   const [fxRate, setFxRate] = useState<number | null>(null);
+  const [fxRatesByDate, setFxRatesByDate] = useState<Map<string, number> | null>(null);
   const isMobile = useIsMobile();
   const [showConverted, setShowConverted] = useState(false);
   const [switching, setSwitching] = useState(false);
@@ -171,11 +172,38 @@ export function WalletViewPage() {
     const walletCurrency = wallet?.currency;
     if (!globalCurrency || !walletCurrency || globalCurrency === walletCurrency) {
       setFxRate(null);
+      setFxRatesByDate(null);
       return;
     }
-    const date = user?.fx_use_historical_rates && endDate ? endDate : undefined;
-    getExchangeRate(walletCurrency, globalCurrency, date).then(setFxRate);
-  }, [wallet?.currency, user?.global_currency, user?.fx_use_historical_rates, endDate]);
+    if (user?.fx_use_historical_rates) {
+      setFxRate(null);
+      const dates = [...new Set((data?.items ?? []).map((e) => e.date.slice(0, 10)))];
+      if (dates.length === 0) {
+        setFxRatesByDate(null);
+        return;
+      }
+      let cancelled = false;
+      Promise.all(
+        dates.map(async (d) => [d, await getExchangeRate(walletCurrency, globalCurrency, d)] as const),
+      ).then((entries) => {
+        if (cancelled) return;
+        const map = new Map<string, number>();
+        for (const [d, rate] of entries) {
+          if (rate != null) map.set(d, rate);
+        }
+        setFxRatesByDate(map.size > 0 ? map : null);
+      });
+      return () => { cancelled = true; };
+    }
+    setFxRatesByDate(null);
+    getExchangeRate(walletCurrency, globalCurrency).then(setFxRate);
+  }, [wallet?.currency, user?.global_currency, user?.fx_use_historical_rates, data]);
+
+  const rateFor = useCallback(
+    (e: TransactionResponse) => (fxRatesByDate ? fxRatesByDate.get(e.date.slice(0, 10)) ?? null : fxRate),
+    [fxRatesByDate, fxRate],
+  );
+  const hasFx = fxRate != null || (fxRatesByDate != null && fxRatesByDate.size > 0);
 
   const toggleTag = (id: string) => {
     const next = selectedTagIds.includes(id)
@@ -466,6 +494,18 @@ export function WalletViewPage() {
     return total;
   }, [data, selectedIds]);
 
+  const selectedConvertedSum = useMemo(() => {
+    if (!data || !hasFx) return null;
+    let total = 0;
+    for (const item of data.items) {
+      if (!selectedIds.has(item.id)) continue;
+      const rate = rateFor(item);
+      if (rate == null) return null;
+      total += (item.type === 'income' ? item.amount : -item.amount) * rate;
+    }
+    return total;
+  }, [data, selectedIds, hasFx, rateFor]);
+
   // Bulk action toolbar (floating, Linear-style)
   const bulkToolbar = selCount > 0 ? (
     <div
@@ -496,9 +536,9 @@ export function WalletViewPage() {
       <div style={{ width: 1, height: 18, background: 'var(--cream-darker)', flexShrink: 0 }} />
       <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', padding: '0 4px', display: 'flex', alignItems: 'baseline', gap: 6 }}>
         {fmt(selectedSum, wallet?.currency ?? 'USD')}
-        {fxRate != null && user?.global_currency && (
+        {selectedConvertedSum != null && user?.global_currency && (
           <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)' }}>
-            ≈ {fmt(selectedSum * fxRate, user.global_currency)}
+            ≈ {fmt(selectedConvertedSum, user.global_currency)}
           </span>
         )}
       </span>
@@ -949,7 +989,7 @@ export function WalletViewPage() {
               >
                 {isSelecting ? t('common.cancel') : t('walletView.bulkEnterSelect')}
               </button>
-              {fxRate != null && (
+              {hasFx && (
                 <button
                   className="btn btn-secondary btn-sm"
                   onClick={handleToggleConverted}
@@ -969,7 +1009,7 @@ export function WalletViewPage() {
                 currency={wallet?.currency ?? 'USD'}
                 walletId={walletId!}
                 isLast={i === data.items.length - 1}
-                fxRate={fxRate}
+                fxRate={rateFor(expense)}
                 globalCurrency={user?.global_currency ?? null}
                 isMobile={isMobile}
                 showConverted={showConverted}
