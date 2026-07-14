@@ -20,7 +20,7 @@ export function ReloadPrompt() {
 
   useEffect(() => {
     if (offlineReady) {
-      toast('Ready to work offline', 'success');
+      toast('App installed', 'success');
       setOfflineReady(false);
     }
   }, [offlineReady, setOfflineReady, toast]);
