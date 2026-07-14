@@ -5,7 +5,9 @@ import { NavigationRoute, registerRoute } from 'workbox-routing'
 
 declare let self: ServiceWorkerGlobalScope & { __WB_MANIFEST: (PrecacheEntry | string)[] }
 
-self.skipWaiting()
+self.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting()
+})
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()))
 
 precacheAndRoute(self.__WB_MANIFEST)
