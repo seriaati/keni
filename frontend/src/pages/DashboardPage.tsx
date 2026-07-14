@@ -388,7 +388,14 @@ export function DashboardPage() {
                       {expense.description ?? expense.category.name}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--ink-faint)', display: 'flex', gap: 5, alignItems: 'center' }}>
-                      <span>{expense.category.name}</span>
+                      <span
+                        style={{ cursor: 'pointer' }}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/wallets/${activeWallet.id}?category_ids=${expense.category.id}`); }}
+                        onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
+                      >
+                        {expense.category.name}
+                      </span>
                       {expense.children && expense.children.length > 0 && (
                         <>
                           <span>·</span>

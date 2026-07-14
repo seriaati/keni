@@ -849,7 +849,16 @@ export function ExpenseDetailPage() {
                     <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {child.description ?? child.category.name}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{child.category.name}</div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>
+                      <span
+                        style={{ cursor: 'pointer' }}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/wallets/${walletId}?category_ids=${child.category.id}`); }}
+                        onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
+                      >
+                        {child.category.name}
+                      </span>
+                    </div>
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', flexShrink: 0 }}>
                     {fmt(child.amount, currency)}

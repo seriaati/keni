@@ -981,6 +981,7 @@ export function WalletViewPage() {
                 onNavigate={navigate}
                 backSearch={searchParams.toString()}
                 onContextMenuOpen={ctxMenu.open}
+                onCategoryClick={(id) => setParam({ category_ids: [id], page: null })}
               />
             ))}
           </div>
@@ -1050,6 +1051,7 @@ function ExpenseRow({
   onNavigate,
   backSearch,
   onContextMenuOpen,
+  onCategoryClick,
 }: {
   expense: TransactionResponse;
   currency: string;
@@ -1067,6 +1069,7 @@ function ExpenseRow({
   onNavigate: NavigateFunction;
   backSearch: string;
   onContextMenuOpen: (e: React.MouseEvent, expense: TransactionResponse) => void;
+  onCategoryClick: (categoryId: string) => void;
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const convertedAmount = fxRate != null ? expense.amount * fxRate : null;
@@ -1172,7 +1175,12 @@ function ExpenseRow({
           {expense.description ?? expense.category.name}
         </div>
         <div style={{ fontSize: 12, color: 'var(--ink-faint)', display: 'flex', gap: 6, alignItems: 'center', overflow: 'hidden', flexWrap: 'nowrap' }}>
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>
+          <span
+            style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0, cursor: 'pointer' }}
+            onClick={(e) => { e.stopPropagation(); onCategoryClick(expense.category.id); }}
+            onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
+          >
             {expense.category.name}
           </span>
           {expense.children && expense.children.length > 0 && (
