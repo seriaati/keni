@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Pencil, Trash2, Pause, Play, RefreshCw } from 'lucide-react';
-import { useOutletContext } from 'react-router-dom';
+import { useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import { recurring as recurringApi, categories as categoriesApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
 import type { LayoutOutletContext } from '../components/Layout';
@@ -17,6 +17,8 @@ export function RecurringPage() {
   const { activeWallet } = useWallet();
   const toast = useToast();
   const { expenseAddedKey } = useOutletContext<LayoutOutletContext>();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [items, setItems] = useState<RecurringTransactionResponse[]>([]);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +51,24 @@ export function RecurringPage() {
   };
 
   useEffect(() => { load(); }, [activeWallet, expenseAddedKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Prefill from "Make recurring" in the transaction context menu
+  useEffect(() => {
+    const prefill = (location.state as {
+      prefill?: { category_id: string; amount: number; type: 'expense' | 'income'; description: string | null };
+    } | null)?.prefill;
+    if (!prefill) return;
+    setForm({
+      category_id: prefill.category_id,
+      type: prefill.type,
+      amount: String(prefill.amount),
+      description: prefill.description ?? '',
+      frequency: 'monthly',
+      next_due: localDateStr(),
+    });
+    setShowCreate(true);
+    navigate(location.pathname, { replace: true });
+  }, [location.state, location.pathname, navigate]);
 
   const openCreate = () => {
     setForm({ category_id: categories[0]?.id ?? '', type: 'expense', amount: '', description: '', frequency: 'monthly', next_due: localDateStr() });

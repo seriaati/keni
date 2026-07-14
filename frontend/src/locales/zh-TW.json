@@ -500,6 +500,27 @@
     "authFailed": "授權失敗",
     "invalidCredentials": "憑證無效"
   },
+  "contextMenu": {
+    "duplicate": "建立副本…",
+    "changeCategory": "變更類別",
+    "tags": "標籤",
+    "moveToWallet": "移至錢包",
+    "makeRecurring": "建立定期交易",
+    "copyAmount": "複製金額",
+    "searchCategories": "搜尋類別…",
+    "searchTags": "搜尋標籤…",
+    "noResults": "沒有結果",
+    "noOtherWallets": "沒有其他錢包",
+    "toastMoved": "已移至「<walletLink>{{wallet}}</walletLink>」",
+    "toastAmountCopied": "已複製金額",
+    "toastCopyFailed": "複製失敗",
+    "toastDuplicated": "已建立交易",
+    "toastDeleted": "已刪除交易",
+    "duplicateTitle": "建立交易副本",
+    "duplicateDesc": "將建立一筆類別、金額與標籤相同的交易，請選擇新交易的日期。",
+    "duplicateDate": "日期",
+    "duplicateAction": "建立副本"
+  },
   "utils": {
     "today": "今天",
     "yesterday": "昨天",

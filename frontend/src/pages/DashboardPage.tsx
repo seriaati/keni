@@ -12,6 +12,7 @@ import type { DashboardPeriod } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
 import type { LayoutOutletContext } from '../components/Layout';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { TransactionContextMenu, useTransactionContextMenu } from '../components/TransactionContextMenu';
 
 const FALLBACK_COLORS = [
   'var(--forest)',
@@ -49,8 +50,10 @@ export function DashboardPage() {
   const incomeChartRef = useRef<HTMLDivElement>(null);
   const [categoryExpanded, setCategoryExpanded] = useState(false);
   const [incomeCategoryExpanded, setIncomeCategoryExpanded] = useState(false);
+  const ctxMenu = useTransactionContextMenu();
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Full reload: wallet change or new transaction added
+  // Full reload: wallet change, new transaction added, or context-menu mutation
   useEffect(() => {
     if (!activeWallet) return;
     setLoading(true);
@@ -74,7 +77,7 @@ export function DashboardPage() {
       })
       .catch(() => { })
       .finally(() => setLoading(false));
-  }, [activeWallet, expenseAddedKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeWallet, expenseAddedKey, refreshKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Spending chart reload on period change (skip mount)
   const spendingMountedRef = useRef(false);
@@ -359,6 +362,7 @@ export function DashboardPage() {
                 <Link
                   key={expense.id}
                   to={`/wallets/${activeWallet.id}/expenses/${expense.id}`}
+                  onContextMenu={(e) => ctxMenu.open(e, expense)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -639,6 +643,7 @@ export function DashboardPage() {
           )}
         </div>
       </div>
+      <TransactionContextMenu state={ctxMenu.state} onClose={ctxMenu.close} onChanged={() => setRefreshKey((k) => k + 1)} />
     </div>
   );
 }

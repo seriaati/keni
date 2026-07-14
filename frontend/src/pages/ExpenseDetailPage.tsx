@@ -15,6 +15,7 @@ import { fmt, fmtDate } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
 import { useAuth } from '../contexts/AuthContext';
 import { getExchangeRate } from '../lib/fx';
+import { TransactionContextMenu, useTransactionContextMenu } from '../components/TransactionContextMenu';
 
 interface DropdownPos {
   top: number;
@@ -354,6 +355,8 @@ export function ExpenseDetailPage() {
   const [allWallets, setAllWallets] = useState<WalletResponse[]>([]);
   const [showLinkPicker, setShowLinkPicker] = useState(false);
   const [pendingLinks, setPendingLinks] = useState<TransactionLinkBrief[]>([]);
+  const ctxMenu = useTransactionContextMenu();
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const [form, setForm] = useState({
     amount: '',
@@ -400,7 +403,7 @@ export function ExpenseDetailPage() {
       });
     }).catch(() => toast(t('expenseDetail.toastLoadFailed'), 'error'))
       .finally(() => setLoading(false));
-  }, [walletId, expenseId, toast]);
+  }, [walletId, expenseId, toast, refreshKey]);
 
   const handleStartEdit = () => {
     if (!expense) return;
@@ -832,6 +835,7 @@ export function ExpenseDetailPage() {
                 <Link
                   key={child.id}
                   to={`/wallets/${walletId}/expenses/${child.id}`}
+                  onContextMenu={(e) => ctxMenu.open(e, child)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -1008,6 +1012,7 @@ export function ExpenseDetailPage() {
         </div>,
         document.body,
       )}
+      <TransactionContextMenu state={ctxMenu.state} onClose={ctxMenu.close} onChanged={() => setRefreshKey((k) => k + 1)} />
     </div>
   );
 }

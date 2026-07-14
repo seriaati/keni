@@ -16,6 +16,7 @@ import { fmt, fmtRelative } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
 import { getExchangeRate } from '../lib/fx';
 import type { LayoutOutletContext } from '../components/Layout';
+import { TransactionContextMenu, useTransactionContextMenu } from '../components/TransactionContextMenu';
 
 function useIsMobile(breakpoint = 640) {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= breakpoint);
@@ -36,6 +37,7 @@ export function WalletViewPage() {
   const { user } = useAuth();
   const { expenseAddedKey } = useOutletContext<LayoutOutletContext>();
   const navigate = useNavigate();
+  const ctxMenu = useTransactionContextMenu();
 
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
   const [fxRate, setFxRate] = useState<number | null>(null);
@@ -978,6 +980,7 @@ export function WalletViewPage() {
                 onSelect={handleSelect}
                 onNavigate={navigate}
                 backSearch={searchParams.toString()}
+                onContextMenuOpen={ctxMenu.open}
               />
             ))}
           </div>
@@ -1025,6 +1028,7 @@ export function WalletViewPage() {
         onEditLabels={() => { setShowActionsBar(false); openEditLabelModal(); }}
         onAISuggest={() => { setShowActionsBar(false); setShowAISuggestModal(true); }}
       />
+      <TransactionContextMenu state={ctxMenu.state} onClose={ctxMenu.close} onChanged={load} />
     </div>
   );
 }
@@ -1045,6 +1049,7 @@ function ExpenseRow({
   onSelect,
   onNavigate,
   backSearch,
+  onContextMenuOpen,
 }: {
   expense: TransactionResponse;
   currency: string;
@@ -1061,6 +1066,7 @@ function ExpenseRow({
   onSelect: (id: string, e: React.MouseEvent) => void;
   onNavigate: NavigateFunction;
   backSearch: string;
+  onContextMenuOpen: (e: React.MouseEvent, expense: TransactionResponse) => void;
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const convertedAmount = fxRate != null ? expense.amount * fxRate : null;
@@ -1286,6 +1292,7 @@ function ExpenseRow({
       role="row"
       aria-selected={isSelected}
       style={sharedStyle}
+      onContextMenu={(e) => onContextMenuOpen(e, expense)}
       onClick={(e) => {
         if (isSelecting) {
           onSelect(expense.id, e);

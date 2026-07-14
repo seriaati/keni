@@ -3,12 +3,12 @@ import { CheckCircle, XCircle, X } from 'lucide-react';
 
 interface Toast {
   id: string;
-  message: string;
+  message: React.ReactNode;
   type: 'success' | 'error' | 'info';
 }
 
 interface ToastContextValue {
-  toast: (message: string, type?: Toast['type']) => void;
+  toast: (message: React.ReactNode, type?: Toast['type']) => void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -16,7 +16,7 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const toast = useCallback((message: string, type: Toast['type'] = 'info') => {
+  const toast = useCallback((message: React.ReactNode, type: Toast['type'] = 'info') => {
     const id = Math.random().toString(36).slice(2);
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => {

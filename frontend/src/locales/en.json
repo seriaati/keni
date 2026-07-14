@@ -500,6 +500,27 @@
     "authFailed": "Authorization failed",
     "invalidCredentials": "Invalid credentials"
   },
+  "contextMenu": {
+    "duplicate": "Duplicate…",
+    "changeCategory": "Change category",
+    "tags": "Tags",
+    "moveToWallet": "Move to wallet",
+    "makeRecurring": "Make recurring",
+    "copyAmount": "Copy amount",
+    "searchCategories": "Search categories…",
+    "searchTags": "Search tags…",
+    "noResults": "No results",
+    "noOtherWallets": "No other wallets",
+    "toastMoved": "Moved to <walletLink>{{wallet}}</walletLink>",
+    "toastAmountCopied": "Amount copied",
+    "toastCopyFailed": "Copy failed",
+    "toastDuplicated": "Transaction created",
+    "toastDeleted": "Transaction deleted",
+    "duplicateTitle": "Duplicate transaction",
+    "duplicateDesc": "Creates a copy with the same category, amount, and tags. Pick a date for the new transaction.",
+    "duplicateDate": "Date",
+    "duplicateAction": "Duplicate"
+  },
   "utils": {
     "today": "Today",
     "yesterday": "Yesterday",
