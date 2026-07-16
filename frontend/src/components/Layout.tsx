@@ -52,26 +52,24 @@ export interface LayoutOutletContext {
 const REPO_URL = 'https://github.com/seriaati/keni';
 
 async function forceUpdate() {
-  try {
-    const reg = await navigator.serviceWorker?.getRegistration();
-    if (reg) {
-      await reg.update().catch(() => {});
-      const sw = reg.installing ?? reg.waiting;
-      if (sw) {
-        await new Promise<void>((resolve) => {
-          const timer = setTimeout(resolve, 5000);
-          sw.addEventListener('statechange', () => {
-            if (sw.state === 'activated') {
-              clearTimeout(timer);
-              resolve();
-            }
-          });
-          sw.postMessage({ type: 'SKIP_WAITING' });
-        });
-      }
-    }
-  } finally {
+  const reg = await navigator.serviceWorker?.getRegistration();
+  await reg?.update().catch(() => {});
+  const sw = reg?.waiting ?? reg?.installing;
+  if (!sw) {
     window.location.reload();
+    return;
+  }
+  // Reload only once the new SW controls the page — reloading earlier lets
+  // the old page load while asset fetches race against the SW swap.
+  navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload(), { once: true });
+  const skipWaiting = () => sw.postMessage({ type: 'SKIP_WAITING' });
+  if (sw.state === 'installed') {
+    skipWaiting();
+  } else {
+    sw.addEventListener('statechange', () => {
+      if (sw.state === 'installed') skipWaiting();
+      if (sw.state === 'redundant') window.location.reload();
+    });
   }
 }
 
