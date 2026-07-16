@@ -1,4 +1,5 @@
 import { execSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -11,8 +12,11 @@ function git(cmd: string): string {
   }
 }
 
-const commitHash = (process.env.COMMIT_HASH || git('git rev-parse HEAD')).slice(0, 7) || 'dev'
-const appVersion = process.env.APP_VERSION || git('git describe --tags --abbrev=0') || 'dev'
+const pkgVersion = JSON.parse(readFileSync('./package.json', 'utf8')).version as string
+
+const commitHash =
+  (process.env.COMMIT_HASH || process.env.CF_PAGES_COMMIT_SHA || git('git rev-parse HEAD')).slice(0, 7) || 'dev'
+const appVersion = process.env.APP_VERSION || git('git describe --tags --abbrev=0') || `v${pkgVersion}`
 
 export default defineConfig({
   define: {

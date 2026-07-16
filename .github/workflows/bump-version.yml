@@ -59,9 +59,24 @@ jobs:
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "New version: $NEW_VERSION"
 
+      - name: Bump frontend package.json version
+        run: |
+          cd frontend
+          jq --arg v "${{ steps.new-version.outputs.version }}" '.version = $v' package.json > package.json.tmp
+          mv package.json.tmp package.json
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add frontend/package.json
+          git commit -m "chore: bump version to v${{ steps.new-version.outputs.version }}"
+          git push
+
       - name: Create tag
         run: |
           git tag v${{ steps.new-version.outputs.version }}
+          git push origin v${{ steps.new-version.outputs.version }}
 
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4
