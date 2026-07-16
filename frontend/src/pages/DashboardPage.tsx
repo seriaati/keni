@@ -152,16 +152,17 @@ export function DashboardPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
-  const goToTransactions = (categoryIds: string[], range: { start_date: string; end_date?: string }) => {
+  const goToTransactions = (categoryIds: string[], range: { start_date: string; end_date?: string }, type?: 'expense' | 'income') => {
     const params = new URLSearchParams();
     categoryIds.forEach((id) => params.append('category_ids', id));
     params.set('start_date', toLocalDate(range.start_date));
     if (range.end_date) params.set('end_date', toLocalDate(range.end_date));
+    if (type) params.set('type', type);
     navigate(`/wallets/${activeWallet!.id}?${params}`);
   };
 
-  const goToCategory = (categoryId: string, period: DashboardPeriod) =>
-    goToTransactions([categoryId], getPeriodDateRange(period));
+  const goToCategory = (categoryId: string, period: DashboardPeriod, type: 'expense' | 'income') =>
+    goToTransactions([categoryId], getPeriodDateRange(period), type);
 
   const overBudget = budgets.filter((b) => b.is_over_budget);
   const nearLimit = budgets.filter((b) => !b.is_over_budget && b.percentage_used >= 80);
@@ -459,7 +460,7 @@ export function DashboardPage() {
                 return (
                   <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px' }}>
                     <button
-                      onClick={() => goToTransactions(sorted.map((c) => c.category_id), getPeriodDateRange(spendingPeriod))}
+                      onClick={() => goToTransactions(sorted.map((c) => c.category_id), getPeriodDateRange(spendingPeriod), 'expense')}
                       style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8, width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
                       onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
                       onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
@@ -480,7 +481,7 @@ export function DashboardPage() {
                           paddingAngle={2}
                           cursor="pointer"
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          onClick={(data: any) => goToCategory(data.category_id as string, spendingPeriod)}
+                          onClick={(data: any) => goToCategory(data.category_id as string, spendingPeriod, 'expense')}
                           shape={(props) => (
                             <Sector
                               cx={props.cx}
@@ -502,7 +503,7 @@ export function DashboardPage() {
                       {displayed.map((cat, i) => (
                         <button
                           key={cat.category_id}
-                          onClick={() => goToCategory(cat.category_id, spendingPeriod)}
+                          onClick={() => goToCategory(cat.category_id, spendingPeriod, 'expense')}
                           style={{ display: 'flex', alignItems: 'baseline', gap: 8, background: 'none', border: 'none', padding: '2px 0', cursor: 'pointer', width: '100%', textAlign: 'left', borderRadius: 4 }}
                           onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
                           onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
@@ -578,7 +579,7 @@ export function DashboardPage() {
                   return (
                     <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px' }}>
                       <button
-                        onClick={() => goToTransactions(sorted.map((c) => c.category_id), getPeriodDateRange(incomePeriod))}
+                        onClick={() => goToTransactions(sorted.map((c) => c.category_id), getPeriodDateRange(incomePeriod), 'income')}
                         style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8, width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
                         onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
                         onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
@@ -598,7 +599,7 @@ export function DashboardPage() {
                             outerRadius={72}
                             paddingAngle={2}
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            onClick={(data: any) => goToCategory(data.category_id as string, incomePeriod)}
+                            onClick={(data: any) => goToCategory(data.category_id as string, incomePeriod, 'income')}
                             shape={(props) => (
                               <Sector
                                 cx={props.cx}
@@ -620,7 +621,7 @@ export function DashboardPage() {
                         {displayed.map((cat, i) => (
                           <button
                             key={cat.category_id}
-                            onClick={() => goToCategory(cat.category_id, incomePeriod)}
+                            onClick={() => goToCategory(cat.category_id, incomePeriod, 'income')}
                             style={{ display: 'flex', alignItems: 'baseline', gap: 8, background: 'none', border: 'none', padding: '2px 0', cursor: 'pointer', width: '100%', textAlign: 'left', borderRadius: 4 }}
                             onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
                             onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
