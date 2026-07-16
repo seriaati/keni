@@ -27,6 +27,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Get app version
+        id: app-version
+        run: echo "version=$(git describe --tags --abbrev=0 2>/dev/null || echo dev)" >> $GITHUB_OUTPUT
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -57,6 +63,9 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: ./frontend
+          build-args: |
+            COMMIT_HASH=${{ github.sha }}
+            APP_VERSION=${{ steps.app-version.outputs.version }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

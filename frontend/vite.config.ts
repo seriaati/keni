@@ -1,8 +1,24 @@
+import { execSync } from 'node:child_process'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+function git(cmd: string): string {
+  try {
+    return execSync(cmd, { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()
+  } catch {
+    return ''
+  }
+}
+
+const commitHash = (process.env.COMMIT_HASH || git('git rev-parse HEAD')).slice(0, 7) || 'dev'
+const appVersion = process.env.APP_VERSION || git('git describe --tags --abbrev=0') || 'dev'
+
 export default defineConfig({
+  define: {
+    __COMMIT_HASH__: JSON.stringify(commitHash),
+    __APP_VERSION__: JSON.stringify(appVersion),
+  },
   plugins: [
     react(),
     VitePWA({

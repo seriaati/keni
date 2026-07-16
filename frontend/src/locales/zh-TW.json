@@ -35,7 +35,8 @@
     "installApp": "安裝應用程式",
     "mcp": "MCP",
     "more": "更多",
-    "userRole": "管理員"
+    "userRole": "管理員",
+    "update": "更新"
   },
   "login": {
     "titleLogin": "歡迎回來",

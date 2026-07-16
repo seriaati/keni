@@ -49,6 +49,67 @@ export interface LayoutOutletContext {
   onExpenseAdded: () => void;
 }
 
+const REPO_URL = 'https://github.com/seriaati/keni';
+
+async function forceUpdate() {
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    if (reg) {
+      await reg.update().catch(() => {});
+      const sw = reg.installing ?? reg.waiting;
+      if (sw) {
+        await new Promise<void>((resolve) => {
+          const timer = setTimeout(resolve, 5000);
+          sw.addEventListener('statechange', () => {
+            if (sw.state === 'activated') {
+              clearTimeout(timer);
+              resolve();
+            }
+          });
+          sw.postMessage({ type: 'SKIP_WAITING' });
+        });
+      }
+    }
+  } finally {
+    window.location.reload();
+  }
+}
+
+function VersionInfo() {
+  const { t } = useTranslation();
+  const [updating, setUpdating] = useState(false);
+  return (
+    <div className="version-info">
+      {__APP_VERSION__ === 'dev' ? (
+        <span>{__APP_VERSION__}</span>
+      ) : (
+        <a href={`${REPO_URL}/releases/tag/${__APP_VERSION__}`} target="_blank" rel="noopener noreferrer">
+          {__APP_VERSION__}
+        </a>
+      )}
+      <span>·</span>
+      {__COMMIT_HASH__ === 'dev' ? (
+        <span>{__COMMIT_HASH__}</span>
+      ) : (
+        <a href={`${REPO_URL}/commit/${__COMMIT_HASH__}`} target="_blank" rel="noopener noreferrer">
+          {__COMMIT_HASH__}
+        </a>
+      )}
+      <span>·</span>
+      <button
+        onClick={() => {
+          setUpdating(true);
+          void forceUpdate();
+        }}
+        disabled={updating}
+      >
+        <RefreshCw size={10} />
+        {t('nav.update')}
+      </button>
+    </div>
+  );
+}
+
 export function Layout() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
@@ -323,6 +384,7 @@ export function Layout() {
               <LogOut size={14} />
             </button>
           </div>
+          <VersionInfo />
         </div>
       </aside>
 
@@ -497,6 +559,7 @@ export function Layout() {
                   <LogOut size={14} />
                 </button>
               </div>
+              <VersionInfo />
             </div>
           </div>
         </>,

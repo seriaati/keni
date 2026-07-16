@@ -6,6 +6,11 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
 COPY . .
+
+ARG COMMIT_HASH=dev
+ARG APP_VERSION=dev
+ENV COMMIT_HASH=$COMMIT_HASH APP_VERSION=$APP_VERSION
+
 RUN bun run build
 
 FROM nginx:alpine

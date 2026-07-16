@@ -35,7 +35,8 @@
     "installApp": "Install app",
     "mcp": "MCP",
     "more": "More",
-    "userRole": "Admin"
+    "userRole": "Admin",
+    "update": "Update"
   },
   "login": {
     "titleLogin": "Welcome back",
