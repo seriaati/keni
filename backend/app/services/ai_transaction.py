@@ -154,6 +154,7 @@ async def upsert_ai_provider(  # noqa: PLR0913, PLR0917
     session: AsyncSession,
     ocr_enabled: bool = True,
     chat_model: str | None = None,
+    attachment_model: str | None = None,
 ) -> AIProvider:
     record = await get_ai_provider_record(user_id, session)
     if record is None:
@@ -167,6 +168,7 @@ async def upsert_ai_provider(  # noqa: PLR0913, PLR0917
             model=model,
             ocr_enabled=ocr_enabled,
             chat_model=chat_model,
+            attachment_model=attachment_model,
         )
     else:
         record.provider = provider
@@ -175,6 +177,7 @@ async def upsert_ai_provider(  # noqa: PLR0913, PLR0917
         record.model = model
         record.ocr_enabled = ocr_enabled
         record.chat_model = chat_model
+        record.attachment_model = attachment_model
 
     session.add(record)
     await session.commit()
@@ -231,7 +234,8 @@ async def parse_transactions_with_ai(  # noqa: PLR0912, PLR0914, PLR0915, C901
 
     examples = await _recent_description_examples(user_wallets, session)
 
-    provider = get_provider(record.provider, api_key=api_key, model=record.model)
+    model = record.attachment_model if images and record.attachment_model else record.model
+    provider = get_provider(record.provider, api_key=api_key, model=model)
 
     try:
         output = await provider.parse_transactions(
@@ -266,9 +270,7 @@ async def parse_transactions_with_ai(  # noqa: PLR0912, PLR0914, PLR0915, C901
         ) from exc
     except ProviderConnectionError as exc:
         logger.exception(
-            "AI transaction parse failed - connection error for user %s model=%s",
-            user_id,
-            record.model,
+            "AI transaction parse failed - connection error for user %s model=%s", user_id, model
         )
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
@@ -276,7 +278,7 @@ async def parse_transactions_with_ai(  # noqa: PLR0912, PLR0914, PLR0915, C901
         ) from exc
     except ProviderAPIError as exc:
         logger.exception(
-            "AI transaction parse failed - API error for user %s model=%s", user_id, record.model
+            "AI transaction parse failed - API error for user %s model=%s", user_id, model
         )
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI provider error: {exc}"

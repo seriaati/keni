@@ -236,8 +236,9 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showKey, setShowKey] = useState(false);
-  const [form, setForm] = useState({ provider: 'anthropic', model: '', chat_model: '', api_key: '', ocr_enabled: false });
+  const [form, setForm] = useState({ provider: 'anthropic', model: '', chat_model: '', attachment_model: '', api_key: '', ocr_enabled: false });
   const [useSeparateChatModel, setUseSeparateChatModel] = useState(false);
+  const [useSeparateAttachmentModel, setUseSeparateAttachmentModel] = useState(false);
   const [customPrompt, setCustomPrompt] = useState<string>(user?.custom_ai_prompt ?? '');
   const [savingPrompt, setSavingPrompt] = useState(false);
   const [models, setModels] = useState<string[]>([]);
@@ -248,7 +249,8 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
       .then(async (p) => {
         setProvider(p);
         setUseSeparateChatModel(!!p.chat_model);
-        setForm({ provider: p.provider, model: p.model, chat_model: p.chat_model ?? '', api_key: '', ocr_enabled: p.ocr_enabled });
+        setUseSeparateAttachmentModel(!!p.attachment_model);
+        setForm({ provider: p.provider, model: p.model, chat_model: p.chat_model ?? '', attachment_model: p.attachment_model ?? '', api_key: '', ocr_enabled: p.ocr_enabled });
         // Fetch available models using the stored key so the user can change model
         setFetchingModels(true);
         try {
@@ -290,12 +292,14 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
         provider: form.provider,
         model: form.model,
         chat_model: useSeparateChatModel ? (form.chat_model || null) : null,
+        attachment_model: useSeparateAttachmentModel ? (form.attachment_model || null) : null,
         api_key: form.api_key || undefined,
         ocr_enabled: form.ocr_enabled,
       });
       setProvider(updated);
       setUseSeparateChatModel(!!updated.chat_model);
-      setForm((f) => ({ ...f, api_key: '', chat_model: updated.chat_model ?? '' }));
+      setUseSeparateAttachmentModel(!!updated.attachment_model);
+      setForm((f) => ({ ...f, api_key: '', chat_model: updated.chat_model ?? '', attachment_model: updated.attachment_model ?? '' }));
       // Re-fetch models using the (possibly new) stored key
       setFetchingModels(true);
       try {
@@ -321,7 +325,8 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
       setProvider(null);
       setModels([]);
       setUseSeparateChatModel(false);
-      setForm({ provider: 'anthropic', model: '', chat_model: '', api_key: '', ocr_enabled: true });
+      setUseSeparateAttachmentModel(false);
+      setForm({ provider: 'anthropic', model: '', chat_model: '', attachment_model: '', api_key: '', ocr_enabled: true });
       toast(t('settings.aiToastRemoved'), 'success');
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed', 'error');
@@ -334,6 +339,7 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
 
   const modelOptions = models.length > 0 ? models : (provider && !form.api_key ? [provider.model] : []);
   const chatModelOptions = models.length > 0 ? models : (provider?.chat_model && !form.api_key ? [provider.chat_model] : modelOptions);
+  const attachmentModelOptions = models.length > 0 ? models : (provider?.attachment_model && !form.api_key ? [provider.attachment_model] : modelOptions);
 
   return (
     <>
@@ -437,6 +443,33 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
                 disabled={chatModelOptions.length === 0}
               />
               <span className="input-hint">{t('settings.aiChatModelHint')}</span>
+            </div>
+          )}
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
+            <input
+              type="checkbox"
+              checked={useSeparateAttachmentModel}
+              onChange={(e) => {
+                setUseSeparateAttachmentModel(e.target.checked);
+                if (!e.target.checked) setForm((f) => ({ ...f, attachment_model: '' }));
+              }}
+              style={{ width: 16, height: 16, accentColor: 'var(--forest)', cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: 14, color: 'var(--ink)' }}>{t('settings.aiAttachmentModelToggle')}</span>
+          </label>
+
+          {useSeparateAttachmentModel && (
+            <div className="input-group" style={{ marginBottom: 0 }}>
+              <label className="input-label">{t('settings.aiAttachmentModelLabel')}</label>
+              <SearchableSelect
+                value={form.attachment_model}
+                onChange={(v) => setForm((f) => ({ ...f, attachment_model: v }))}
+                options={attachmentModelOptions.map((m) => ({ value: m, label: m }))}
+                placeholder={fetchingModels ? t('settings.aiModelLoading') : t('settings.aiModelPlaceholder')}
+                disabled={attachmentModelOptions.length === 0}
+              />
+              <span className="input-hint">{t('settings.aiAttachmentModelHint')}</span>
             </div>
           )}
 
