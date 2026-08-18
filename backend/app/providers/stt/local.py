@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import tempfile
 from typing import Any
 
@@ -44,16 +45,19 @@ class LocalSTTProvider(STTProvider):
         compute_type = "float16" if device == "cuda" else "int8"
         self._model = WhisperModel(self._model_size, device=device, compute_type=compute_type)
 
+    def _transcribe_file(self, path: str) -> str:
+        segments, _ = self._model.transcribe(path, beam_size=1)
+        return " ".join(seg.text.strip() for seg in segments).strip()
+
     async def transcribe(self, audio_bytes: bytes, content_type: str) -> str:
-        self._load_model()
+        await asyncio.to_thread(self._load_model)
 
         ext = _EXTENSION_MAP.get(content_type, ".webm")
 
         with tempfile.NamedTemporaryFile(suffix=ext, delete=True) as tmp:
             tmp.write(audio_bytes)
             tmp.flush()
-            segments, _ = self._model.transcribe(tmp.name, beam_size=5)
-            transcript = " ".join(seg.text.strip() for seg in segments).strip()
+            transcript = await asyncio.to_thread(self._transcribe_file, tmp.name)
 
         if not transcript:
             raise HTTPException(

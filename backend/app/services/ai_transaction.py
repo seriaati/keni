@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 import logging
 from dataclasses import dataclass, field
@@ -185,7 +186,7 @@ async def upsert_ai_provider(  # noqa: PLR0913, PLR0917
     return record
 
 
-async def parse_transactions_with_ai(  # noqa: PLR0912, PLR0914, PLR0915, C901
+async def parse_transactions_with_ai(  # noqa: PLR0914, PLR0915, C901
     user_id: uuid.UUID,
     text: str | None,
     images: list[tuple[str, str]],
@@ -199,40 +200,44 @@ async def parse_transactions_with_ai(  # noqa: PLR0912, PLR0914, PLR0915, C901
             detail="No AI provider configured. Set up your API key at /api/users/me/ai-provider.",
         )
 
-    user_result = await session.exec(select(User).where(User.id == user_id))
-    user = user_result.first()
-    custom_ai_prompt = user.custom_ai_prompt if user else None
-
     api_key = _decrypt_key(record.api_key_encrypted)
 
-    if record.ocr_enabled and images:
-        ocr_texts: list[str] = []
-        remaining_images: list[tuple[str, str]] = []
-        for img_b64, img_media_type in images:
-            ocr_text = extract_text_from_base64(img_b64)
-            if ocr_text is not None:
-                ocr_texts.append(ocr_text)
-            else:
-                remaining_images.append((img_b64, img_media_type))
-        if ocr_texts:
-            combined_ocr = "\n\n".join(f"OCR extracted from receipt image:\n{t}" for t in ocr_texts)
-            text = f"{combined_ocr}\n\n{text}" if text else combined_ocr
-        images = remaining_images
+    async def _run_ocr() -> tuple[list[str], list[tuple[str, str]]]:
+        """OCR each image in a worker thread; return extracted texts and unrecognized images."""
+        if not (record.ocr_enabled and images):
+            return [], images
+        results = await asyncio.gather(
+            *(asyncio.to_thread(extract_text_from_base64, img_b64) for img_b64, _ in images)
+        )
+        ocr_texts = [t for t in results if t is not None]
+        remaining_images = [img for img, t in zip(images, results, strict=True) if t is None]
+        return ocr_texts, remaining_images
 
-    cat_result = await session.exec(select(Category).where(Category.user_id == user_id))
-    existing_categories = cat_result.all()
+    async def _fetch_context() -> tuple[
+        str | None, Sequence[Category], Sequence[Tag], Sequence[Wallet], list[tuple[str, str, str]]
+    ]:
+        user_result = await session.exec(select(User).where(User.id == user_id))
+        user = user_result.first()
+        cat_result = await session.exec(select(Category).where(Category.user_id == user_id))
+        existing_categories = cat_result.all()
+        tag_result = await session.exec(select(Tag).where(Tag.user_id == user_id))
+        existing_tags = tag_result.all()
+        wallet_result = await session.exec(select(Wallet).where(Wallet.user_id == user_id))
+        user_wallets = wallet_result.all()
+        examples = await _recent_description_examples(user_wallets, session)
+        custom_ai_prompt = user.custom_ai_prompt if user else None
+        return custom_ai_prompt, existing_categories, existing_tags, user_wallets, examples
+
+    (ocr_texts, images), context = await asyncio.gather(_run_ocr(), _fetch_context())
+    custom_ai_prompt, existing_categories, existing_tags, user_wallets, examples = context
+    if ocr_texts:
+        combined_ocr = "\n\n".join(f"OCR extracted from receipt image:\n{t}" for t in ocr_texts)
+        text = f"{combined_ocr}\n\n{text}" if text else combined_ocr
+
     category_names = [c.name for c in existing_categories]
-
-    tag_result = await session.exec(select(Tag).where(Tag.user_id == user_id))
-    existing_tags = tag_result.all()
     tag_names = [t.name for t in existing_tags]
-
-    wallet_result = await session.exec(select(Wallet).where(Wallet.user_id == user_id))
-    user_wallets = wallet_result.all()
     wallet_context = [(w.name, w.currency) for w in user_wallets]
     wallet_by_name = {w.name.lower(): str(w.id) for w in user_wallets}
-
-    examples = await _recent_description_examples(user_wallets, session)
 
     model = record.attachment_model if images and record.attachment_model else record.model
     provider = get_provider(record.provider, api_key=api_key, model=model)
