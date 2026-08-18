@@ -186,86 +186,7 @@ LUCIDE_ICONS: frozenset[str] = frozenset(
     }
 )
 
-_ICON_KEYWORD_MAP: dict[str, list[str]] = {
-    "food": [
-        "Utensils",
-        "Coffee",
-        "Pizza",
-        "Wine",
-        "Beer",
-        "Apple",
-        "Sandwich",
-        "IceCream",
-        "Soup",
-    ],
-    "dining": ["Utensils", "Pizza", "Wine", "Coffee"],
-    "restaurant": ["Utensils", "Pizza", "Wine"],
-    "cafe": ["Coffee", "Utensils"],
-    "drink": ["Coffee", "Wine", "Beer", "IceCream"],
-    "grocery": ["ShoppingCart", "Apple", "Utensils"],
-    "shopping": ["ShoppingCart", "ShoppingBag", "Shirt", "Package", "Tag"],
-    "clothing": ["Shirt", "ShoppingBag", "Scissors"],
-    "fashion": ["Shirt", "ShoppingBag", "Scissors", "Sparkles"],
-    "transport": ["Car", "Bus", "Train", "Bike", "Plane", "Fuel", "Truck", "Taxi"],
-    "travel": ["Plane", "MapPin", "Hotel", "Navigation", "Mountain", "Tent"],
-    "fuel": ["Fuel", "Car", "Truck"],
-    "home": ["Home", "Building2", "Sofa", "Hammer", "Key", "Paintbrush"],
-    "rent": ["Home", "Building2", "Key"],
-    "utilities": ["Lightbulb", "Zap", "Droplets", "Flame", "Wifi", "Wrench"],
-    "electric": ["Zap", "Lightbulb"],
-    "water": ["Droplets", "Waves"],
-    "tech": ["Laptop", "Smartphone", "Monitor", "Tv", "Camera", "Headphones"],
-    "electronics": ["Laptop", "Smartphone", "Monitor", "Tv", "Camera", "Headphones", "Printer"],
-    "phone": ["Phone", "Smartphone"],
-    "health": ["Pill", "Stethoscope", "Heart", "Syringe", "Brain", "Eye"],
-    "medical": ["Pill", "Stethoscope", "Syringe", "Heart"],
-    "fitness": ["Dumbbell", "Heart", "Volleyball", "Mountain"],
-    "gym": ["Dumbbell", "Heart", "Volleyball"],
-    "education": ["BookOpen", "GraduationCap", "Globe", "Pen"],
-    "books": ["BookOpen", "Pen", "Newspaper"],
-    "entertainment": ["Clapperboard", "Music", "Gamepad2", "Palette", "Ticket"],
-    "gaming": ["Gamepad2", "Rocket", "Star"],
-    "music": ["Music", "Headphones"],
-    "finance": [
-        "Briefcase",
-        "Landmark",
-        "TrendingUp",
-        "PiggyBank",
-        "CreditCard",
-        "Banknote",
-        "Coins",
-        "Wallet",
-    ],
-    "income": ["Banknote", "TrendingUp", "DollarSign", "Coins", "Briefcase"],
-    "salary": ["Briefcase", "Banknote", "DollarSign"],
-    "investment": ["TrendingUp", "PiggyBank", "Landmark", "DollarSign"],
-    "savings": ["PiggyBank", "Coins", "Wallet"],
-    "insurance": ["Stethoscope", "Heart", "Briefcase", "Landmark"],
-    "gift": ["Gift", "PartyPopper", "Sparkles"],
-    "pets": ["PawPrint", "Heart"],
-    "beauty": ["Scissors", "Sparkles", "Smile"],
-    "personal": ["Smile", "Sparkles", "Users"],
-    "charity": ["Heart", "Gift", "Users"],
-    "social": ["Users", "Gift", "PartyPopper"],
-    "nature": ["Leaf", "Mountain", "Waves"],
-    "children": ["Baby", "Users", "BookOpen"],
-    "hobby": ["Palette", "Music", "Gamepad2", "Mountain", "Volleyball"],
-}
-
-
-def search_icons(query: str) -> list[str]:
-    """Return lucide-react icon names relevant to the query."""
-    q = query.lower().strip()
-    direct = [name for name in sorted(LUCIDE_ICONS) if q in name.lower()]
-    keyword_matches: list[str] = []
-    for keyword, icons in _ICON_KEYWORD_MAP.items():
-        if keyword in q or q in keyword:
-            keyword_matches.extend(i for i in icons if i in LUCIDE_ICONS)
-    combined = list(dict.fromkeys(direct + keyword_matches))
-    return combined[:20] if combined else sorted(LUCIDE_ICONS)
-
-
-SYSTEM_PROMPT = """\
+SYSTEM_PROMPT = f"""\
 You are a financial transaction parsing assistant. Extract transaction information from the user's \
 input (text, image, or both) and return structured data.
 
@@ -308,9 +229,9 @@ E.g. for category "Freelance" / type income, write "Setup Discord bot for user-a
 - suggested_tags: check provided tags first; may also suggest new ones for any concrete purchase \
 or income source. Tags must be more specific than the category (if category is "Food", tag \
 "burger" not "food"). Max 3 tags per item. Return [] if none apply.
-- suggested_icon: set ONLY for a NEW category (not in the provided list). If "Icon options" are \
-listed in the prompt for this or a related category, pick the best match from there. Otherwise \
-use any valid lucide-react icon name. Null if the category already exists.
+- suggested_icon: set ONLY for a NEW category (not in the provided list). Pick the best match \
+from these lucide-react icon names: {", ".join(sorted(LUCIDE_ICONS))}. \
+Null if the category already exists.
 """
 
 CHAT_SYSTEM_PROMPT = """\
@@ -326,32 +247,6 @@ Guidelines:
 - Do not make up transaction data that isn't returned by the tools
 - Respond in plain text; do not use markdown formatting
 """
-
-ICON_SEARCH_SYSTEM_PROMPT = (
-    "Given the user's transaction input and their existing expense categories, "
-    "call search_icons once for each category you expect to CREATE (i.e. not already in the list). "
-    "Pass the likely new category name as the query. "
-    "Do not call it for categories already in the list. "
-    "If no new categories are needed, do nothing and stop immediately."
-)
-
-ICON_SEARCH_TOOL: ChatTool = ChatTool(
-    name="search_icons",
-    description=(
-        "Search for valid lucide-react icon names suitable for a new expense/income category. "
-        "Returns a list of matching icon names. Call once per new category."
-    ),
-    parameters={
-        "type": "object",
-        "properties": {
-            "query": {
-                "type": "string",
-                "description": "Category name or theme to find icons for (e.g. 'food', 'transport', 'gaming')",
-            }
-        },
-        "required": ["query"],
-    },
-)
 
 
 def resolve_tz(tz_name: str) -> ZoneInfo | timezone:
@@ -369,7 +264,6 @@ def build_parse_prompt(  # noqa: PLR0913
     wallets: list[tuple[str, str]] | None = None,
     timezone: str = "UTC",
     custom_prompt: str | None = None,
-    icon_context: dict[str, list[str]] | None = None,
     examples: list[tuple[str, str, str]] | None = None,
 ) -> str:
     today = datetime.now(resolve_tz(timezone)).strftime("%Y-%m-%d")
@@ -387,11 +281,6 @@ def build_parse_prompt(  # noqa: PLR0913
             "(based on currency or context). If only one wallet exists or none clearly matches, "
             "set it to null.\n"
         )
-    if icon_context:
-        icon_lines = "; ".join(
-            f"{query}: [{', '.join(icons)}]" for query, icons in icon_context.items()
-        )
-        prompt += f"Icon options for new categories: {icon_lines}\n"
     if custom_prompt:
         prompt += f"Custom instructions: {custom_prompt}\n"
     if examples:
