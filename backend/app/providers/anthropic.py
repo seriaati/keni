@@ -111,8 +111,12 @@ class AnthropicProvider(LLMProvider):
         try:
             response = await self._client.messages.parse(
                 model=self._model,
-                max_tokens=2048,
-                system=SYSTEM_PROMPT,
+                max_tokens=8192,
+                system=[
+                    TextBlockParam(
+                        type="text", text=SYSTEM_PROMPT, cache_control={"type": "ephemeral"}
+                    )
+                ],
                 messages=[{"role": "user", "content": parts}],
                 output_format=ParsedTransactionOutput,
             )

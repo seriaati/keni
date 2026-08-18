@@ -99,7 +99,7 @@ class OpenAICompatibleProvider(LLMProvider):
         try:
             response = await self._client.beta.chat.completions.parse(
                 model=self._model,
-                max_tokens=2048,
+                max_tokens=4096,
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": parts},

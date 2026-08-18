@@ -225,7 +225,9 @@ NOT restate the category or type — those are stored separately and shown along
 E.g. for category "Freelance" / type income, write "Setup Discord bot for user-a", NOT \
 "Freelance income for setting up Discord bot for user-a".
 - date: ISO 8601 YYYY-MM-DD; today if unspecified
-- ai_context: brief summary of what you extracted and why you chose the category
+- ai_context: one short sentence (under 15 words) on what you extracted and why the \
+category fits. EXCEPTION: for the individual items inside a "group", set ai_context to "" — \
+the group's own ai_context covers them.
 - suggested_tags: check provided tags first; may also suggest new ones for any concrete purchase \
 or income source. Tags must be more specific than the category (if category is "Food", tag \
 "burger" not "food"). Max 3 tags per item. Return [] if none apply.
