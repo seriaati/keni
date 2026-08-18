@@ -13,7 +13,7 @@ _stt_instance: STTProvider | None = None
 
 
 def get_stt_provider() -> STTProvider:
-    global _stt_instance  # noqa: PLW0603
+    global _stt_instance  # ruff: ignore[global-statement]
     if _stt_instance is not None:
         return _stt_instance
 

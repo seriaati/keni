@@ -60,7 +60,7 @@ class OpenAICompatibleProvider(LLMProvider):
         self._client = openai.AsyncOpenAI(api_key=api_key, base_url=base_url)
         self._model = model
 
-    async def parse_transactions(  # noqa: PLR0913
+    async def parse_transactions(  # ruff: ignore[too-many-arguments]
         self,
         *,
         text: str | None,

@@ -100,7 +100,7 @@ async def _proxy_to_mcp(request: Request) -> Response:
     response_started: dict[str, Any] = {}
     body_parts: list[bytes] = []
 
-    async def _send(message: MutableMapping[str, Any]) -> None:  # noqa: RUF029
+    async def _send(message: MutableMapping[str, Any]) -> None:  # ruff: ignore[unused-async]
         if message["type"] == "http.response.start":
             response_started["status"] = message["status"]
             response_started["headers"] = message.get("headers", [])

@@ -32,9 +32,9 @@ _AUTH_CODE_TTL_SECONDS = 300
 _ACCESS_TOKEN_TTL_SECONDS = 3600
 _REFRESH_TOKEN_TTL_DAYS = 30
 
-_TOKEN_TYPE_ACCESS = "access"  # noqa: S105
-_TOKEN_TYPE_REFRESH = "refresh"  # noqa: S105
-_TOKEN_TYPE_BEARER = "Bearer"  # noqa: S105
+_TOKEN_TYPE_ACCESS = "access"  # ruff: ignore[hardcoded-password-string]
+_TOKEN_TYPE_REFRESH = "refresh"  # ruff: ignore[hardcoded-password-string]
+_TOKEN_TYPE_BEARER = "Bearer"  # ruff: ignore[hardcoded-password-string]
 
 
 class KeniAuthorizationCode(AuthorizationCode):
@@ -170,7 +170,7 @@ class KeniOAuthProvider(OAuthAuthorizationServerProvider):
 
     async def exchange_authorization_code(
         self,
-        client: OAuthClientInformationFull,  # noqa: ARG002
+        client: OAuthClientInformationFull,  # ruff: ignore[unused-method-argument]
         authorization_code: KeniAuthorizationCode,
     ) -> OAuthToken:
         now = datetime.now(UTC)
@@ -239,7 +239,7 @@ class KeniOAuthProvider(OAuthAuthorizationServerProvider):
                     OAuthTokenModel.token_hash == _hash_token(refresh_token),
                     OAuthTokenModel.token_type == _TOKEN_TYPE_REFRESH,
                     OAuthTokenModel.client_id == client.client_id,
-                    OAuthTokenModel.revoked == False,  # noqa: E712
+                    OAuthTokenModel.revoked == False,  # ruff: ignore[true-false-comparison]
                 )
             )
             db_token = result.first()
@@ -258,7 +258,7 @@ class KeniOAuthProvider(OAuthAuthorizationServerProvider):
 
     async def exchange_refresh_token(
         self,
-        client: OAuthClientInformationFull,  # noqa: ARG002
+        client: OAuthClientInformationFull,  # ruff: ignore[unused-method-argument]
         refresh_token: KeniRefreshToken,
         scopes: list[str],
     ) -> OAuthToken:
@@ -325,7 +325,7 @@ class KeniOAuthProvider(OAuthAuthorizationServerProvider):
                 select(OAuthTokenModel).where(
                     OAuthTokenModel.token_hash == _hash_token(token),
                     OAuthTokenModel.token_type == _TOKEN_TYPE_ACCESS,
-                    OAuthTokenModel.revoked == False,  # noqa: E712
+                    OAuthTokenModel.revoked == False,  # ruff: ignore[true-false-comparison]
                 )
             )
             db_token = result.first()

@@ -62,7 +62,7 @@ class GeminiProvider(LLMProvider):
         self._client = genai.Client(api_key=api_key)
         self._model = model
 
-    async def parse_transactions(  # noqa: PLR0913
+    async def parse_transactions(  # ruff: ignore[too-many-arguments]
         self,
         *,
         text: str | None,

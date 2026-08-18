@@ -364,7 +364,7 @@ async def create_category(
 
 
 @mcp.tool()
-async def update_category(  # noqa: PLR0911
+async def update_category(  # ruff: ignore[too-many-return-statements]
     category_id: str, name: str | None = None, icon: str | None = None, color: str | None = None
 ) -> dict[str, Any]:
     """
@@ -606,7 +606,7 @@ def _apply_date_filters(
     return query, None
 
 
-async def _fetch_transactions(  # noqa: PLR0911, PLR0912, PLR0914
+async def _fetch_transactions(  # ruff: ignore[too-many-return-statements, too-many-branches, too-many-locals]
     params: ListTransactionsInput, user_id: uuid.UUID
 ) -> dict[str, Any] | str:
     w_id = _parse_uuid(params.wallet_id, "wallet_id")
@@ -768,7 +768,7 @@ class GetSummaryInput:
     end_date: str | None = None
 
 
-async def _compute_summary(params: GetSummaryInput, user_id: uuid.UUID) -> dict[str, Any] | str:  # noqa: PLR0914
+async def _compute_summary(params: GetSummaryInput, user_id: uuid.UUID) -> dict[str, Any] | str:  # ruff: ignore[too-many-locals]
     w_id = _parse_uuid(params.wallet_id, "wallet_id")
     if isinstance(w_id, str):
         return w_id
@@ -1070,7 +1070,7 @@ class CreateTransactionsInput:
 
 
 @mcp.tool()
-async def create_transactions(params: CreateTransactionsInput) -> dict[str, Any]:  # noqa: PLR0911
+async def create_transactions(params: CreateTransactionsInput) -> dict[str, Any]:  # ruff: ignore[too-many-return-statements]
     """
     Create multiple independent transactions in one wallet in a single call.
 
@@ -1123,7 +1123,7 @@ class CreateTransactionGroupInput:
 
 
 @mcp.tool()
-async def create_transaction_group(params: CreateTransactionGroupInput) -> dict[str, Any]:  # noqa: PLR0911
+async def create_transaction_group(params: CreateTransactionGroupInput) -> dict[str, Any]:  # ruff: ignore[too-many-return-statements]
     """
     Create a parent transaction with child transactions (e.g. an itemized receipt).
 
@@ -1202,7 +1202,7 @@ class UpdateTransactionInput:
 
 
 @mcp.tool()
-async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]:  # noqa: C901, PLR0911, PLR0912, PLR0914
+async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]:  # ruff: ignore[complex-structure, too-many-return-statements, too-many-branches, too-many-locals]
     """
     Update an existing transaction.
 
@@ -1379,7 +1379,7 @@ def _canonical_link_ids(a: uuid.UUID, b: uuid.UUID) -> tuple[uuid.UUID, uuid.UUI
 
 
 @mcp.tool()
-async def link_transactions(transaction_id: str, target_transaction_id: str) -> dict[str, Any]:  # noqa: PLR0911
+async def link_transactions(transaction_id: str, target_transaction_id: str) -> dict[str, Any]:  # ruff: ignore[too-many-return-statements]
     """
     Link two transactions together (e.g. a refund to its original purchase).
 
@@ -1422,7 +1422,7 @@ async def link_transactions(transaction_id: str, target_transaction_id: str) -> 
 
 
 @mcp.tool()
-async def unlink_transactions(transaction_id: str, target_transaction_id: str) -> dict[str, Any]:  # noqa: PLR0911
+async def unlink_transactions(transaction_id: str, target_transaction_id: str) -> dict[str, Any]:  # ruff: ignore[too-many-return-statements]
     """
     Remove the link between two transactions. The transactions themselves are not deleted.
 
@@ -1730,7 +1730,7 @@ class CreateRecurringInput:
 
 
 @mcp.tool()
-async def create_recurring_transaction(params: CreateRecurringInput) -> dict[str, Any]:  # noqa: PLR0911, PLR0912
+async def create_recurring_transaction(params: CreateRecurringInput) -> dict[str, Any]:  # ruff: ignore[too-many-return-statements, too-many-branches]
     """
     Create a recurring transaction (subscription, salary, rent, ...).
 
@@ -1819,7 +1819,7 @@ class UpdateRecurringInput:
 
 
 @mcp.tool()
-async def update_recurring_transaction(params: UpdateRecurringInput) -> dict[str, Any]:  # noqa: C901, PLR0911, PLR0912
+async def update_recurring_transaction(params: UpdateRecurringInput) -> dict[str, Any]:  # ruff: ignore[complex-structure, too-many-return-statements, too-many-branches]
     """
     Update a recurring transaction. Only provided fields are changed.
 
@@ -2015,7 +2015,7 @@ class CreateBudgetInput:
 
 
 @mcp.tool()
-async def create_budget(params: CreateBudgetInput) -> dict[str, Any]:  # noqa: PLR0911
+async def create_budget(params: CreateBudgetInput) -> dict[str, Any]:  # ruff: ignore[too-many-return-statements]
     """
     Create a spending budget.
 
@@ -2080,7 +2080,7 @@ class UpdateBudgetInput:
 
 
 @mcp.tool()
-async def update_budget(params: UpdateBudgetInput) -> dict[str, Any]:  # noqa: PLR0911, PLR0912
+async def update_budget(params: UpdateBudgetInput) -> dict[str, Any]:  # ruff: ignore[too-many-return-statements, too-many-branches]
     """
     Update a budget. Only provided fields are changed.
 
