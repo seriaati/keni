@@ -235,6 +235,15 @@ textarea.input {
 .toast-success { background: var(--forest); }
 .toast-error { background: var(--rose); }
 
+@media (max-width: 768px) {
+  .toast-container {
+    bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px) + 16px);
+    left: 16px;
+    right: 16px;
+    align-items: center;
+  }
+}
+
 /* ===== MODAL ===== */
 .modal-backdrop {
   position: fixed;

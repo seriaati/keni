@@ -355,7 +355,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: calc(60px + env(safe-area-inset-bottom, 0px));
+  height: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px));
   padding-bottom: env(safe-area-inset-bottom, 0px);
   background: white;
   border-top: 1px solid var(--cream-darker);
@@ -371,7 +371,7 @@
   align-items: center;
   justify-content: center;
   gap: 3px;
-  height: 60px;
+  height: var(--tab-bar-height);
   position: relative;
   background: none;
   border: none;
@@ -523,7 +523,7 @@
 
   .page-content {
     padding: 16px;
-    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 16px);
+    padding-bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px) + 16px);
     overflow-x: hidden;
   }
 
