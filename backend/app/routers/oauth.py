@@ -49,7 +49,7 @@ class _AuthCodeParams:
 
 
 def _get_provider() -> KeniOAuthProvider:
-    from app.mcp_server import oauth_provider  # noqa: PLC0415
+    from app.mcp_server import oauth_provider  # ruff: ignore[import-outside-top-level]
 
     return oauth_provider
 

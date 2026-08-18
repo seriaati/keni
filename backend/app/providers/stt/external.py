@@ -12,7 +12,7 @@ class ExternalSTTProvider(STTProvider):
         self._provider = provider
         self._api_key = api_key
 
-    async def transcribe(self, audio_bytes: bytes, content_type: str) -> str:  # noqa: ARG002
+    async def transcribe(self, audio_bytes: bytes, content_type: str) -> str:  # ruff: ignore[unused-method-argument]
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail=f"External STT provider '{self._provider}' is not yet implemented.",

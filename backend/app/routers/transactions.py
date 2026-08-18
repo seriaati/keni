@@ -296,13 +296,13 @@ def _prepare_image(raw: bytes, degrees: int) -> bytes:
 
 
 @router.post("/ai", status_code=status.HTTP_201_CREATED)
-async def create_transaction_ai(  # noqa: PLR0913, PLR0917
+async def create_transaction_ai(  # ruff: ignore[too-many-arguments, too-many-positional-arguments]
     wallet_id: uuid.UUID,
     current_user: CurrentUser,
     session: DbDep,
     text: Annotated[str | None, Form()] = None,
-    files: Annotated[list[UploadFile], File()] = [],  # noqa: B006
-    rotations: Annotated[list[int], Form()] = [],  # noqa: B006
+    files: Annotated[list[UploadFile], File()] = [],  # ruff: ignore[mutable-argument-default]
+    rotations: Annotated[list[int], Form()] = [],  # ruff: ignore[mutable-argument-default]
     x_timezone: Annotated[str | None, Header()] = None,
 ) -> AITransactionsResponse:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
@@ -560,7 +560,7 @@ async def get_transaction_summary(
 
 
 @router.get("/analytics")
-async def get_transaction_analytics(  # noqa: PLR0913, PLR0917
+async def get_transaction_analytics(  # ruff: ignore[too-many-arguments, too-many-positional-arguments]
     wallet_id: uuid.UUID,
     current_user: CurrentUser,
     session: DbDep,
@@ -624,7 +624,7 @@ async def get_transaction_analytics(  # noqa: PLR0913, PLR0917
 
 
 @router.get("")
-async def list_transactions(  # noqa: PLR0913, PLR0917
+async def list_transactions(  # ruff: ignore[too-many-arguments, too-many-positional-arguments]
     wallet_id: uuid.UUID,
     current_user: CurrentUser,
     session: DbDep,

@@ -14,9 +14,9 @@ _ocr: RapidOCR | None = None
 
 
 def _get_ocr() -> RapidOCR:
-    global _ocr  # noqa: PLW0603
+    global _ocr  # ruff: ignore[global-statement]
     if _ocr is None:
-        from rapidocr_onnxruntime import RapidOCR  # noqa: PLC0415
+        from rapidocr_onnxruntime import RapidOCR  # ruff: ignore[import-outside-top-level]
 
         _ocr = RapidOCR()
     return _ocr

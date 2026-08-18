@@ -8,7 +8,9 @@ import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession  # noqa: TC002
+from sqlmodel.ext.asyncio.session import (
+    AsyncSession,  # ruff: ignore[typing-only-third-party-import]
+)
 
 from app.database import get_session
 from app.models.api_token import APIToken

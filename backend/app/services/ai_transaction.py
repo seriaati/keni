@@ -123,7 +123,7 @@ async def _recent_description_examples(
         .join(Category, col(Category.id) == col(Transaction.category_id))
         .where(col(Transaction.wallet_id).in_(wallet_ids))
         .where(col(Transaction.description).is_not(None))
-        .where(col(Transaction.description) != "")  # noqa: PLC1901
+        .where(col(Transaction.description) != "")  # ruff: ignore[compare-to-empty-string]
         .order_by(col(Transaction.updated_at).desc())
         .limit(_MAX_EXAMPLES * 4)
     )
@@ -147,7 +147,7 @@ async def get_ai_provider_record(user_id: uuid.UUID, session: AsyncSession) -> A
     return result.first()
 
 
-async def upsert_ai_provider(  # noqa: PLR0913, PLR0917
+async def upsert_ai_provider(  # ruff: ignore[too-many-arguments, too-many-positional-arguments]
     user_id: uuid.UUID,
     provider: str,
     api_key: str | None,
@@ -186,7 +186,7 @@ async def upsert_ai_provider(  # noqa: PLR0913, PLR0917
     return record
 
 
-async def parse_transactions_with_ai(  # noqa: PLR0914, PLR0915, C901
+async def parse_transactions_with_ai(  # ruff: ignore[too-many-locals, too-many-statements, complex-structure]
     user_id: uuid.UUID,
     text: str | None,
     images: list[tuple[str, str]],
@@ -388,7 +388,7 @@ class CategorizeTransactionResult:
     suggested_tags: list[SuggestedTagResult]
 
 
-async def categorize_transaction_with_ai(  # noqa: PLR0913, PLR0917
+async def categorize_transaction_with_ai(  # ruff: ignore[too-many-arguments, too-many-positional-arguments]
     user_id: uuid.UUID,
     description: str | None,
     amount: float,

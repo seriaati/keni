@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     )
 
     database_url: str = "postgresql+asyncpg://keni:keni@localhost:5432/keni"
-    secret_key: str = "change-me-in-production"  # noqa: S105
+    secret_key: str = "change-me-in-production"  # ruff: ignore[hardcoded-password-string]
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 30

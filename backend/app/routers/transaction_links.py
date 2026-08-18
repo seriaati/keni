@@ -104,7 +104,7 @@ def _canonical(a: uuid.UUID, b: uuid.UUID) -> tuple[uuid.UUID, uuid.UUID]:
 
 
 @router.get("/search")
-async def search_transactions(  # noqa: PLR0913, PLR0917
+async def search_transactions(  # ruff: ignore[too-many-arguments, too-many-positional-arguments]
     session: DbDep,
     current_user: CurrentUser,
     q: QParam = None,

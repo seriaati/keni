@@ -258,7 +258,7 @@ def resolve_tz(tz_name: str) -> ZoneInfo | timezone:
         return UTC
 
 
-def build_parse_prompt(  # noqa: PLR0913
+def build_parse_prompt(  # ruff: ignore[too-many-arguments]
     *,
     text: str | None,
     categories: list[str],
@@ -312,7 +312,7 @@ def build_chat_user_message(*, message: str, context: ChatContext) -> str:
 
 class LLMProvider(ABC):
     @abstractmethod
-    async def parse_transactions(  # noqa: PLR0913
+    async def parse_transactions(  # ruff: ignore[too-many-arguments]
         self,
         *,
         text: str | None,

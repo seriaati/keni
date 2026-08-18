@@ -340,7 +340,7 @@ def _build_date_filters(date_from: str | None, date_to: str | None) -> list[Any]
 def _make_executor(
     wallet_ids: list[Any], wallets: list[Wallet], user_id: uuid.UUID, session: AsyncSession
 ) -> Any:
-    async def execute_tool(tool_name: str, args: dict[str, Any]) -> Any:  # noqa: PLR0912
+    async def execute_tool(tool_name: str, args: dict[str, Any]) -> Any:  # ruff: ignore[too-many-branches]
         logger.info("AI tool call: %s(%s)", tool_name, args)
         if tool_name == "get_transactions":
             result = await _tool_get_transactions(wallet_ids, session, args)
@@ -625,7 +625,7 @@ async def _tool_get_transaction(
     }
 
 
-async def _tool_create_transaction(  # noqa: PLR0911, PLR0912
+async def _tool_create_transaction(  # ruff: ignore[too-many-return-statements, too-many-branches]
     wallet_ids: list[Any], user_id: uuid.UUID, session: AsyncSession, args: dict[str, Any]
 ) -> dict[str, Any]:
     try:
@@ -709,7 +709,7 @@ async def _tool_create_transaction(  # noqa: PLR0911, PLR0912
     }
 
 
-async def _tool_update_transaction(  # noqa: C901, PLR0911, PLR0912
+async def _tool_update_transaction(  # ruff: ignore[complex-structure, too-many-return-statements, too-many-branches]
     wallet_ids: list[Any], user_id: uuid.UUID, session: AsyncSession, args: dict[str, Any]
 ) -> dict[str, Any]:
     try:

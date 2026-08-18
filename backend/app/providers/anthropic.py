@@ -65,7 +65,7 @@ class AnthropicProvider(LLMProvider):
         self._client = anthropic.AsyncAnthropic(api_key=api_key)
         self._model = model
 
-    async def parse_transactions(  # noqa: PLR0913
+    async def parse_transactions(  # ruff: ignore[too-many-arguments]
         self,
         *,
         text: str | None,

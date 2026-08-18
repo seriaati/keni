@@ -90,7 +90,7 @@ async def _build_transaction_rows(
 
 
 @router.get("")
-async def export_transactions(  # noqa: PLR0913, PLR0917
+async def export_transactions(  # ruff: ignore[too-many-arguments, too-many-positional-arguments]
     wallet_id: uuid.UUID,
     current_user: CurrentUser,
     session: DbDep,
