@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import base64 as _b64
+import logging
 import operator
 import uuid
 from datetime import UTC, datetime
@@ -50,6 +52,10 @@ if TYPE_CHECKING:
 from app.services.category_tag import find_or_create_category, find_or_create_tag
 from app.services.pdf import extract_text_from_pdf
 from app.services.voice import transcribe_audio
+
+logger = logging.getLogger(__name__)
+
+_MAX_IMAGE_DIM = 1568
 
 router = APIRouter(prefix="/api/wallets/{wallet_id}/transactions", tags=["transactions"])
 
@@ -254,25 +260,39 @@ def _build_ai_transaction_item(parsed: ParsedTransactionResult) -> AITransaction
     )
 
 
-def _rotate_image(raw: bytes, degrees: int) -> bytes:
-    """Rotate image bytes clockwise by degrees (90/180/270). Returns raw unchanged for 0."""
-    if degrees == 0:
-        return raw
+def _prepare_image(raw: bytes, degrees: int) -> bytes:
+    """Rotate image bytes clockwise by degrees (90/180/270) and downscale so the longest
+    side is at most _MAX_IMAGE_DIM. Returns raw unchanged if no transform applies or fails."""
     cw_to_pil = {
         90: PILImage.Transpose.ROTATE_270,
         180: PILImage.Transpose.ROTATE_180,
         270: PILImage.Transpose.ROTATE_90,
     }
-    op = cw_to_pil.get(degrees)
-    if op is None:
+    try:
+        img = PILImage.open(BytesIO(raw))
+        fmt = img.format or "JPEG"
+        changed = False
+        op = cw_to_pil.get(degrees)
+        if op is not None:
+            img = img.transpose(op)
+            changed = True
+        longest = max(img.width, img.height)
+        if longest > _MAX_IMAGE_DIM:
+            scale = _MAX_IMAGE_DIM / longest
+            img = img.resize(
+                (max(1, round(img.width * scale)), max(1, round(img.height * scale))),
+                PILImage.Resampling.LANCZOS,
+            )
+            changed = True
+        if not changed:
+            return raw
+        out = BytesIO()
+        save_kw: dict = {"quality": 85} if fmt == "JPEG" else {}
+        img.save(out, format=fmt, **save_kw)
+        return out.getvalue()
+    except Exception:
+        logger.warning("Image preparation failed; sending original bytes", exc_info=True)
         return raw
-    img = PILImage.open(BytesIO(raw))
-    img = img.transpose(op)
-    out = BytesIO()
-    fmt = img.format or "JPEG"
-    save_kw: dict = {"quality": 85} if fmt == "JPEG" else {}
-    img.save(out, format=fmt, **save_kw)
-    return out.getvalue()
 
 
 @router.post("/ai", status_code=status.HTTP_201_CREATED)
@@ -293,7 +313,7 @@ async def create_transaction_ai(  # noqa: PLR0913, PLR0917
             detail="Provide at least one of: text, file",
         )
 
-    images: list[tuple[str, str]] = []
+    image_jobs: list[tuple[bytes, str, int]] = []
     for i, upload in enumerate(files):
         raw = await upload.read()
         content_type = upload.content_type or ""
@@ -303,14 +323,20 @@ async def create_transaction_ai(  # noqa: PLR0913, PLR0917
                 text = f"{pdf_text}\n\n{text}" if text else pdf_text
         elif content_type.startswith("image/"):
             deg = rotations[i] if i < len(rotations) else 0
-            if deg:
-                raw = _rotate_image(raw, deg)
-            images.append((_b64.b64encode(raw).decode(), content_type or "image/jpeg"))
+            image_jobs.append((raw, content_type, deg))
         else:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Unsupported file type. Only images and PDFs are accepted.",
             )
+
+    prepared = await asyncio.gather(
+        *(asyncio.to_thread(_prepare_image, raw, deg) for raw, _, deg in image_jobs)
+    )
+    images: list[tuple[str, str]] = [
+        (_b64.b64encode(img).decode(), content_type)
+        for img, (_, content_type, _) in zip(prepared, image_jobs, strict=True)
+    ]
 
     timezone = current_user.timezone or x_timezone or None
     parsed = await parse_transactions_with_ai(

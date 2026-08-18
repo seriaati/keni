@@ -30,6 +30,36 @@ import { RecurringReview } from './RecurringReview';
 import { GroupReview } from './GroupReview';
 import type { CommandBarProps, EditableExpense, EditableRecurring, Mode } from './types';
 
+const MAX_IMAGE_DIM = 1568;
+
+async function downscaleImage(file: File): Promise<File> {
+  if (!file.type.startsWith('image/')) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const longest = Math.max(bitmap.width, bitmap.height);
+    if (longest <= MAX_IMAGE_DIM) {
+      bitmap.close();
+      return file;
+    }
+    const scale = MAX_IMAGE_DIM / longest;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      bitmap.close();
+      return file;
+    }
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+    if (!blob) return file;
+    return new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' });
+  } catch {
+    return file;
+  }
+}
+
 export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: CommandBarProps) {
   const [text, setText] = useState('');
   const [mode, setMode] = useState<Mode>('input');
@@ -97,25 +127,29 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     setFileRotations([]);
   }, []);
 
+  const addFiles = useCallback(async (incoming: File[]) => {
+    const processed = await Promise.all(incoming.map(downscaleImage));
+    setAttachedFiles((prev) => [...prev, ...processed]);
+    setFilePreviews((prev) => [
+      ...prev,
+      ...processed.map((f) => (f.type.startsWith('image/') ? URL.createObjectURL(f) : '')),
+    ]);
+    setFileRotations((prev) => [...prev, ...processed.map(() => 0)]);
+  }, []);
+
   useEffect(() => {
     if (open) {
       reset();
       if (initialPayload?.text) setText(initialPayload.text);
       if (initialPayload?.files?.length) {
-        setAttachedFiles(initialPayload.files);
-        setFilePreviews(
-          initialPayload.files.map((f) =>
-            f.type.startsWith('image/') ? URL.createObjectURL(f) : '',
-          ),
-        );
-        setFileRotations(initialPayload.files.map(() => 0));
+        void addFiles(initialPayload.files);
       }
       setTimeout(() => inputRef.current?.focus(), 50);
       categoriesApi.list().then(setCategories).catch(() => {});
       tagsApi.list().then(setAllTags).catch(() => {});
       walletsApi.list().then(setWallets).catch(() => {});
     }
-  }, [open, reset]);
+  }, [open, reset, addFiles]);
 
   useEffect(() => {
     if (!open) return;
@@ -324,13 +358,8 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     setDragging(false);
     const dropped = Array.from(e.dataTransfer?.files ?? []);
     if (!dropped.length) return;
-    setAttachedFiles((prev) => [...prev, ...dropped]);
-    setFilePreviews((prev) => [
-      ...prev,
-      ...dropped.map((f) => (f.type.startsWith('image/') ? URL.createObjectURL(f) : '')),
-    ]);
-    setFileRotations((prev) => [...prev, ...dropped.map(() => 0)]);
-  }, []);
+    void addFiles(dropped);
+  }, [addFiles]);
 
   useEffect(() => {
     if (!open) return;
@@ -354,10 +383,8 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     if (!item) return;
     const file = item.getAsFile();
     if (!file) return;
-    setAttachedFiles((prev) => [...prev, file]);
-    setFilePreviews((prev) => [...prev, URL.createObjectURL(file)]);
-    setFileRotations((prev) => [...prev, 0]);
-  }, [open]);
+    void addFiles([file]);
+  }, [open, addFiles]);
 
   useEffect(() => {
     document.addEventListener('paste', handleImagePaste);
@@ -367,12 +394,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files ?? []);
     if (!selected.length) return;
-    setAttachedFiles((prev) => [...prev, ...selected]);
-    setFilePreviews((prev) => [
-      ...prev,
-      ...selected.map((f) => (f.type.startsWith('image/') ? URL.createObjectURL(f) : '')),
-    ]);
-    setFileRotations((prev) => [...prev, ...selected.map(() => 0)]);
+    void addFiles(selected);
     e.target.value = '';
   };
 
