@@ -17,6 +17,7 @@ interface PopupPos {
 }
 
 const POPUP_HEIGHT = 300;
+const POPUP_WIDTH = 272;
 const POPUP_MARGIN = 4;
 
 const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -68,9 +69,12 @@ export function DatePicker({ value, onChange, disabled = false, id }: DatePicker
     const spaceBelow = window.innerHeight - r.bottom;
     const spaceAbove = r.top;
     const openUp = spaceBelow < POPUP_HEIGHT + POPUP_MARGIN && spaceAbove > spaceBelow;
+    // Clamp horizontally so the popup never extends past the viewport edge
+    const maxLeft = window.innerWidth - POPUP_WIDTH - POPUP_MARGIN;
+    const left = Math.max(POPUP_MARGIN, Math.min(r.left, maxLeft)) + window.scrollX;
     setPos({
       top: openUp ? r.top + window.scrollY - POPUP_MARGIN : r.bottom + window.scrollY + POPUP_MARGIN,
-      left: r.left + window.scrollX,
+      left,
       openUp,
     });
   };
