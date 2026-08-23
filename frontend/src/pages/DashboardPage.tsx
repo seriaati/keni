@@ -13,6 +13,7 @@ import { CategoryIcon } from '../lib/categoryIcons';
 import type { LayoutOutletContext } from '../components/Layout';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { TransactionContextMenu, useTransactionContextMenu } from '../components/TransactionContextMenu';
+import { useIsMobile } from '../lib/useIsMobile';
 
 const FALLBACK_COLORS = [
   'var(--forest)',
@@ -30,6 +31,7 @@ export function DashboardPage() {
   const { activeWallet } = useWallet();
   const { expenseAddedKey } = useOutletContext<LayoutOutletContext>();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [monthlySummary, setMonthlySummary] = useState<TransactionSummary | null>(null);
   const [spendingSummary, setSpendingSummary] = useState<TransactionSummary | null>(null);
   const [incomeSummary, setIncomeSummary] = useState<TransactionSummary | null>(null);
@@ -390,9 +392,9 @@ export function DashboardPage() {
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--ink-faint)', display: 'flex', gap: 5, alignItems: 'center' }}>
                       <span
-                        style={{ cursor: 'pointer' }}
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/wallets/${activeWallet.id}?category_ids=${expense.category.id}`); }}
-                        onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
+                        style={{ cursor: isMobile ? undefined : 'pointer' }}
+                        onClick={isMobile ? undefined : (e) => { e.preventDefault(); e.stopPropagation(); navigate(`/wallets/${activeWallet.id}?category_ids=${expense.category.id}`); }}
+                        onMouseEnter={(e) => { if (!isMobile) e.currentTarget.style.textDecoration = 'underline'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
                       >
                         {expense.category.name}

@@ -17,17 +17,8 @@ import { CategoryIcon } from '../lib/categoryIcons';
 import { getExchangeRate } from '../lib/fx';
 import type { LayoutOutletContext } from '../components/Layout';
 import { TransactionContextMenu, useTransactionContextMenu } from '../components/TransactionContextMenu';
+import { useIsMobile } from '../lib/useIsMobile';
 
-function useIsMobile(breakpoint = 640) {
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= breakpoint);
-  useEffect(() => {
-    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, [breakpoint]);
-  return isMobile;
-}
 
 export function WalletViewPage() {
   const { t } = useTranslation();
@@ -1216,9 +1207,9 @@ function ExpenseRow({
         </div>
         <div style={{ fontSize: 12, color: 'var(--ink-faint)', display: 'flex', gap: 6, alignItems: 'center', overflow: 'hidden', flexWrap: 'nowrap' }}>
           <span
-            style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0, cursor: 'pointer' }}
-            onClick={(e) => { e.stopPropagation(); onCategoryClick(expense.category.id); }}
-            onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
+            style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0, cursor: isMobile ? undefined : 'pointer' }}
+            onClick={isMobile ? undefined : (e) => { e.stopPropagation(); onCategoryClick(expense.category.id); }}
+            onMouseEnter={(e) => { if (!isMobile) e.currentTarget.style.textDecoration = 'underline'; }}
             onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
           >
             {expense.category.name}
