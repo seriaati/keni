@@ -50,9 +50,13 @@ export function MultiCategorySelect({
     const spaceBelow = window.innerHeight - r.bottom;
     const spaceAbove = r.top;
     const openUp = spaceBelow < DROPDOWN_MAX_H + DROPDOWN_MARGIN && spaceAbove > spaceBelow;
+    // Clamp horizontally so the dropdown never extends past the viewport edge
+    const width = Math.max(r.width, 220);
+    const maxLeft = window.innerWidth - width - DROPDOWN_MARGIN;
+    const left = Math.max(DROPDOWN_MARGIN, Math.min(r.left, maxLeft)) + window.scrollX;
     setPos({
       top: openUp ? r.top + window.scrollY - DROPDOWN_MARGIN : r.bottom + window.scrollY + DROPDOWN_MARGIN,
-      left: r.left + window.scrollX,
+      left,
       width: r.width,
       openUp,
     });
