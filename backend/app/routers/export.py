@@ -4,25 +4,28 @@ import csv
 import io
 import json
 import uuid
-from datetime import datetime
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.dependencies import get_current_user, get_db
+from app.dependencies import DateRange, get_current_user, get_date_range, get_db
 from app.models.category import Category
 from app.models.tag import Tag
 from app.models.transaction import Transaction, TransactionTag
 from app.models.user import User
 from app.models.wallet import Wallet
 
+if TYPE_CHECKING:
+    from datetime import datetime
+
 router = APIRouter(prefix="/api/wallets/{wallet_id}/export", tags=["export"])
 
 DbDep = Annotated[AsyncSession, Depends(get_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
+DateRangeDep = Annotated[DateRange, Depends(get_date_range)]
 
 
 async def _get_wallet_or_404(
@@ -94,15 +97,16 @@ async def export_transactions(  # ruff: ignore[too-many-arguments, too-many-posi
     wallet_id: uuid.UUID,
     current_user: CurrentUser,
     session: DbDep,
+    date_range: DateRangeDep,
     export_format: Annotated[str, Query(alias="format", pattern="^(csv|json)$")] = "csv",
-    start_date: Annotated[datetime | None, Query()] = None,
-    end_date: Annotated[datetime | None, Query()] = None,
     transaction_type: Annotated[
         str | None, Query(alias="type", pattern="^(expense|income)$")
     ] = None,
 ) -> StreamingResponse:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
-    rows = await _build_transaction_rows(wallet_id, start_date, end_date, transaction_type, session)
+    rows = await _build_transaction_rows(
+        wallet_id, date_range.start, date_range.end, transaction_type, session
+    )
 
     if export_format == "json":
         content = json.dumps(rows, ensure_ascii=False, indent=2)

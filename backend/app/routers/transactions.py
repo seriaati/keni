@@ -15,7 +15,7 @@ from sqlalchemy import func, or_
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.dependencies import get_current_user, get_db
+from app.dependencies import DateRange, get_current_user, get_date_range, get_db
 from app.models.category import Category
 from app.models.tag import Tag
 from app.models.transaction import Transaction, TransactionLink, TransactionTag
@@ -61,6 +61,7 @@ router = APIRouter(prefix="/api/wallets/{wallet_id}/transactions", tags=["transa
 
 DbDep = Annotated[AsyncSession, Depends(get_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
+DateRangeDep = Annotated[DateRange, Depends(get_date_range)]
 
 
 async def _get_wallet_or_404(
@@ -488,21 +489,17 @@ async def create_transaction(
 
 @router.get("/summary")
 async def get_transaction_summary(
-    wallet_id: uuid.UUID,
-    current_user: CurrentUser,
-    session: DbDep,
-    start_date: Annotated[datetime | None, Query()] = None,
-    end_date: Annotated[datetime | None, Query()] = None,
+    wallet_id: uuid.UUID, current_user: CurrentUser, session: DbDep, date_range: DateRangeDep
 ) -> TransactionSummary:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
 
     base_query = select(Transaction).where(
         Transaction.wallet_id == wallet_id, col(Transaction.group_id).is_(None)
     )
-    if start_date:
-        base_query = base_query.where(col(Transaction.date) >= start_date)
-    if end_date:
-        base_query = base_query.where(col(Transaction.date) <= end_date)
+    if date_range.start:
+        base_query = base_query.where(col(Transaction.date) >= date_range.start)
+    if date_range.end:
+        base_query = base_query.where(col(Transaction.date) <= date_range.end)
 
     result = await session.exec(base_query)
     transactions = result.all()
@@ -560,30 +557,27 @@ async def get_transaction_summary(
 
 
 @router.get("/analytics")
-async def get_transaction_analytics(  # ruff: ignore[too-many-arguments, too-many-positional-arguments]
+async def get_transaction_analytics(
     wallet_id: uuid.UUID,
     current_user: CurrentUser,
     session: DbDep,
-    start_date: Annotated[datetime | None, Query()] = None,
-    end_date: Annotated[datetime | None, Query()] = None,
+    date_range: DateRangeDep,
     transaction_type: Annotated[str, Query(alias="type", pattern="^(expense|income)$")] = "expense",
-    x_timezone: Annotated[str | None, Header()] = None,
 ) -> TransactionAnalytics:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
 
     # Bucket days in the user's local timezone, not the DB session tz (UTC),
     # so transactions near midnight land on the correct calendar day.
-    tz = current_user.timezone or x_timezone or "UTC"
-    day = func.date_trunc("day", func.timezone(tz, col(Transaction.date)))
+    day = func.date_trunc("day", func.timezone(date_range.tz.key, col(Transaction.date)))
     filters = [
         Transaction.wallet_id == wallet_id,
         col(Transaction.group_id).is_(None),
         Transaction.type == transaction_type,
     ]
-    if start_date:
-        filters.append(col(Transaction.date) >= start_date)
-    if end_date:
-        filters.append(col(Transaction.date) <= end_date)
+    if date_range.start:
+        filters.append(col(Transaction.date) >= date_range.start)
+    if date_range.end:
+        filters.append(col(Transaction.date) <= date_range.end)
 
     day_result = await session.exec(
         select(day, func.sum(col(Transaction.amount)), func.count())
@@ -628,10 +622,9 @@ async def list_transactions(  # ruff: ignore[too-many-arguments, too-many-positi
     wallet_id: uuid.UUID,
     current_user: CurrentUser,
     session: DbDep,
+    date_range: DateRangeDep,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
-    start_date: Annotated[datetime | None, Query()] = None,
-    end_date: Annotated[datetime | None, Query()] = None,
     category_id: Annotated[uuid.UUID | None, Query()] = None,
     category_ids: Annotated[list[uuid.UUID] | None, Query()] = None,
     tag_ids: Annotated[list[uuid.UUID] | None, Query()] = None,
@@ -654,10 +647,10 @@ async def list_transactions(  # ruff: ignore[too-many-arguments, too-many-positi
 
     if transaction_type is not None:
         query = query.where(Transaction.type == transaction_type)
-    if start_date:
-        query = query.where(col(Transaction.date) >= start_date)
-    if end_date:
-        query = query.where(col(Transaction.date) <= end_date)
+    if date_range.start:
+        query = query.where(col(Transaction.date) >= date_range.start)
+    if date_range.end:
+        query = query.where(col(Transaction.date) <= date_range.end)
     if category_ids:
         query = query.where(col(Transaction.category_id).in_(category_ids))
     elif category_id:
