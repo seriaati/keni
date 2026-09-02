@@ -114,6 +114,7 @@ async function request<T>(
     ...(options.headers as Record<string, string>),
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
+  headers['X-Timezone'] = Intl.DateTimeFormat().resolvedOptions().timeZone;
   if (!(options.body instanceof FormData)) {
     headers['Content-Type'] = 'application/json';
   }
@@ -231,9 +232,7 @@ export const expenses = {
     if (params.start_date) q.set('start_date', params.start_date);
     if (params.end_date) q.set('end_date', params.end_date);
     if (params.type) q.set('type', params.type);
-    return request<TransactionAnalytics>(`/wallets/${walletId}/transactions/analytics?${q}`, {
-      headers: { 'X-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone },
-    });
+    return request<TransactionAnalytics>(`/wallets/${walletId}/transactions/analytics?${q}`);
   },
   aiParse: (walletId: string, text?: string, files?: File[], rotations?: number[]) => {
     const form = new FormData();
@@ -245,7 +244,6 @@ export const expenses = {
     return request<AIParseResponse>(`/wallets/${walletId}/transactions/ai`, {
       method: 'POST',
       body: form,
-      headers: { 'X-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone },
     });
   },
   voiceParse: (walletId: string, audio: Blob) => {
@@ -254,7 +252,6 @@ export const expenses = {
     return request<VoiceParseResponse>(`/wallets/${walletId}/transactions/voice`, {
       method: 'POST',
       body: form,
-      headers: { 'X-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone },
     });
   },
   aiCategorize: (walletId: string, transactionId: string) =>
@@ -393,7 +390,6 @@ export const chat = {
     request<ChatResponse>('/chat', {
       method: 'POST',
       body: JSON.stringify({ message, wallet_id }),
-      headers: { 'X-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone },
     }),
 };
 
