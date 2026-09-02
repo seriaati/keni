@@ -70,7 +70,15 @@ function presetRange(preset: Exclude<Preset, 'custom'>): { start: Date; end: Dat
   }
 }
 
-function previousRange(start: Date, end: Date): { start: Date; end: Date } {
+function previousRange(start: Date, end: Date, preset: Preset): { start: Date; end: Date } {
+  // Presets are whole calendar months; shift by month count so Sep (30d) compares to all of Aug (31d)
+  if (preset !== 'custom') {
+    const months = (end.getFullYear() - start.getFullYear()) * 12 + end.getMonth() - start.getMonth() + 1;
+    return {
+      start: new Date(start.getFullYear(), start.getMonth() - months, 1),
+      end: new Date(start.getFullYear(), start.getMonth(), 0),
+    };
+  }
   const spanDays = Math.round((end.getTime() - start.getTime()) / dayMs) + 1;
   const prevEnd = new Date(start.getTime() - dayMs);
   const prevStart = new Date(prevEnd.getTime() - (spanDays - 1) * dayMs);
@@ -194,7 +202,7 @@ export function InsightsPage() {
     if (!activeWallet) return;
     setLoading(true);
     setShowAllTop(false);
-    const prev = previousRange(start, end);
+    const prev = previousRange(start, end, preset);
     Promise.all([
       expensesApi.analytics(activeWallet.id, { ...toParams(start, end), type }),
       expensesApi.analytics(activeWallet.id, { ...toParams(prev.start, prev.end), type }),
@@ -215,7 +223,7 @@ export function InsightsPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [activeWallet, type, start, end]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeWallet, type, start, end, preset]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Headline stats
   const stats = useMemo(() => {
@@ -235,7 +243,7 @@ export function InsightsPage() {
     const curDaily = dailyTotals(analytics?.by_day ?? [], analytics?.by_day_category ?? [], lineCategoryIds);
     const prevDaily = dailyTotals(prevAnalytics?.by_day ?? [], prevAnalytics?.by_day_category ?? [], lineCategoryIds);
     const cur = cumulativeByOffset(curDaily, start);
-    const prevRange = previousRange(start, end);
+    const prevRange = previousRange(start, end, preset);
     const prev = cumulativeByOffset(prevDaily, prevRange.start);
     const maxOffset = Math.max(0, ...cur.keys(), ...prev.keys());
     const rows: { day: number; current: number | null; previous: number | null }[] = [];
@@ -253,7 +261,7 @@ export function InsightsPage() {
       });
     }
     return rows;
-  }, [analytics, prevAnalytics, start, end, lineCategoryIds]);
+  }, [analytics, prevAnalytics, start, end, preset, lineCategoryIds]);
 
   // Category stacked area: pivot by_day_category, keep top N + Other
   const { areaData, areaCategories } = useMemo(() => {
