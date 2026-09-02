@@ -245,7 +245,12 @@ export function InsightsPage() {
     const cur = cumulativeByOffset(curDaily, start);
     const prevRange = previousRange(start, end, preset);
     const prev = cumulativeByOffset(prevDaily, prevRange.start);
-    const maxOffset = Math.max(0, ...cur.keys(), ...prev.keys());
+    // X axis spans the whole current period, not just days with data
+    const startOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const endOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    const maxOffset = Math.round((endOnly.getTime() - startOnly.getTime()) / dayMs);
+    const now = new Date();
+    const todayOffset = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() - startOnly.getTime()) / dayMs);
     const rows: { day: number; current: number | null; previous: number | null }[] = [];
     let curRun = 0;
     let prevRun = 0;
@@ -256,7 +261,7 @@ export function InsightsPage() {
       if (prev.has(i)) { prevRun = prev.get(i)!; prevSeen = true; }
       rows.push({
         day: i + 1,
-        current: curSeen ? curRun : null,
+        current: curSeen && i <= todayOffset ? curRun : null,
         previous: prevSeen ? prevRun : null,
       });
     }
