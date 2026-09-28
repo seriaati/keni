@@ -6,8 +6,11 @@ import { getTranslations } from "../i18n/index.ts";
 const locale = Astro.currentLocale ?? 'en';
 const t = getTranslations(locale);
 const altLocale = locale === 'zh-TW' ? 'en' : 'zh-TW';
-const altHref = locale === 'zh-TW' ? '/' : '/zh-TW/';
+const enPath = locale === 'zh-TW' ? Astro.url.pathname.replace(/^\/zh-TW/, '') || '/' : Astro.url.pathname;
+const zhPath = `/zh-TW${enPath}`;
+const altHref = locale === 'zh-TW' ? enPath : zhPath;
 const altLabel = locale === 'zh-TW' ? 'EN' : '中文';
+const homeHref = locale === 'zh-TW' ? '/zh-TW/' : '/';
 
 interface Props {
   title?: string;
@@ -63,9 +66,9 @@ const jsonLd = {
     <meta name="theme-color" content="#3d6b4f" />
 
     <link rel="canonical" href={canonicalUrl} />
-    <link rel="alternate" hreflang="en" href="https://keni.seria.moe/" />
-    <link rel="alternate" hreflang="zh-TW" href="https://keni.seria.moe/zh-TW/" />
-    <link rel="alternate" hreflang="x-default" href="https://keni.seria.moe/" />
+    <link rel="alternate" hreflang="en" href={`https://keni.seria.moe${enPath}`} />
+    <link rel="alternate" hreflang="zh-TW" href={`https://keni.seria.moe${zhPath}`} />
+    <link rel="alternate" hreflang="x-default" href={`https://keni.seria.moe${enPath}`} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
 
@@ -97,8 +100,8 @@ const jsonLd = {
           <span>{t.nav.logo}</span>
         </a>
         <div class="nav-links">
-          <a href="#features">{t.nav.features}</a>
-          <a href="#privacy">{t.nav.privacy}</a>
+          <a href={`${homeHref}#features`}>{t.nav.features}</a>
+          <a href={`${homeHref}#privacy`}>{t.nav.privacy}</a>
           <a href="https://github.com/seriaati/keni" target="_blank" rel="noopener">GitHub</a>
         </div>
         <a href={altHref} class="nav-lang" hreflang={altLocale}>{altLabel}</a>
@@ -117,7 +120,10 @@ const jsonLd = {
           <span>{t.footer.brand}</span>
         </div>
         <p class="footer-copy">{t.footer.tagline}</p>
-        <a href="https://github.com/seriaati/keni" target="_blank" rel="noopener" class="footer-link">GitHub</a>
+        <div class="footer-links">
+          <a href={`${homeHref}privacy/`} class="footer-link">{t.footer.privacyPolicy}</a>
+          <a href="https://github.com/seriaati/keni" target="_blank" rel="noopener" class="footer-link">GitHub</a>
+        </div>
       </div>
     </footer>
 
@@ -269,6 +275,11 @@ const jsonLd = {
   .footer-copy {
     font-size: 13px;
     color: var(--ink-faint);
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 20px;
   }
 
   .footer-link {

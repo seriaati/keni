@@ -12,7 +12,8 @@
   },
   "footer": {
     "brand": "Keni",
-    "tagline": "Money tracked without the friction."
+    "tagline": "Money tracked without the friction.",
+    "privacyPolicy": "Privacy policy"
   },
   "hero": {
     "eyebrow": "Personal finance tracker",
@@ -155,5 +156,104 @@
     "sub": "Self-host with Docker Compose for full control, or use the hosted instance free (data only stored for 2 weeks).",
     "btnPrimary": "Try hosted free",
     "btnSecondary": "Self-host with Docker ↗"
+  },
+  "privacyPolicy": {
+    "pageTitle": "Privacy Policy | Keni",
+    "pageDescription": "How Keni handles your data: what is stored, what is sent to your AI provider, how long the hosted instance keeps it, and how self-hosting differs.",
+    "eyebrow": "Legal",
+    "title": "Privacy Policy",
+    "updated": "Last updated: September 28, 2026",
+    "intro": [
+      "Keni is an open-source personal finance tracker. This policy explains what data Keni collects, where it goes, and how long it is kept. It is written from the source code, so it describes what the software actually does rather than what a template says.",
+      "It covers three things: the marketing website at keni.seria.moe, the free hosted instance at app.keni.seria.moe, and the Keni software itself when you run it on your own server. When you self-host, the person running that server is responsible for the data on it, not us. The sections below say where the two cases differ."
+    ],
+    "sections": [
+      {
+        "heading": "Who operates Keni",
+        "body": [
+          "Keni is maintained by an individual developer and published under an open-source license on GitHub. The hosted instance is run by the same maintainer as a free service so people can try Keni without setting anything up. It is not a company, and there is no sales, marketing, or advertising operation behind it.",
+          "For any question or request about your data, email seria.ati@gmail.com or open an issue on the GitHub repository."
+        ],
+        "list": []
+      },
+      {
+        "heading": "Data you give Keni",
+        "body": [
+          "Everything below is stored in Keni's PostgreSQL database. On the hosted instance that database is on the maintainer's server. When you self-host, it is on yours."
+        ],
+        "list": [
+          "Account: a username, your password (stored only as a bcrypt hash, never in plain text), and optional profile settings such as display name, timezone, language, preferred currency, whether to use historical exchange rates, and a custom instruction for the AI.",
+          "Financial records: wallets with their name and currency, transactions with type, amount, description, date, tags, and an \"AI context\" note describing how the AI interpreted your input, plus categories, tags, budgets, recurring transaction rules, and links or groups between transactions.",
+          "AI provider settings: which provider you chose (Anthropic, Google Gemini, OpenAI, or OpenRouter), the model names you selected, whether local OCR is enabled, and your API key. The API key is stored base64-encoded, which is an encoding and not encryption. Anyone with access to the database can read it. Use a dedicated key with a spending limit and revoke it at your provider if you stop using Keni.",
+          "API tokens: a name, an expiry date, when the token was last used, and a SHA-256 hash of the token. The raw token is shown once and is not stored.",
+          "MCP connections: for AI agents connected over MCP, the client's registered name and redirect URLs, short-lived authorization codes, and hashed access and refresh tokens with their scopes and expiry.",
+          "Uploaded files: receipt images, PDF invoices, and voice recordings are processed in memory and are not written to disk or to the database. Only the text or transaction data extracted from them is kept, as part of the transaction you save."
+        ]
+      },
+      {
+        "heading": "Data collected automatically",
+        "body": [
+          "Keni has no analytics, no tracking pixels, no advertising identifiers, and sets no cookies. The website and the app both load fonts from Google Fonts, which means Google receives your IP address and browser details when the page loads."
+        ],
+        "list": [
+          "Timezone: the app sends your browser's timezone with every request so dates are filtered in your local day. It is used for the request and not stored unless you save a timezone in your profile.",
+          "Browser storage: the app keeps your login tokens and the last wallet you opened in your browser's local storage. Exchange rates are cached in memory for up to a day. Nothing else is stored on your device.",
+          "Server logs: the web server keeps ordinary access logs (IP address, request path, time, user agent). Application logs record failures with your user ID, and when you use the chat feature they record which data tools the AI called and with what arguments, which can include the transaction details being searched, created, or changed. Logs are used for operating and debugging the service and are not used to profile you. On the hosted instance, logs are kept for one day."
+        ]
+      },
+      {
+        "heading": "Where your data is sent",
+        "body": [
+          "Keni does not sell data, does not share it with advertisers, and does not send it anywhere for its own purposes. Data leaves the server only in the cases below, and each one is triggered by something you set up or asked for."
+        ],
+        "list": [
+          "Your AI provider: Keni ships with no AI model. Nothing is sent to any AI service until you add your own API key. Once you do, the text you type, transcripts of your voice input, receipt images (or, if OCR is enabled and the text is readable, only the text extracted locally), text extracted from PDFs, your category names, tag names, wallet names and currencies, up to fifteen of your recent transaction descriptions used as style examples, your custom AI instruction, and your timezone are sent to the provider you chose. In the chat feature, your message is sent along with any transaction lists, summaries, and breakdowns the model asks for, and the model can create, update, or delete transactions on your behalf. What the provider does with that data is governed by your agreement with them, not by this policy.",
+          "Frankfurter (api.frankfurter.dev): a free exchange-rate service. Both your browser and the server ask it for rates using only currency codes and dates. No account or transaction data is included, but the request from your browser reveals your IP address to that service.",
+          "MCP clients and API integrations: when you authorize an AI agent over MCP or create a personal API token, that client can read and modify all of your Keni data through the API. You choose what to connect, and you can revoke access at any time from the app.",
+          "Google Fonts: loaded by the website and the app, as described above."
+        ]
+      },
+      {
+        "heading": "Voice input",
+        "body": [
+          "Speech-to-text runs on the Keni server itself using a local Whisper model. Your recording is not sent to any third party for transcription, is processed in memory, and is not stored. The transcript is then handled like typed text, which means it is sent to your AI provider to extract the transaction. The configuration has an option for an external speech-to-text provider, but it is not implemented and returns an error if enabled."
+        ],
+        "list": []
+      },
+      {
+        "heading": "Retention and deletion",
+        "body": [
+          "On the hosted instance, a scheduled job runs daily and deletes transactions fourteen days after they were created, along with any grouped child transactions under them. This is why the hosted instance is described as keeping data for two weeks. The job only deletes transactions. Your account, wallets, categories, tags, budgets, recurring rules, and AI provider settings stay until you remove them.",
+          "When you self-host, this automatic deletion is off by default and your data is kept until you delete it or the server operator does."
+        ],
+        "list": [
+          "You can delete transactions, wallets (which removes their transactions), categories, tags, budgets, recurring rules, API tokens, and your AI provider settings from within the app at any time.",
+          "You can export any wallet's transactions as CSV or JSON at any time, including the AI context notes.",
+          "You can delete your whole account from Settings → Data. This immediately and permanently removes your account together with all wallets, transactions, categories, tags, budgets, recurring rules, API tokens, MCP connections, and AI provider settings. It cannot be undone, so export your wallets first if you want a copy."
+        ]
+      },
+      {
+        "heading": "Security",
+        "body": [
+          "The hosted instance is served over HTTPS. Passwords are hashed with bcrypt. API tokens and MCP tokens are stored as SHA-256 hashes. Login sessions use short-lived access tokens (thirty minutes) with refresh tokens valid for thirty days. Data is not encrypted at rest beyond what the hosting disk provides, and as noted above your AI provider key is stored encoded rather than encrypted.",
+          "The hosted instance is a free service run by one person. It is meant for trying Keni out, not as a place to keep records you cannot afford to lose. If you want full control over where your data lives, self-host."
+        ],
+        "list": []
+      },
+      {
+        "heading": "Self-hosting",
+        "body": [
+          "When you run Keni on your own server, the maintainer receives nothing from your instance. The software has no telemetry, no update checks, and no connection back to the maintainer. The only outbound connections it makes are to the AI provider you configure and to Frankfurter for exchange rates. In that setup, whoever operates the server is responsible for the data and for any policy their users need."
+        ],
+        "list": []
+      },
+      {
+        "heading": "Changes to this policy",
+        "body": [
+          "If Keni starts collecting or sharing something new, this page will be updated and the date at the top will change. Because Keni is open source, you can also read the code on GitHub to check that this policy matches what the software does."
+        ],
+        "list": []
+      }
+    ]
   }
 }

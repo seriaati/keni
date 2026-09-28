@@ -1,0 +1,140 @@
+---
+import type { Translations } from "../i18n/index.ts";
+interface Props { t: Translations }
+const { t } = Astro.props;
+const p = t.privacyPolicy;
+---
+
+<article class="policy">
+  <div class="policy-inner">
+    <header class="policy-header">
+      <p class="policy-eyebrow">{p.eyebrow}</p>
+      <h1 class="policy-title">{p.title}</h1>
+      <p class="policy-updated">{p.updated}</p>
+    </header>
+
+    {p.intro.map((para) => <p class="policy-intro">{para}</p>)}
+
+    {
+      p.sections.map((s) => (
+        <section class="policy-section">
+          <h2>{s.heading}</h2>
+          {s.body.map((para) => <p>{para}</p>)}
+          {s.list.length > 0 && (
+            <ul>
+              {s.list.map((item) => <li>{item}</li>)}
+            </ul>
+          )}
+        </section>
+      ))
+    }
+
+    <p class="policy-source">
+      <a href="https://github.com/seriaati/keni" target="_blank" rel="noopener">github.com/seriaati/keni</a>
+    </p>
+  </div>
+</article>
+
+<style>
+  .policy {
+    padding: clamp(48px, 7vw, 88px) 0 0;
+  }
+
+  .policy-inner {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 clamp(20px, 5vw, 48px);
+  }
+
+  .policy-header {
+    margin-bottom: 36px;
+  }
+
+  .policy-eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    margin-bottom: 12px;
+  }
+
+  .policy-title {
+    font-family: var(--font-display);
+    font-size: clamp(40px, 5vw, 60px);
+    font-weight: 400;
+    line-height: 1.05;
+    color: var(--ink);
+  }
+
+  .policy-updated {
+    font-size: 14px;
+    color: var(--ink-light);
+    margin-top: 14px;
+  }
+
+  .policy-intro {
+    font-size: clamp(16px, 1.6vw, 18px);
+    line-height: 1.65;
+    color: var(--ink-mid);
+  }
+
+  .policy-intro + .policy-intro {
+    margin-top: 16px;
+  }
+
+  .policy-section {
+    margin-top: 44px;
+  }
+
+  .policy-section h2 {
+    font-family: var(--font-display);
+    font-size: clamp(26px, 3vw, 32px);
+    font-weight: 400;
+    line-height: 1.15;
+    color: var(--ink);
+    margin-bottom: 14px;
+  }
+
+  .policy-section p,
+  .policy-section li {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--ink-mid);
+  }
+
+  .policy-section p + p {
+    margin-top: 12px;
+  }
+
+  .policy-section ul {
+    margin-top: 14px;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .policy-section li::marker {
+    color: var(--forest-light);
+  }
+
+  .policy-source {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--cream-darker);
+    font-size: 13px;
+    color: var(--ink-light);
+  }
+
+  .policy-source a {
+    color: var(--ink-mid);
+    text-decoration: underline;
+    text-decoration-color: var(--sand-dark);
+    text-underline-offset: 3px;
+  }
+
+  .policy-source a:hover {
+    color: var(--ink);
+  }
+</style>

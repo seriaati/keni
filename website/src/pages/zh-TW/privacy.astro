@@ -1,0 +1,11 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import PrivacyPolicy from '../../components/PrivacyPolicy.astro';
+import { getTranslations } from '../../i18n/index.ts';
+
+const t = getTranslations('zh-TW');
+---
+
+<Layout title={t.privacyPolicy.pageTitle} description={t.privacyPolicy.pageDescription}>
+  <PrivacyPolicy t={t} />
+</Layout>
