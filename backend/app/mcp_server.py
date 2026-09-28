@@ -14,7 +14,7 @@ from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions, RevocationOptions
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
-from mcp.types import Icon
+from mcp.types import Icon, ToolAnnotations
 from pydantic import AnyHttpUrl
 from sqlalchemy import func, or_
 from sqlmodel import col, select
@@ -74,6 +74,23 @@ mcp = FastMCP(
         revocation_options=RevocationOptions(enabled=True),
     ),
 )
+
+
+def _ann(
+    title: str,
+    *,
+    read_only: bool = False,
+    destructive: bool = False,
+    idempotent: bool = False,
+    open_world: bool = False,
+) -> ToolAnnotations:
+    return ToolAnnotations(
+        title=title,
+        readOnlyHint=read_only,
+        destructiveHint=destructive,
+        idempotentHint=idempotent,
+        openWorldHint=open_world,
+    )
 
 
 async def _get_authenticated_user() -> User:
@@ -183,7 +200,7 @@ def _transaction_to_dict(
     }
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("List Wallets", read_only=True, idempotent=True))
 async def list_wallets() -> list[dict[str, Any]]:
     """List all wallets belonging to the authenticated user."""
     user = await _get_authenticated_user()
@@ -210,7 +227,7 @@ def _wallet_to_dict(w: Wallet) -> dict[str, Any]:
     }
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Create Wallet"))
 async def create_wallet(name: str, currency: str) -> dict[str, Any]:
     """
     Create a new wallet.
@@ -234,7 +251,7 @@ async def create_wallet(name: str, currency: str) -> dict[str, Any]:
     return {"error": "Database error"}
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Update Wallet", destructive=True, idempotent=True))
 async def update_wallet(
     wallet_id: str, name: str | None = None, currency: str | None = None
 ) -> dict[str, Any]:
@@ -275,7 +292,7 @@ async def update_wallet(
     return {"error": "Database error"}
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Delete Wallet", destructive=True, idempotent=True))
 async def delete_wallet(wallet_id: str) -> dict[str, Any]:
     """
     Delete a wallet permanently.
@@ -305,7 +322,7 @@ async def delete_wallet(wallet_id: str) -> dict[str, Any]:
     return {"error": "Database error"}
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("List Categories", read_only=True, idempotent=True))
 async def list_categories() -> list[dict[str, Any]]:
     """List all categories belonging to the authenticated user."""
     user = await _get_authenticated_user()
@@ -334,7 +351,7 @@ def _category_to_dict(c: Category) -> dict[str, Any]:
     }
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Create Category"))
 async def create_category(
     name: str, icon: str | None = None, color: str | None = None
 ) -> dict[str, Any]:
@@ -363,7 +380,7 @@ async def create_category(
     return {"error": "Database error"}
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Update Category", destructive=True, idempotent=True))
 async def update_category(  # ruff: ignore[too-many-return-statements]
     category_id: str, name: str | None = None, icon: str | None = None, color: str | None = None
 ) -> dict[str, Any]:
@@ -413,7 +430,7 @@ async def update_category(  # ruff: ignore[too-many-return-statements]
     return {"error": "Database error"}
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Delete Category", destructive=True, idempotent=True))
 async def delete_category(category_id: str) -> dict[str, Any]:
     """
     Delete a category. Transactions in the category are reassigned to the system
@@ -457,7 +474,7 @@ async def delete_category(category_id: str) -> dict[str, Any]:
     return {"error": "Database error"}
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("List Tags", read_only=True, idempotent=True))
 async def list_tags() -> list[dict[str, Any]]:
     """List all tags belonging to the authenticated user."""
     user = await _get_authenticated_user()
@@ -484,7 +501,7 @@ def _tag_to_dict(t: Tag) -> dict[str, Any]:
     }
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Create Tag"))
 async def create_tag(name: str, color: str | None = None) -> dict[str, Any]:
     """
     Create a new tag.
@@ -508,7 +525,7 @@ async def create_tag(name: str, color: str | None = None) -> dict[str, Any]:
     return {"error": "Database error"}
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Update Tag", destructive=True, idempotent=True))
 async def update_tag(
     tag_id: str, name: str | None = None, color: str | None = None
 ) -> dict[str, Any]:
@@ -547,7 +564,7 @@ async def update_tag(
     return {"error": "Database error"}
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Delete Tag", destructive=True, idempotent=True))
 async def delete_tag(tag_id: str) -> dict[str, Any]:
     """
     Delete a tag. The tag is removed from all transactions it is attached to;
@@ -686,7 +703,7 @@ async def _fetch_transactions(  # ruff: ignore[too-many-return-statements, too-m
     return "Database error"
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("List Transactions", read_only=True, idempotent=True))
 async def list_transactions(params: ListTransactionsInput) -> dict[str, Any]:
     """
     List transactions for a wallet with optional filters.
@@ -717,7 +734,7 @@ async def list_transactions(params: ListTransactionsInput) -> dict[str, Any]:
     return result
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Get Transaction", read_only=True, idempotent=True))
 async def get_transaction(wallet_id: str, transaction_id: str) -> dict[str, Any]:
     """
     Get a single transaction by ID.
@@ -858,7 +875,7 @@ async def _compute_summary(params: GetSummaryInput, user_id: uuid.UUID) -> dict[
     return "Database error"
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Get Summary", read_only=True, idempotent=True))
 async def get_summary(params: GetSummaryInput) -> dict[str, Any]:
     """
     Get a financial summary for a wallet.
@@ -1030,7 +1047,7 @@ async def _insert_transaction(
     return "Database error"
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Create Transaction"))
 async def create_transaction(params: CreateTransactionInput) -> dict[str, Any]:
     """
     Create a new transaction record (expense or income).
@@ -1069,7 +1086,7 @@ class CreateTransactionsInput:
     items: list[TransactionItemInput]
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Create Transactions"))
 async def create_transactions(params: CreateTransactionsInput) -> dict[str, Any]:  # ruff: ignore[too-many-return-statements]
     """
     Create multiple independent transactions in one wallet in a single call.
@@ -1122,7 +1139,7 @@ class CreateTransactionGroupInput:
     children: list[TransactionItemInput]
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Create Transaction Group"))
 async def create_transaction_group(params: CreateTransactionGroupInput) -> dict[str, Any]:  # ruff: ignore[too-many-return-statements]
     """
     Create a parent transaction with child transactions (e.g. an itemized receipt).
@@ -1201,7 +1218,7 @@ class UpdateTransactionInput:
     tag_ids: list[str] | None = None
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Update Transaction", destructive=True, idempotent=True))
 async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]:  # ruff: ignore[complex-structure, too-many-return-statements, too-many-branches, too-many-locals]
     """
     Update an existing transaction.
@@ -1306,7 +1323,7 @@ async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]: 
     return {"error": "Database error"}
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Delete Transaction", destructive=True, idempotent=True))
 async def delete_transaction(wallet_id: str, transaction_id: str) -> dict[str, Any]:
     """
     Delete a transaction by ID.
@@ -1378,7 +1395,7 @@ def _canonical_link_ids(a: uuid.UUID, b: uuid.UUID) -> tuple[uuid.UUID, uuid.UUI
     return b, a
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Link Transactions", idempotent=True))
 async def link_transactions(transaction_id: str, target_transaction_id: str) -> dict[str, Any]:  # ruff: ignore[too-many-return-statements]
     """
     Link two transactions together (e.g. a refund to its original purchase).
@@ -1421,7 +1438,7 @@ async def link_transactions(transaction_id: str, target_transaction_id: str) -> 
     return {"error": "Database error"}
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Unlink Transactions", destructive=True, idempotent=True))
 async def unlink_transactions(transaction_id: str, target_transaction_id: str) -> dict[str, Any]:  # ruff: ignore[too-many-return-statements]
     """
     Remove the link between two transactions. The transactions themselves are not deleted.
@@ -1467,7 +1484,7 @@ class GetSpendingSummaryInput:
     end_date: str | None = None
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Get Spending Summary", read_only=True, idempotent=True))
 async def get_spending_summary(params: GetSpendingSummaryInput) -> dict[str, Any]:
     """
     Get aggregate expense and income totals for a wallet over a date range.
@@ -1523,7 +1540,7 @@ class GetCategoryBreakdownInput:
     limit: int = 20
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Get Category Breakdown", read_only=True, idempotent=True))
 async def get_category_breakdown(params: GetCategoryBreakdownInput) -> dict[str, Any]:
     """
     Get spending or income totals grouped by category for a wallet.
@@ -1604,7 +1621,7 @@ class GetMonthlyTrendInput:
     months: int = 12
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Get Monthly Trend", read_only=True, idempotent=True))
 async def get_monthly_trend(params: GetMonthlyTrendInput) -> dict[str, Any]:
     """
     Get expense and income totals grouped by month for a wallet.
@@ -1687,7 +1704,7 @@ def _parse_next_due(value: str) -> datetime | str:
     return parsed
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("List Recurring Transactions", read_only=True, idempotent=True))
 async def list_recurring_transactions(wallet_id: str) -> dict[str, Any]:
     """
     List recurring transactions (subscriptions, salaries, rent, ...) for a wallet.
@@ -1729,7 +1746,7 @@ class CreateRecurringInput:
     description: str | None = None
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Create Recurring Transaction"))
 async def create_recurring_transaction(params: CreateRecurringInput) -> dict[str, Any]:  # ruff: ignore[too-many-return-statements, too-many-branches]
     """
     Create a recurring transaction (subscription, salary, rent, ...).
@@ -1818,7 +1835,7 @@ class UpdateRecurringInput:
     is_active: bool | None = None
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Update Recurring Transaction", destructive=True, idempotent=True))
 async def update_recurring_transaction(params: UpdateRecurringInput) -> dict[str, Any]:  # ruff: ignore[complex-structure, too-many-return-statements, too-many-branches]
     """
     Update a recurring transaction. Only provided fields are changed.
@@ -1904,7 +1921,7 @@ async def update_recurring_transaction(params: UpdateRecurringInput) -> dict[str
     return {"error": "Database error"}
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Delete Recurring Transaction", destructive=True, idempotent=True))
 async def delete_recurring_transaction(wallet_id: str, recurring_id: str) -> dict[str, Any]:
     """
     Delete a recurring transaction. Transactions it already created are not affected.
@@ -1990,7 +2007,7 @@ async def _budget_to_dict(budget: Budget, session: Any) -> dict[str, Any]:
     }
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("List Budgets", read_only=True, idempotent=True))
 async def list_budgets() -> dict[str, Any]:
     """
     List all budgets with their current spending status.
@@ -2014,7 +2031,7 @@ class CreateBudgetInput:
     category_id: str | None = None
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Create Budget"))
 async def create_budget(params: CreateBudgetInput) -> dict[str, Any]:  # ruff: ignore[too-many-return-statements]
     """
     Create a spending budget.
@@ -2079,7 +2096,7 @@ class UpdateBudgetInput:
     category_id: str | None = None
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Update Budget", destructive=True, idempotent=True))
 async def update_budget(params: UpdateBudgetInput) -> dict[str, Any]:  # ruff: ignore[too-many-return-statements, too-many-branches]
     """
     Update a budget. Only provided fields are changed.
@@ -2145,7 +2162,7 @@ async def update_budget(params: UpdateBudgetInput) -> dict[str, Any]:  # ruff: i
     return {"error": "Database error"}
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Delete Budget", destructive=True, idempotent=True))
 async def delete_budget(budget_id: str) -> dict[str, Any]:
     """
     Delete a budget. Transactions are not affected.
@@ -2176,7 +2193,7 @@ _fx_cache: dict[str, tuple[dict[str, float], float]] = {}
 _FX_TTL = 3600.0
 
 
-@mcp.tool()
+@mcp.tool(annotations=_ann("Convert Currency", read_only=True, idempotent=True, open_world=True))
 async def convert_currency(amount: float, from_currency: str, to_currency: str) -> dict[str, Any]:
     """
     Convert an amount between currencies using live exchange rates.
