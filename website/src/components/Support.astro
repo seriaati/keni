@@ -1,0 +1,111 @@
+---
+import type { Translations } from "../i18n/index.ts";
+interface Props { t: Translations }
+const { t } = Astro.props;
+const s = t.support;
+---
+
+<article class="support">
+  <div class="support-inner">
+    <header class="support-header">
+      <p class="support-eyebrow">{s.eyebrow}</p>
+      <h1 class="support-title">{s.title}</h1>
+      <p class="support-intro">{s.intro}</p>
+    </header>
+
+    <ul class="support-list">
+      {
+        s.channels.map((c) => (
+          <li class="support-card">
+            <p class="support-label">{c.label}</p>
+            <a href={c.href} target="_blank" rel="noopener" class="support-link">{c.value}</a>
+            <p class="support-note">{c.note}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</article>
+
+<style>
+  .support {
+    padding: clamp(48px, 7vw, 88px) 0 0;
+  }
+
+  .support-inner {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 clamp(20px, 5vw, 48px);
+  }
+
+  .support-header {
+    margin-bottom: 36px;
+  }
+
+  .support-eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    margin-bottom: 12px;
+  }
+
+  .support-title {
+    font-family: var(--font-display);
+    font-size: clamp(40px, 5vw, 60px);
+    font-weight: 400;
+    line-height: 1.05;
+    color: var(--ink);
+  }
+
+  .support-intro {
+    font-size: clamp(16px, 1.6vw, 18px);
+    line-height: 1.65;
+    color: var(--ink-mid);
+    margin-top: 16px;
+  }
+
+  .support-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .support-card {
+    padding: 20px 22px;
+    border: 1px solid var(--cream-darker);
+    border-radius: var(--radius-lg);
+  }
+
+  .support-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    margin-bottom: 6px;
+  }
+
+  .support-link {
+    font-family: var(--font-display);
+    font-size: clamp(20px, 2.4vw, 24px);
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--sand-dark);
+    text-underline-offset: 4px;
+    word-break: break-all;
+  }
+
+  .support-link:hover {
+    text-decoration-color: var(--ink);
+  }
+
+  .support-note {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink-mid);
+    margin-top: 8px;
+  }
+</style>

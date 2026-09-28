@@ -13,7 +13,8 @@
   "footer": {
     "brand": "Keni",
     "tagline": "Money tracked without the friction.",
-    "privacyPolicy": "Privacy policy"
+    "privacyPolicy": "Privacy policy",
+    "support": "Support"
   },
   "hero": {
     "eyebrow": "Personal finance tracker",
@@ -253,6 +254,39 @@
           "If Keni starts collecting or sharing something new, this page will be updated and the date at the top will change. Because Keni is open source, you can also read the code on GitHub to check that this policy matches what the software does."
         ],
         "list": []
+      }
+    ]
+  },
+  "support": {
+    "pageTitle": "Support | Keni",
+    "pageDescription": "Need help with Keni? Reach the maintainer by email, Discord, or open an issue on GitHub.",
+    "eyebrow": "Help",
+    "title": "Support",
+    "intro": "Keni is built and maintained by one person. Pick whichever channel suits you; bug reports and feature requests are best on GitHub so others can find them.",
+    "channels": [
+      {
+        "label": "Email",
+        "value": "seria.ati@gmail.com",
+        "href": "mailto:seria.ati@gmail.com",
+        "note": "For account issues on the hosted instance, or anything you would rather not post publicly."
+      },
+      {
+        "label": "Discord",
+        "value": "@seria_ati",
+        "href": "https://discord.com/users/410036441129943050",
+        "note": "Direct message for quick questions."
+      },
+      {
+        "label": "Discord server",
+        "value": "link.seria.moe/hb-dc",
+        "href": "https://link.seria.moe/hb-dc",
+        "note": "Community server. Ask in the open and other users may help too."
+      },
+      {
+        "label": "GitHub",
+        "value": "github.com/seriaati/keni/issues",
+        "href": "https://github.com/seriaati/keni/issues",
+        "note": "Open an issue for bugs, feature requests, and self-hosting problems."
       }
     ]
   }

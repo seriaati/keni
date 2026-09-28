@@ -13,7 +13,8 @@
   "footer": {
     "brand": "Keni",
     "tagline": "輕鬆掌財，分毫不差。",
-    "privacyPolicy": "隱私權政策"
+    "privacyPolicy": "隱私權政策",
+    "support": "支援"
   },
   "hero": {
     "eyebrow": "個人財務追蹤工具",
@@ -253,6 +254,39 @@
           "若 Keni 開始收集或分享新的內容，本頁面會隨之更新，頂端的日期也會更改。由於 Keni 是開源軟體，你也可以在 GitHub 上閱讀程式碼，確認本政策與軟體的實際行為相符。"
         ],
         "list": []
+      }
+    ]
+  },
+  "support": {
+    "pageTitle": "支援 | Keni",
+    "pageDescription": "使用 Keni 需要協助？可透過電子郵件、Discord 聯絡維護者，或在 GitHub 開 issue。",
+    "eyebrow": "協助",
+    "title": "支援",
+    "intro": "Keni 由一個人開發與維護。選擇你方便的管道即可；錯誤回報與功能建議建議在 GitHub 提出，方便其他人查找。",
+    "channels": [
+      {
+        "label": "電子郵件",
+        "value": "seria.ati@gmail.com",
+        "href": "mailto:seria.ati@gmail.com",
+        "note": "託管版本的帳號問題，或任何不想公開發表的內容。"
+      },
+      {
+        "label": "Discord",
+        "value": "@seria_ati",
+        "href": "https://discord.com/users/410036441129943050",
+        "note": "私訊，適合快速提問。"
+      },
+      {
+        "label": "Discord 伺服器",
+        "value": "link.seria.moe/hb-dc",
+        "href": "https://link.seria.moe/hb-dc",
+        "note": "社群伺服器。公開提問，其他使用者也可能幫上忙。"
+      },
+      {
+        "label": "GitHub",
+        "value": "github.com/seriaati/keni/issues",
+        "href": "https://github.com/seriaati/keni/issues",
+        "note": "錯誤、功能建議與自架問題請開 issue。"
       }
     ]
   }
