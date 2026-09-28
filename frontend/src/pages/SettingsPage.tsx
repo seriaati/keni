@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { Copy, Download, Eye, EyeOff, Info, Key, Plus, Trash2, User, Bot, Check } from 'lucide-react';
 import { users as usersApi, aiProvider as aiProviderApi, tokens as tokensApi, wallets as walletsApi, expenses as expensesApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -690,11 +691,16 @@ function safeFileName(name: string): string {
 
 function DataExportTab({ toast }: { toast: (msg: string, type?: 'success' | 'error' | 'info') => void }) {
   const { t } = useTranslation();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const [wallets, setWallets] = useState<WalletResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [format, setFormat] = useState<'csv' | 'json'>('csv');
   const [exporting, setExporting] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     walletsApi.list()
@@ -744,6 +750,19 @@ function DataExportTab({ toast }: { toast: (msg: string, type?: 'success' | 'err
       }
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) return;
+    setDeleting(true);
+    try {
+      await usersApi.deleteAccount(deletePassword);
+      logout();
+      navigate('/login');
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Failed', 'error');
+      setDeleting(false);
     }
   };
 
@@ -802,6 +821,48 @@ function DataExportTab({ toast }: { toast: (msg: string, type?: 'success' | 'err
           </>
         )}
       </div>
+
+      <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--rose-light)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--rose)', marginBottom: 4 }}>{t('settings.deleteAccountTitle')}</div>
+          <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{t('settings.deleteAccountDesc')}</div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => setDeleteOpen(true)} style={{ color: 'var(--rose)' }}>
+            <Trash2 size={14} /> {t('settings.deleteAccountButton')}
+          </button>
+        </div>
+      </div>
+
+      <Modal
+        open={deleteOpen}
+        onClose={() => { if (!deleting) { setDeleteOpen(false); setDeletePassword(''); } }}
+        title={t('settings.deleteAccountModalTitle')}
+        size="sm"
+        footer={
+          <>
+            <button className="btn btn-ghost btn-md" onClick={() => { setDeleteOpen(false); setDeletePassword(''); }} disabled={deleting}>
+              {t('common.cancel')}
+            </button>
+            <button className="btn btn-md" onClick={handleDeleteAccount} disabled={deleting || !deletePassword} style={{ background: 'var(--rose)', color: 'white' }}>
+              {deleting ? <span className="btn-spinner" /> : <Trash2 size={16} />}
+              {t('settings.deleteAccountConfirm')}
+            </button>
+          </>
+        }
+      >
+        <p style={{ fontSize: 13, color: 'var(--ink-mid)', margin: '0 0 14px', lineHeight: 1.6 }}>{t('settings.deleteAccountModalBody')}</p>
+        <div className="input-group" style={{ marginBottom: 0 }}>
+          <label className="input-label">{t('settings.deleteAccountPassword')}</label>
+          <input
+            className="input"
+            type="password"
+            value={deletePassword}
+            onChange={(e) => setDeletePassword(e.target.value)}
+            autoComplete="current-password"
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

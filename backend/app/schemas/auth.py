@@ -50,6 +50,10 @@ class UpdateProfileRequest(BaseModel):
     language: str | None = Field(default=None, max_length=10)
 
 
+class DeleteAccountRequest(BaseModel):
+    password: str
+
+
 class AdminSettingsRequest(BaseModel):
     signups_enabled: bool
 

@@ -452,7 +452,14 @@
     "exportNoWallets": "You don't have any wallets yet.",
     "exportToastLoadFailed": "Failed to load wallets",
     "exportToastSuccess": "Exported {{count}} wallet(s)",
-    "exportToastFailed": "Failed to export {{count}} wallet(s)"
+    "exportToastFailed": "Failed to export {{count}} wallet(s)",
+    "deleteAccountTitle": "Delete account",
+    "deleteAccountDesc": "Permanently delete your account and all of its data: wallets, transactions, categories, tags, budgets, recurring rules, API tokens, MCP connections, and AI provider settings. This cannot be undone.",
+    "deleteAccountButton": "Delete my account",
+    "deleteAccountModalTitle": "Delete account?",
+    "deleteAccountModalBody": "Everything in your account will be erased immediately. Export your wallets first if you want to keep a copy. Enter your password to confirm.",
+    "deleteAccountPassword": "Password",
+    "deleteAccountConfirm": "Delete everything"
   },
   "admin": {
     "title": "Admin Settings",

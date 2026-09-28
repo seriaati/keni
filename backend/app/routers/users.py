@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -12,10 +12,12 @@ from app.models.user import User
 from app.schemas.auth import (
     AdminSettingsRequest,
     AdminSettingsResponse,
+    DeleteAccountRequest,
     UpdateProfileRequest,
     UserResponse,
 )
-from app.services.auth import hash_password
+from app.services.account import delete_user_account
+from app.services.auth import hash_password, verify_password
 
 router = APIRouter(prefix="/api", tags=["users"])
 
@@ -78,6 +80,13 @@ async def update_me(
         fx_use_historical_rates=current_user.fx_use_historical_rates,
         language=current_user.language,
     )
+
+
+@router.delete("/users/me", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_me(body: DeleteAccountRequest, current_user: CurrentUser, session: DbDep) -> None:
+    if not verify_password(body.password, current_user.password_hash):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Incorrect password")
+    await delete_user_account(current_user.id, session)
 
 
 @router.patch("/admin/settings")
