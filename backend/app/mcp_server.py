@@ -2241,3 +2241,24 @@ async def convert_currency(amount: float, from_currency: str, to_currency: str) 
         "amount": amount,
         "result": round(amount * rate, 6),
     }
+
+
+def _inline_refs(schema: dict[str, Any]) -> dict[str, Any]:
+    """Replace ``$ref`` pointers with their ``$defs`` so every property carries a ``type``."""
+    defs = schema.pop("$defs", {})
+
+    def walk(node: Any) -> Any:
+        if isinstance(node, dict):
+            if "$ref" in node:
+                target = defs[node["$ref"].removeprefix("#/$defs/")]
+                return walk({**target, **{k: v for k, v in node.items() if k != "$ref"}})
+            return {k: walk(v) for k, v in node.items()}
+        if isinstance(node, list):
+            return [walk(x) for x in node]
+        return node
+
+    return walk(schema)
+
+
+for _tool in mcp._tool_manager.list_tools():
+    _tool.parameters = _inline_refs(_tool.parameters)
