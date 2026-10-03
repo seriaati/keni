@@ -99,7 +99,7 @@ export function TagMultiSelect({
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 5, width: 'fit-content',
           padding: '3px 8px', borderRadius: 5, fontSize: 12, fontFamily: 'var(--font-body)',
-          background: 'white', border: '1px solid var(--sand)', color: 'var(--ink-light)', cursor: 'pointer',
+          background: 'var(--surface)', border: '1px solid var(--sand)', color: 'var(--ink-light)', cursor: 'pointer',
         }}
       >
         <Plus size={11} />
@@ -115,7 +115,7 @@ export function TagMultiSelect({
             left: dropPos.left,
             width: dropPos.width,
             zIndex: 9999,
-            background: 'white',
+            background: 'var(--surface)',
             border: '1.5px solid var(--sand)',
             borderRadius: 'var(--radius)',
             boxShadow: 'var(--shadow-lg)',

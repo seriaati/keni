@@ -44,13 +44,13 @@ export function AdminPage() {
       {loading ? (
         <div className="skeleton" style={{ height: 100, borderRadius: 14 }} />
       ) : (
-        <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', overflow: 'hidden' }}>
           <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
             <div style={{
               width: 44,
               height: 44,
               borderRadius: 12,
-              background: 'oklch(92% 0.06 155)',
+              background: 'var(--green-tint)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -85,12 +85,12 @@ export function AdminPage() {
                 width: 20,
                 height: 20,
                 borderRadius: '50%',
-                background: 'white',
+                background: 'var(--surface)',
                 position: 'absolute',
                 top: 4,
                 left: signupsEnabled ? 24 : 4,
                 transition: 'left 0.2s',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                boxShadow: 'var(--shadow-sm)',
               }} />
             </button>
           </div>

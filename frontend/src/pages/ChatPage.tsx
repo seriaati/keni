@@ -76,7 +76,7 @@ export function ChatPage() {
               width: 56,
               height: 56,
               borderRadius: 16,
-              background: 'oklch(92% 0.06 155)',
+              background: 'var(--green-tint)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -97,14 +97,14 @@ export function ChatPage() {
                     borderRadius: 100,
                     fontSize: 13,
                     fontFamily: 'var(--font-body)',
-                    background: 'white',
+                    background: 'var(--surface)',
                     border: '1px solid var(--cream-darker)',
                     color: 'var(--ink-mid)',
                     cursor: 'pointer',
                     transition: 'all 0.15s',
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--cream)'; e.currentTarget.style.borderColor = 'var(--sand)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = 'var(--cream-darker)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.borderColor = 'var(--cream-darker)'; }}
                 >
                   {s}
                 </button>
@@ -127,7 +127,7 @@ export function ChatPage() {
                 width: 32,
                 height: 32,
                 borderRadius: 10,
-                background: msg.role === 'user' ? 'var(--forest)' : 'oklch(92% 0.06 155)',
+                background: msg.role === 'user' ? 'var(--forest)' : 'var(--green-tint)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -142,7 +142,7 @@ export function ChatPage() {
                 maxWidth: '75%',
                 padding: '10px 14px',
                 borderRadius: msg.role === 'user' ? '14px 4px 14px 14px' : '4px 14px 14px 14px',
-                background: msg.role === 'user' ? 'var(--forest)' : 'white',
+                background: msg.role === 'user' ? 'var(--forest)' : 'var(--surface)',
                 border: msg.role === 'assistant' ? '1px solid var(--cream-darker)' : 'none',
                 color: msg.role === 'user' ? 'var(--cream)' : 'var(--ink)',
                 fontSize: 14,
@@ -180,7 +180,7 @@ export function ChatPage() {
 
       {/* Input */}
       <div style={{
-        background: 'white',
+        background: 'var(--surface)',
         border: '1.5px solid var(--sand)',
         borderRadius: 14,
         display: 'flex',

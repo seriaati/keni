@@ -12,7 +12,7 @@
   padding: 9px 12px;
   font-size: 14px;
   font-family: var(--font-body);
-  background: white;
+  background: var(--surface);
   border: 1.5px solid var(--sand);
   border-radius: var(--radius);
   color: var(--ink);
@@ -54,7 +54,7 @@
 }
 
 .dp-popup {
-  background: white;
+  background: var(--surface);
   border: 1.5px solid var(--sand);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);

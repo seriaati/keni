@@ -301,7 +301,7 @@ function CategoryCard({
         alignItems: 'center',
         gap: 10,
         padding: '10px 12px',
-        background: 'white',
+        background: 'var(--surface)',
         borderRadius: 10,
         border: '1px solid var(--cream-darker)',
         transition: 'box-shadow 0.12s',

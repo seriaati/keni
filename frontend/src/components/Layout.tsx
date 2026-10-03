@@ -589,7 +589,7 @@ export function Layout() {
 
           <div>
             <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>{t('mcp.serverUrlLabel')}</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--cream-dark, #f5f0e8)', borderRadius: '8px', padding: '10px 14px', fontFamily: 'monospace', fontSize: '13px', wordBreak: 'break-all' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--cream-dark)', borderRadius: '8px', padding: '10px 14px', fontFamily: 'monospace', fontSize: '13px', wordBreak: 'break-all' }}>
               <span style={{ flex: 1, color: 'var(--ink)' }}>{mcpUrl}</span>
               <button className="icon-btn" onClick={handleCopyMcpUrl} title={t('mcp.copyUrl')} style={{ flexShrink: 0 }}>
                 {copied ? <span style={{ fontSize: '11px', color: 'var(--forest)' }}>{t('mcp.copiedUrl')}</span> : <Copy size={14} />}
@@ -602,13 +602,13 @@ export function Layout() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
               <div style={{ display: 'flex', gap: '12px' }}>
-                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--forest)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, flexShrink: 0, marginTop: '1px' }}>1</div>
+                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--forest)', color: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, flexShrink: 0, marginTop: '1px' }}>1</div>
                 <div>
                   <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: '14px' }}>{t('mcp.step1Title')}</p>
                   <p style={{ margin: '0 0 8px', fontSize: '13px', color: 'var(--ink-light)', lineHeight: '1.5' }}>
-                    Add the following to your client's MCP configuration (e.g. <code style={{ fontFamily: 'monospace', background: 'rgba(0,0,0,0.06)', padding: '1px 5px', borderRadius: '4px' }}>claude_desktop_config.json</code> or <code style={{ fontFamily: 'monospace', background: 'rgba(0,0,0,0.06)', padding: '1px 5px', borderRadius: '4px' }}>mcp.json</code>):
+                    Add the following to your client's MCP configuration (e.g. <code style={{ fontFamily: 'monospace', background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: '4px' }}>claude_desktop_config.json</code> or <code style={{ fontFamily: 'monospace', background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: '4px' }}>mcp.json</code>):
                   </p>
-                  <pre style={{ margin: 0, background: 'var(--cream-dark, #f5f0e8)', borderRadius: '8px', padding: '12px', fontSize: '12px', fontFamily: 'monospace', lineHeight: '1.6', overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{`{
+                  <pre style={{ margin: 0, background: 'var(--cream-dark)', borderRadius: '8px', padding: '12px', fontSize: '12px', fontFamily: 'monospace', lineHeight: '1.6', overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{`{
   "mcpServers": {
     "keni": {
       "type": "http",
@@ -620,7 +620,7 @@ export function Layout() {
               </div>
 
               <div style={{ display: 'flex', gap: '12px' }}>
-                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--forest)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, flexShrink: 0, marginTop: '1px' }}>2</div>
+                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--forest)', color: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, flexShrink: 0, marginTop: '1px' }}>2</div>
                 <div>
                   <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: '14px' }}>{t('mcp.step2Title')}</p>
                   <p style={{ margin: 0, fontSize: '13px', color: 'var(--ink-light)', lineHeight: '1.5' }}>
@@ -630,7 +630,7 @@ export function Layout() {
               </div>
 
               <div style={{ display: 'flex', gap: '12px' }}>
-                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--forest)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, flexShrink: 0, marginTop: '1px' }}>3</div>
+                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--forest)', color: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, flexShrink: 0, marginTop: '1px' }}>3</div>
                 <div>
                   <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: '14px' }}>{t('mcp.step3Title')}</p>
                   <p style={{ margin: 0, fontSize: '13px', color: 'var(--ink-light)', lineHeight: '1.5' }}>

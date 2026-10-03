@@ -7,7 +7,7 @@
 .sidebar {
   width: var(--nav-width);
   flex-shrink: 0;
-  background: white;
+  background: var(--surface);
   border-right: 1px solid var(--cream-darker);
   display: flex;
   flex-direction: column;
@@ -91,7 +91,7 @@
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--cream-darker);
   border-radius: var(--radius);
   box-shadow: var(--shadow-lg);
@@ -297,7 +297,7 @@
   justify-content: space-between;
   padding: 0 16px;
   height: var(--header-height);
-  background: white;
+  background: var(--surface);
   border-bottom: 1px solid var(--cream-darker);
   position: sticky;
   top: 0;
@@ -357,7 +357,7 @@
   right: 0;
   height: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px));
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  background: white;
+  background: var(--surface);
   border-top: 1px solid var(--cream-darker);
   box-shadow: 0 -4px 20px oklch(18% 0.02 80 / 0.07), 0 -1px 4px oklch(18% 0.02 80 / 0.04);
   z-index: 300;
@@ -414,7 +414,7 @@
   height: 50px;
   border-radius: 50%;
   background: var(--forest);
-  color: white;
+  color: var(--cream);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -447,7 +447,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: white;
+  background: var(--surface);
   border-radius: 16px 16px 0 0;
   box-shadow: 0 -8px 32px oklch(18% 0.02 80 / 0.12), 0 -2px 8px oklch(18% 0.02 80 / 0.08);
   z-index: 401;

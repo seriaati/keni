@@ -478,8 +478,8 @@ export function InsightsPage() {
             lineHeight: 1.4,
             border: '1px solid',
             borderColor: type === tp ? 'var(--forest)' : 'var(--cream-darker)',
-            background: type === tp ? 'var(--forest)' : 'white',
-            color: type === tp ? 'white' : 'var(--ink-mid)',
+            background: type === tp ? 'var(--forest)' : 'var(--surface)',
+            color: type === tp ? 'var(--cream)' : 'var(--ink-mid)',
             cursor: 'pointer',
           }}
         >
@@ -545,7 +545,7 @@ export function InsightsPage() {
               fontSize: 13,
               lineHeight: 1.4,
               border: '1px solid var(--cream-darker)',
-              background: 'white',
+              background: 'var(--surface)',
               color: 'var(--ink-mid)',
               cursor: 'pointer',
             }}
@@ -611,10 +611,10 @@ export function InsightsPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--cream-darker)" />
                 <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="var(--ink-light)" interval={isMobile ? 4 : 'preserveStartEnd'} />
                 <YAxis tickFormatter={compact} tick={{ fontSize: 11 }} stroke="var(--ink-light)" width={40} />
-                <Tooltip formatter={(v) => fmt(Number(v), currency)} labelFormatter={(l) => t('insights.dayN', { n: l })} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v) => fmt(Number(v), currency)} labelFormatter={(l) => t('insights.dayN', { n: l })} />
                 <Legend wrapperStyle={legendStyle} />
-                <Line type="monotone" dataKey="previous" name={t('insights.prevPeriod')} stroke="var(--ink-light)" strokeDasharray="4 4" dot={false} connectNulls isAnimationActive={false} />
-                <Line type="monotone" dataKey="current" name={t('insights.thisPeriod')} stroke="var(--forest)" strokeWidth={2} dot={false} connectNulls isAnimationActive={false} />
+                <Line type="monotone" dataKey="previous" name={t('insights.prevPeriod')} stroke="var(--ink-light)" strokeDasharray="4 4" dot={false} activeDot={activeDotStyle} connectNulls isAnimationActive={false} />
+                <Line type="monotone" dataKey="current" name={t('insights.thisPeriod')} stroke="var(--forest)" strokeWidth={2} dot={false} activeDot={activeDotStyle} connectNulls isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           </ErrorBoundary>
@@ -684,14 +684,14 @@ export function InsightsPage() {
             left: tip.x,
             top: tip.y,
             transform: 'translate(-50%, -100%)',
-            background: 'white',
+            background: 'var(--surface)',
             border: '1px solid var(--cream-darker)',
             borderRadius: 8,
             padding: '6px 10px',
             fontSize: 12,
             fontFamily: 'var(--font-body)',
             color: 'var(--ink)',
-            boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
+            boxShadow: 'var(--shadow-lg)',
             pointerEvents: 'none',
             zIndex: 60,
             whiteSpace: 'nowrap',
@@ -713,10 +713,10 @@ export function InsightsPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--cream-darker)" />
                 <XAxis dataKey="day" tickFormatter={(d) => fmtDateShort(d)} tick={{ fontSize: 11 }} stroke="var(--ink-light)" minTickGap={24} />
                 <YAxis tickFormatter={compact} tick={{ fontSize: 11 }} stroke="var(--ink-light)" width={40} />
-                <Tooltip formatter={(v) => fmt(Number(v), currency)} labelFormatter={(d) => fmtDateShort(d as string)} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v) => fmt(Number(v), currency)} labelFormatter={(d) => fmtDateShort(d as string)} />
                 <Legend content={renderCategoryLegend} />
                 {areaCategories.map((c) => (
-                  <Area key={c.name} type="monotone" dataKey={c.name} stackId="1" stroke={c.color} fill={c.color} fillOpacity={0.5} isAnimationActive={false} />
+                  <Area key={c.name} type="monotone" dataKey={c.name} stackId="1" stroke={c.color} fill={c.color} fillOpacity={0.5} activeDot={activeDotStyle} isAnimationActive={false} />
                 ))}
               </AreaChart>
             </ResponsiveContainer>
@@ -801,11 +801,11 @@ export function InsightsPage() {
             zIndex: 500,
             display: 'flex',
             gap: 8,
-            background: 'white',
+            background: 'var(--surface)',
             border: '1px solid var(--cream-darker)',
             borderRadius: 100,
             padding: '6px 8px',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+            boxShadow: 'var(--shadow-lg)',
           }}
         >
           {typeToggle}
@@ -816,10 +816,12 @@ export function InsightsPage() {
 }
 
 const legendStyle = { fontSize: 12, fontFamily: 'var(--font-body)', color: 'var(--ink-mid)' };
+const tooltipStyle = { background: 'var(--surface)', border: '1px solid var(--cream-darker)', color: 'var(--ink)' };
+const activeDotStyle = { stroke: 'var(--surface)' };
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div style={{ background: 'white', border: '1px solid var(--cream-darker)', borderRadius: 14, padding: '14px 16px' }}>
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--cream-darker)', borderRadius: 14, padding: '14px 16px' }}>
       <div style={{ fontSize: 12, color: 'var(--ink-light)' }}>{label}</div>
       <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginTop: 4 }}>{value}</div>
       {sub && <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 2 }}>{sub}</div>}
@@ -829,7 +831,7 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
 
 function Card({ title, desc, children }: { title: string; desc?: string; children: ReactNode }) {
   return (
-    <div style={{ background: 'white', border: '1px solid var(--cream-darker)', borderRadius: 14, padding: 20, marginBottom: 20 }}>
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--cream-darker)', borderRadius: 14, padding: 20, marginBottom: 20 }}>
       <div style={{ marginBottom: 16 }}>
         <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>{title}</h2>
         {desc && <p style={{ fontSize: 12.5, color: 'var(--ink-light)', marginTop: 8 }}>{desc}</p>}
@@ -880,7 +882,7 @@ function DayDrawer({
         bottom: 0,
         width: DRAWER_WIDTH,
         zIndex: 600,
-        background: 'white',
+        background: 'var(--surface)',
         borderLeft: '1px solid var(--cream-darker)',
         display: 'flex',
         flexDirection: 'column',

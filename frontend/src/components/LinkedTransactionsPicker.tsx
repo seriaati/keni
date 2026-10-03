@@ -122,7 +122,7 @@ export function LinkedTransactionsPicker({
                     alignItems: 'center',
                     gap: 10,
                     padding: '10px 4px',
-                    borderTop: i === 0 ? 'none' : '1px solid var(--cream, #f5f0e8)',
+                    borderTop: i === 0 ? 'none' : '1px solid var(--cream)',
                   }}
                 >
                   <div className="skeleton" style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0 }} />
@@ -135,7 +135,7 @@ export function LinkedTransactionsPicker({
               ))}
             </div>
           ) : results.length === 0 ? (
-            <p style={{ textAlign: 'center', color: 'var(--ink-faint, #aaa)', fontSize: 13, padding: 32, fontStyle: 'italic' }}>
+            <p style={{ textAlign: 'center', color: 'var(--ink-faint)', fontSize: 13, padding: 32, fontStyle: 'italic' }}>
               No transactions found
             </p>
           ) : (
@@ -152,13 +152,13 @@ export function LinkedTransactionsPicker({
                     alignItems: 'center',
                     gap: 10,
                     padding: '10px 4px',
-                    borderTop: i === 0 ? 'none' : '1px solid var(--cream, #f5f0e8)',
+                    borderTop: i === 0 ? 'none' : '1px solid var(--cream)',
                     cursor: linked ? 'default' : 'pointer',
                     opacity: linked ? 0.7 : 1,
                     borderRadius: 6,
                     transition: 'background 0.1s',
                   }}
-                  onMouseEnter={(e) => { if (!linked) (e.currentTarget as HTMLDivElement).style.background = 'var(--cream, #f5f0e8)'; }}
+                  onMouseEnter={(e) => { if (!linked) (e.currentTarget as HTMLDivElement).style.background = 'var(--cream)'; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
                 >
                   <CategoryIcon
@@ -173,7 +173,7 @@ export function LinkedTransactionsPicker({
                     <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {t.description ?? t.category.name}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--ink-faint, #aaa)' }}>
+                    <div style={{ fontSize: 11, color: 'var(--ink-faint)' }}>
                       {t.category.name} · {fmtDate(t.date)}
                     </div>
                   </div>
@@ -187,13 +187,13 @@ export function LinkedTransactionsPicker({
                     <button
                       onClick={(e) => { e.stopPropagation(); void handleUnlink(t.id); }}
                       disabled={isUnlinking}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-faint, #aaa)', padding: 2, borderRadius: 4, display: 'flex', alignItems: 'center', flexShrink: 0, opacity: isUnlinking ? 0.4 : 1 }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-faint)', padding: 2, borderRadius: 4, display: 'flex', alignItems: 'center', flexShrink: 0, opacity: isUnlinking ? 0.4 : 1 }}
                     >
                       {isUnlinking ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <X size={14} />}
                     </button>
                   )}
                   {isLinking && (
-                    <Loader2 size={14} style={{ animation: 'spin 1s linear infinite', flexShrink: 0, color: 'var(--ink-faint, #aaa)' }} />
+                    <Loader2 size={14} style={{ animation: 'spin 1s linear infinite', flexShrink: 0, color: 'var(--ink-faint)' }} />
                   )}
                 </div>
               );

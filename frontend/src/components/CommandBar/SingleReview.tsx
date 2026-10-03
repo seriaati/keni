@@ -38,6 +38,7 @@ export function SingleReview({
           style={isIncome ? {
             background: 'oklch(42% 0.14 155)',
             borderColor: 'oklch(42% 0.14 155)',
+            color: 'white',
             display: 'inline-flex',
             alignItems: 'center',
             gap: 5,

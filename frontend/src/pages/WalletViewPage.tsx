@@ -515,11 +515,11 @@ export function WalletViewPage() {
         display: 'flex',
         alignItems: 'center',
         gap: 8,
-        background: 'white',
+        background: 'var(--surface)',
         border: '1px solid var(--cream-darker)',
         borderRadius: 100,
         padding: '6px 8px',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+        boxShadow: 'var(--shadow-lg)',
         whiteSpace: 'nowrap',
       }}
     >
@@ -660,7 +660,7 @@ export function WalletViewPage() {
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5,
                 padding: '3px 10px', borderRadius: 100, fontSize: 12, fontWeight: 500,
-                border: '1.5px solid var(--forest)', background: 'white',
+                border: '1.5px solid var(--forest)', background: 'var(--surface)',
               }}>
                 <Plus size={11} style={{ color: 'var(--forest)', flexShrink: 0 }} />
                 <input
@@ -835,7 +835,7 @@ export function WalletViewPage() {
                 padding: '0 4px',
                 borderRadius: 8,
                 background: 'var(--forest)',
-                color: 'white',
+                color: 'var(--cream)',
                 fontSize: 10,
                 fontWeight: 600,
                 lineHeight: '16px',
@@ -859,7 +859,7 @@ export function WalletViewPage() {
       {/* Advanced filters */}
       {showFilters && (
         <div style={{
-          background: 'white',
+          background: 'var(--surface)',
           border: '1px solid var(--cream-darker)',
           borderRadius: 12,
           padding: '16px',
@@ -994,7 +994,7 @@ export function WalletViewPage() {
               )}
             </div>
           )}
-          <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', overflow: 'hidden' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', overflow: 'hidden' }}>
             {data.items.map((expense, i) => (
               <ExpenseRow
                 key={expense.id}
@@ -1178,7 +1178,7 @@ function ExpenseRow({
       >
         {isSelected && (
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M2 6l3 3 5-5" stroke="var(--cream)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
       </div>
@@ -1196,7 +1196,7 @@ function ExpenseRow({
           <div style={{
             position: 'absolute', inset: 0, borderRadius: 10,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(255,255,255,0.75)',
+            background: 'color-mix(in oklch, var(--surface) 75%, transparent)',
           }}>
             <span className="btn-spinner" style={{ color: 'var(--forest)' }} />
           </div>
@@ -1425,10 +1425,10 @@ function BulkActionsBar({
         <div
           className="animate-fade-in"
           style={{
-            background: 'white',
+            background: 'var(--surface)',
             borderRadius: 14,
             border: '1px solid var(--cream-darker)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06)',
+            boxShadow: 'var(--shadow-lg)',
             overflow: 'hidden',
           }}
         >

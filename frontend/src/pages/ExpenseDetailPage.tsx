@@ -164,7 +164,7 @@ function TagPicker({ selectedIds, allTags, onAdd, onRemove, onCreateAndAdd }: Ta
         left: pos.left,
         width: Math.max(pos.width, 220),
         zIndex: 9999,
-        background: 'white',
+        background: 'var(--surface)',
         border: '1.5px solid var(--sand)',
         borderRadius: 'var(--radius)',
         boxShadow: 'var(--shadow-lg)',
@@ -663,7 +663,7 @@ export function ExpenseDetailPage() {
         )}
 
         {/* Amount */}
-        <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px' }}>
+        <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px' }}>
           <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('expenseDetail.sectionAmount')}</div>
           {editing ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -682,7 +682,7 @@ export function ExpenseDetailPage() {
                       fontWeight: 500,
                       cursor: 'pointer',
                       transition: 'background 0.15s, color 0.15s, box-shadow 0.15s',
-                      background: form.type === typ ? 'white' : 'transparent',
+                      background: form.type === typ ? 'var(--surface)' : 'transparent',
                       color: form.type === typ ? (typ === 'income' ? 'var(--forest)' : 'var(--rose)') : 'var(--ink-faint)',
                       boxShadow: form.type === typ ? 'var(--shadow-sm)' : 'none',
                     }}
@@ -716,7 +716,7 @@ export function ExpenseDetailPage() {
 
         {/* Wallet (move) */}
         {editing && !expense.group_id && allWallets.length > 1 && (
-          <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
             <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('expenseDetail.sectionWallet')}</div>
             <Select
               value={form.wallet_id}
@@ -728,7 +728,7 @@ export function ExpenseDetailPage() {
 
         {/* Category & Date */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
             <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('expenseDetail.sectionCategory')}</div>
             {editing ? (
               <CategorySelect
@@ -757,7 +757,7 @@ export function ExpenseDetailPage() {
             )}
           </div>
 
-          <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
             <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('expenseDetail.sectionDate')}</div>
             {editing ? (
               <DatePicker
@@ -778,7 +778,7 @@ export function ExpenseDetailPage() {
         </div>
 
         {/* Description */}
-        <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
+        <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
           <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('expenseDetail.sectionDescription')}</div>
           {editing ? (
             <textarea
@@ -796,7 +796,7 @@ export function ExpenseDetailPage() {
         </div>
 
         {/* Tags */}
-        <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
+        <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
           <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>{t('expenseDetail.sectionTags')}</div>
           {editing ? (
             <TagPicker
@@ -828,7 +828,7 @@ export function ExpenseDetailPage() {
 
         {/* Sub-expenses */}
         {expense.children && expense.children.length > 0 && (
-          <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
               <Layers size={13} style={{ color: 'var(--ink-faint)' }} />
               <span style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{t('expenseDetail.sectionSubTransactions')}</span>
@@ -878,7 +878,7 @@ export function ExpenseDetailPage() {
 
         {/* Linked transactions */}
         {(expense.linked_transactions.length > 0 || editing) && (
-          <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('expenseDetail.sectionLinked')}</div>
               {editing && (
@@ -935,7 +935,7 @@ export function ExpenseDetailPage() {
 
         {/* AI context */}
         {expense.ai_context && (
-          <div style={{ background: 'oklch(96% 0.04 155)', borderRadius: 14, border: '1px solid oklch(88% 0.06 155)', padding: '16px 20px' }}>
+          <div style={{ background: 'var(--green-tint-soft)', borderRadius: 14, border: '1px solid var(--green-border)', padding: '16px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
               <Bot size={14} style={{ color: 'var(--forest)' }} />
               <span style={{ fontSize: 11, color: 'var(--forest)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{t('expenseDetail.sectionAiContext')}</span>
@@ -963,11 +963,11 @@ export function ExpenseDetailPage() {
             zIndex: 500,
             alignItems: 'center',
             gap: 6,
-            background: 'white',
+            background: 'var(--surface)',
             border: '1px solid var(--cream-darker)',
             borderRadius: 100,
             padding: '6px 8px',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.07)',
+            boxShadow: 'var(--shadow)',
             whiteSpace: 'nowrap',
             transition: 'border-radius 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
           }}

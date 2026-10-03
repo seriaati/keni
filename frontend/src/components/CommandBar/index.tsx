@@ -637,7 +637,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
                 maxHeight: enlargedRotationSwap ? '90vw' : '70vh',
                 display: 'block',
                 borderRadius: cropMode ? 0 : 12,
-                boxShadow: cropMode ? 'none' : '0 32px 80px oklch(18% 0.02 80 / 0.4)',
+                boxShadow: cropMode ? 'none' : 'var(--shadow-xl)',
                 transform: `rotate(${enlargedRotation}deg)`,
                 transition: 'transform 0.15s ease',
                 willChange: 'transform',
@@ -792,9 +792,9 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
           style={{
             width: '100%',
             maxWidth: resultType === 'group' || resultType === 'multiple' ? 680 : 580,
-            background: 'white',
+            background: 'var(--surface)',
             borderRadius: 20,
-            boxShadow: '0 24px 80px oklch(18% 0.02 80 / 0.22), 0 4px 16px oklch(18% 0.02 80 / 0.1)',
+            boxShadow: 'var(--shadow-xl)',
             overflow: 'hidden',
             animation: 'scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both',
             position: 'relative',
@@ -807,7 +807,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
               zIndex: 10,
               borderRadius: 20,
               border: '2.5px dashed var(--forest)',
-              background: '#F9F5EC',
+              background: 'var(--cream)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -941,7 +941,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
                     style={{
                       position: 'absolute', top: -6, right: -6,
                       width: 18, height: 18, borderRadius: '50%',
-                      background: 'var(--ink)', color: 'white',
+                      background: 'var(--ink)', color: 'var(--cream)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       padding: 0, flexShrink: 0,
                     }}
@@ -955,7 +955,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
 
           {/* Transcript badge */}
           {transcript && mode === 'review' && (
-            <div style={{ padding: '6px 16px', background: 'oklch(96% 0.04 155)', borderBottom: '1px solid oklch(88% 0.06 155)', fontSize: 12, color: 'var(--forest)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ padding: '6px 16px', background: 'var(--green-tint-soft)', borderBottom: '1px solid var(--green-border)', fontSize: 12, color: 'var(--forest)', display: 'flex', alignItems: 'center', gap: 6 }}>
               <Mic size={12} />
               <span style={{ fontStyle: 'italic' }}>{transcript}</span>
             </div>

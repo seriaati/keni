@@ -216,7 +216,7 @@ export function RecurringPage() {
           </button>
         </div>
       ) : (
-        <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', overflow: 'hidden' }}>
           {items.map((item, i) => (
             <div
               key={item.id}
@@ -233,7 +233,7 @@ export function RecurringPage() {
                 width: 40,
                 height: 40,
                 borderRadius: 10,
-                background: item.is_active ? 'oklch(92% 0.06 155)' : 'var(--cream-dark)',
+                background: item.is_active ? 'var(--green-tint)' : 'var(--cream-dark)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

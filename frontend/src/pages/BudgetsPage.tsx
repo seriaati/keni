@@ -185,7 +185,7 @@ export function BudgetsPage() {
               <div
                 key={b.id}
                 style={{
-                  background: 'white',
+                  background: 'var(--surface)',
                   borderRadius: 16,
                   border: `1px solid ${b.is_over_budget ? 'var(--rose-light)' : 'var(--cream-darker)'}`,
                   padding: '20px',

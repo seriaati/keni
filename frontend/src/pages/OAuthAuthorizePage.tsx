@@ -107,7 +107,7 @@ export function OAuthAuthorizePage() {
         className="auth-panel-left"
         style={{
           flex: '0 0 420px',
-          background: 'var(--forest)',
+          background: 'oklch(18% 0.01 80)', // pinned: brand panel stays dark in both themes
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
@@ -126,7 +126,7 @@ export function OAuthAuthorizePage() {
         <div style={{ position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <img src={logoSrc} alt="" width="28" height="28" style={{ borderRadius: 6 }} />
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--cream)' }}>Keni</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'oklch(97% 0.012 85)' }}>Keni</span>
           </div>
         </div>
 
@@ -134,7 +134,7 @@ export function OAuthAuthorizePage() {
           <p style={{
             fontFamily: 'var(--font-display)',
             fontSize: 'clamp(28px, 3vw, 38px)',
-            color: 'var(--cream)',
+            color: 'oklch(97% 0.012 85)',
             lineHeight: 1.25,
             marginBottom: 20,
             fontStyle: 'italic',
@@ -158,7 +158,7 @@ export function OAuthAuthorizePage() {
             border: '1px solid oklch(60% 0.08 155 / 0.3)',
           }}>
             <p style={{ fontSize: 12, color: 'oklch(80% 0.04 155)', marginBottom: 8 }}>{t('oauth.requestingAccess')}</p>
-            <p style={{ fontSize: 15, color: 'var(--cream)', fontWeight: 600 }}>{clientName}</p>
+            <p style={{ fontSize: 15, color: 'oklch(97% 0.012 85)', fontWeight: 600 }}>{clientName}</p>
           </div>
         </div>
       </div>

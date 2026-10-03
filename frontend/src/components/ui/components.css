@@ -92,7 +92,7 @@
   padding: 9px 12px;
   font-size: 14px;
   font-family: var(--font-body);
-  background: white;
+  background: var(--surface);
   border: 1.5px solid var(--sand);
   border-radius: var(--radius);
   color: var(--ink);
@@ -136,7 +136,6 @@ input[type="date"].input,
 input[type="datetime-local"].input {
   cursor: pointer;
   appearance: none;
-  color-scheme: light;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
@@ -163,7 +162,7 @@ textarea.input {
 
 /* ===== CARDS ===== */
 .card {
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-lg);
   border: 1px solid var(--cream-darker);
   padding: 20px;
@@ -196,8 +195,8 @@ textarea.input {
 }
 
 .badge-amber {
-  background: oklch(94% 0.06 70);
-  color: oklch(52% 0.14 65);
+  background: var(--amber-tint);
+  color: var(--amber-text);
 }
 
 .badge-red {
@@ -259,7 +258,7 @@ textarea.input {
 }
 
 .modal {
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-xl);
   width: 100%;
@@ -406,7 +405,7 @@ textarea.input {
 }
 
 .tab-active {
-  background: white;
+  background: var(--surface);
   color: var(--ink);
   box-shadow: var(--shadow-sm);
 }

@@ -99,7 +99,7 @@
     "drawerEmpty": "這天沒有交易。",
     "drawerHint": "點擊圖表上的某一天以查看當日交易。",
     "heatmapTitle": "每日熱力圖",
-    "heatmapDesc": "每格代表一天，顏色越深花費越多。",
+    "heatmapDesc": "每格代表一天，顏色越濃花費越多。",
     "areaTitle": "類別佔比變化",
     "areaDesc": "每日各類別支出的分布。",
     "topTitle": "最大筆交易",

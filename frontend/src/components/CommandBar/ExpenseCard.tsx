@@ -59,7 +59,7 @@ export const ExpenseCard = memo(function ExpenseCard({
     width: '100%',
     fontSize: 13,
     color: 'var(--ink)',
-    background: 'white',
+    background: 'var(--surface)',
     border: '1px solid var(--sand)',
     borderRadius: 6,
     padding: '3px 7px',
@@ -136,15 +136,15 @@ export const ExpenseCard = memo(function ExpenseCard({
         </div>
 
         <div style={{
-          background: expense.is_new_category && !expense._editing ? 'oklch(97% 0.02 145)' : 'transparent',
+          background: expense.is_new_category && !expense._editing ? 'var(--new-tint)' : 'transparent',
           borderRadius: 6,
           padding: expense.is_new_category && !expense._editing ? '4px 8px' : 0,
-          border: expense.is_new_category && !expense._editing ? '1px solid oklch(82% 0.08 145)' : 'none',
+          border: expense.is_new_category && !expense._editing ? '1px solid var(--new-border)' : 'none',
         }}>
           <div style={{ fontSize: 10, color: 'var(--ink-light)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 4 }}>
             Category
             {expense.is_new_category && !expense._editing && (
-              <span style={{ fontSize: 9, fontWeight: 700, color: 'oklch(48% 0.09 145)', background: 'oklch(92% 0.04 145)', borderRadius: 3, padding: '1px 4px' }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--new-text)', background: 'var(--new-badge)', borderRadius: 3, padding: '1px 4px' }}>
                 <WandSparkles size={8} style={{ display: 'inline', verticalAlign: 'middle' }} /> New
               </span>
             )}
@@ -208,7 +208,7 @@ export const ExpenseCard = memo(function ExpenseCard({
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
               {expense.suggested_tags.map((t) => (
                 t.is_new ? (
-                  <span key={t.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 500, color: 'oklch(48% 0.09 145)', background: 'oklch(92% 0.04 145)', border: '1px solid oklch(82% 0.08 145)', borderRadius: 5, padding: '2px 6px' }}>
+                  <span key={t.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 500, color: 'var(--new-text)', background: 'var(--new-badge)', border: '1px solid var(--new-border)', borderRadius: 5, padding: '2px 6px' }}>
                     <WandSparkles size={9} /> {t.name}
                   </span>
                 ) : (

@@ -90,7 +90,7 @@ export function WalletsPage() {
           <div
             key={w.id}
             style={{
-              background: 'white',
+              background: 'var(--surface)',
               borderRadius: 16,
               border: '1px solid var(--cream-darker)',
               padding: '20px',

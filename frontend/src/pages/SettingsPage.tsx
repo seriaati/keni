@@ -131,7 +131,7 @@ function ProfileTab({ user, refreshUser, toast }: { user: UserResponse; refreshU
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div className="input-group">
           <label className="input-label">{t('settings.profileUsername')}</label>
           <input className="input" value={user?.username ?? ''} disabled style={{ opacity: 0.6 }} />
@@ -344,9 +344,9 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
 
   return (
     <>
-      <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {provider && (
-          <div style={{ background: 'oklch(96% 0.04 155)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ background: 'var(--green-tint-soft)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
             <Check size={16} style={{ color: 'var(--forest)' }} />
             <div>
               <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--forest)' }}>
@@ -499,7 +499,7 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
         </div>
       </div>
 
-      <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+      <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>{t('settings.customPromptTitle')}</div>
           <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{t('settings.customPromptDesc')}</div>
@@ -592,12 +592,12 @@ function TokensTab({ toast }: { toast: (msg: string, type?: 'success' | 'error' 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {newToken && (
-        <div style={{ background: 'oklch(96% 0.04 155)', borderRadius: 12, border: '1px solid oklch(88% 0.06 155)', padding: '16px 20px' }}>
+        <div style={{ background: 'var(--green-tint-soft)', borderRadius: 12, border: '1px solid var(--green-border)', padding: '16px 20px' }}>
           <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--forest)', marginBottom: 8 }}>
             {t('settings.tokenCreatedBanner')}
           </p>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <code style={{ flex: 1, fontSize: 12, background: 'white', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--cream-darker)', wordBreak: 'break-all', color: 'var(--ink)' }}>
+            <code style={{ flex: 1, fontSize: 12, background: 'var(--surface)', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--cream-darker)', wordBreak: 'break-all', color: 'var(--ink)' }}>
               {newToken.token}
             </code>
             <button className="btn btn-secondary btn-sm" onClick={copyToken}>
@@ -620,13 +620,13 @@ function TokensTab({ toast }: { toast: (msg: string, type?: 'success' | 'error' 
       {loading ? (
         <div className="skeleton" style={{ height: 100, borderRadius: 12 }} />
       ) : tokenList.length === 0 ? (
-        <div className="empty-state" style={{ padding: '32px 16px', background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)' }}>
+        <div className="empty-state" style={{ padding: '32px 16px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)' }}>
           <Key size={32} className="empty-state-icon" />
           <p className="empty-state-title">{t('settings.tokensEmptyTitle')}</p>
           <p className="empty-state-desc">{t('settings.tokensEmptyDesc')}</p>
         </div>
       ) : (
-        <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', overflow: 'hidden' }}>
           {tokenList.map((token, i) => (
             <div
               key={token.id}
@@ -768,7 +768,7 @@ function DataExportTab({ toast }: { toast: (msg: string, type?: 'success' | 'err
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>{t('settings.exportTitle')}</div>
           <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{t('settings.exportDesc')}</div>
@@ -822,7 +822,7 @@ function DataExportTab({ toast }: { toast: (msg: string, type?: 'success' | 'err
         )}
       </div>
 
-      <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--rose-light)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--rose-light)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--rose)', marginBottom: 4 }}>{t('settings.deleteAccountTitle')}</div>
           <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{t('settings.deleteAccountDesc')}</div>

@@ -179,7 +179,7 @@ export function DashboardPage() {
           display: 'flex',
           alignItems: 'flex-start',
           gap: 12,
-          background: 'oklch(97% 0.04 20)',
+          background: 'var(--rose-tint)',
           border: '1.5px solid var(--rose-light)',
           borderLeft: '4px solid var(--rose)',
           borderRadius: 12,
@@ -211,7 +211,7 @@ export function DashboardPage() {
           display: 'flex',
           alignItems: 'flex-start',
           gap: 12,
-          background: 'oklch(97% 0.06 70)',
+          background: 'var(--amber-tint)',
           border: '1.5px solid var(--amber-light)',
           borderLeft: '4px solid var(--amber)',
           borderRadius: 12,
@@ -220,7 +220,7 @@ export function DashboardPage() {
         }}>
           <AlertTriangle size={18} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'oklch(52% 0.14 65)', marginBottom: 2 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--amber-text)', marginBottom: 2 }}>
               {t('dashboard.budgetNear', { count: nearLimit.length })}
             </div>
             <div style={{ fontSize: 13, color: 'var(--ink-mid)' }}>
@@ -230,7 +230,7 @@ export function DashboardPage() {
               })}
             </div>
           </div>
-          <Link to="/budgets" style={{ fontSize: 13, color: 'oklch(52% 0.14 65)', fontWeight: 500, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Link to="/budgets" style={{ fontSize: 13, color: 'var(--amber-text)', fontWeight: 500, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
             {t('common.review')} <ArrowRight size={13} />
           </Link>
         </div>
@@ -303,7 +303,7 @@ export function DashboardPage() {
                     to="/budgets"
                     style={{
                       display: 'block',
-                      background: 'white',
+                      background: 'var(--surface)',
                       borderRadius: 12,
                       border: `1px solid ${b.is_over_budget ? 'var(--rose-light)' : 'var(--cream-darker)'}`,
                       padding: '14px 16px',
@@ -377,7 +377,7 @@ export function DashboardPage() {
                     textDecoration: 'none',
                     transition: 'background 0.12s',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = 'white')}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
                   <CategoryIcon
@@ -437,7 +437,7 @@ export function DashboardPage() {
                 <ChevronDown size={11} style={{ transition: 'transform 0.15s', transform: spendingPeriodOpen ? 'rotate(180deg)' : 'none' }} />
               </button>
               {spendingPeriodOpen && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, background: 'white', border: '1px solid var(--cream-darker)', borderRadius: 8, boxShadow: '0 4px 12px oklch(0% 0 0 / 0.08)', zIndex: 50, minWidth: 140, overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, background: 'var(--surface)', border: '1px solid var(--cream-darker)', borderRadius: 8, boxShadow: 'var(--shadow)', zIndex: 50, minWidth: 140, overflow: 'hidden' }}>
                   {(['this_month', 'last_month', 'last_3_months', 'this_year'] as DashboardPeriod[]).map((p) => (
                     <button
                       key={p}
@@ -452,7 +452,7 @@ export function DashboardPage() {
                 </div>
               )}
             </div>
-            <ErrorBoundary fallback={<div className="empty-state" style={{ padding: '32px 16px', background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)' }}><p className="empty-state-desc">Chart unavailable</p></div>}>
+            <ErrorBoundary fallback={<div className="empty-state" style={{ padding: '32px 16px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)' }}><p className="empty-state-desc">Chart unavailable</p></div>}>
             <div ref={spendingChartRef} style={{ transition: 'opacity 0.2s ease' }}>
             {loading ? (
               <div className="skeleton" style={{ height: 220, borderRadius: 12 }} />
@@ -462,7 +462,7 @@ export function DashboardPage() {
                 const total = sorted.reduce((s, c) => s + c.total, 0);
                 const displayed = categoryExpanded ? sorted : sorted.slice(0, 3);
                 return (
-                  <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px' }}>
+                  <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px' }}>
                     <button
                       onClick={() => goToTransactions(sorted.map((c) => c.category_id), getPeriodDateRange(spendingPeriod), 'expense')}
                       style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8, width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
@@ -531,7 +531,7 @@ export function DashboardPage() {
                 );
               })()
             ) : (
-              <div className="empty-state" style={{ padding: '32px 16px', background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)' }}>
+              <div className="empty-state" style={{ padding: '32px 16px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)' }}>
                 <p className="empty-state-desc">{t('dashboard.noData')}</p>
               </div>
             )}
@@ -552,7 +552,7 @@ export function DashboardPage() {
                   <ChevronDown size={11} style={{ transition: 'transform 0.15s', transform: incomePeriodOpen ? 'rotate(180deg)' : 'none' }} />
                 </button>
                 {incomePeriodOpen && (
-                  <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, background: 'white', border: '1px solid var(--cream-darker)', borderRadius: 8, boxShadow: '0 4px 12px oklch(0% 0 0 / 0.08)', zIndex: 50, minWidth: 140, overflow: 'hidden' }}>
+                  <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, background: 'var(--surface)', border: '1px solid var(--cream-darker)', borderRadius: 8, boxShadow: 'var(--shadow)', zIndex: 50, minWidth: 140, overflow: 'hidden' }}>
                     {(['this_month', 'last_month', 'last_3_months', 'this_year'] as DashboardPeriod[]).map((p) => (
                       <button
                         key={p}
@@ -567,12 +567,12 @@ export function DashboardPage() {
                   </div>
                 )}
               </div>
-              <ErrorBoundary fallback={<div className="empty-state" style={{ padding: '32px 16px', background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)' }}><p className="empty-state-desc">Chart unavailable</p></div>}>
+              <ErrorBoundary fallback={<div className="empty-state" style={{ padding: '32px 16px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)' }}><p className="empty-state-desc">Chart unavailable</p></div>}>
               <div ref={incomeChartRef} style={{ transition: 'opacity 0.2s ease' }}>
               {loading ? (
                 <div className="skeleton" style={{ height: 220, borderRadius: 12 }} />
               ) : incomeSummary && incomeSummary.income_by_category.length === 0 ? (
-                <div className="empty-state" style={{ padding: '32px 16px', background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)' }}>
+                <div className="empty-state" style={{ padding: '32px 16px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)' }}>
                   <p className="empty-state-desc">{t('dashboard.noData')}</p>
                 </div>
               ) : (
@@ -581,7 +581,7 @@ export function DashboardPage() {
                   const total = sorted.reduce((s, c) => s + c.total, 0);
                   const displayed = incomeCategoryExpanded ? sorted : sorted.slice(0, 3);
                   return (
-                    <div style={{ background: 'white', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px' }}>
+                    <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px' }}>
                       <button
                         onClick={() => goToTransactions(sorted.map((c) => c.category_id), getPeriodDateRange(incomePeriod), 'income')}
                         style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8, width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
@@ -698,7 +698,7 @@ function SummaryCard({
     <div
       onClick={onClick}
       style={{
-        background: 'white',
+        background: 'var(--surface)',
         borderRadius: 14,
         border: '1px solid var(--cream-darker)',
         padding: '18px 20px',
@@ -706,7 +706,7 @@ function SummaryCard({
         cursor: onClick ? 'pointer' : 'default',
         transition: 'box-shadow 0.12s, transform 0.12s',
       }}
-      onMouseEnter={onClick ? (e) => { e.currentTarget.style.boxShadow = '0 4px 12px oklch(0% 0 0 / 0.06)'; e.currentTarget.style.transform = 'translateY(-1px)'; } : undefined}
+      onMouseEnter={onClick ? (e) => { e.currentTarget.style.boxShadow = 'var(--shadow)'; e.currentTarget.style.transform = 'translateY(-1px)'; } : undefined}
       onMouseLeave={onClick ? (e) => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; } : undefined}
     >
       <div style={{ fontSize: 12, color: 'var(--ink-light)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>

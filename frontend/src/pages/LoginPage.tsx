@@ -42,7 +42,7 @@ export function LoginPage() {
       {/* Left panel — decorative */}
       <div style={{
         flex: '0 0 420px',
-        background: 'var(--forest)',
+        background: 'oklch(18% 0.01 80)', // pinned: brand panel stays dark in both themes
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -61,7 +61,7 @@ export function LoginPage() {
         <div style={{ position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <img src={logoSrc} alt="" width="28" height="28" style={{ borderRadius: 6 }} />
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--cream)' }}>Keni</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'oklch(97% 0.012 85)' }}>Keni</span>
           </div>
         </div>
 
@@ -69,7 +69,7 @@ export function LoginPage() {
           <p style={{
             fontFamily: 'var(--font-display)',
             fontSize: 'clamp(28px, 3vw, 38px)',
-            color: 'var(--cream)',
+            color: 'oklch(97% 0.012 85)',
             lineHeight: 1.25,
             marginBottom: 20,
             fontStyle: 'italic',
@@ -93,7 +93,7 @@ export function LoginPage() {
             t('login.featureWallets'),
           ].map((feat) => (
             <div key={feat} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--amber-light)', flexShrink: 0 }} />
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'oklch(82% 0.12 70)', flexShrink: 0 }} />
               <span style={{ fontSize: 13, color: 'oklch(88% 0.04 155)' }}>{feat}</span>
             </div>
           ))}
