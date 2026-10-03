@@ -747,7 +747,9 @@ async def get_transaction(wallet_id: str, transaction_id: str) -> dict[str, Any]
     Get a single transaction by ID.
 
     The result includes a "linked_transactions" list with the full details of every
-    transaction linked to this one.
+    transaction linked to this one, and a "children" list with the sub-transactions of a
+    group parent (empty for other transactions). Sub-transactions are hidden from
+    list_transactions, so use this to find their IDs.
 
     Args:
         wallet_id: UUID of the wallet.
@@ -781,6 +783,16 @@ async def get_transaction(wallet_id: str, transaction_id: str) -> dict[str, Any]
         tags = await _get_transaction_tags(t.id, session)
         row = _transaction_to_dict(t, cat, tags)
         row["linked_transactions"] = await _get_linked_transactions(t.id, session)
+        children = await session.exec(
+            select(Transaction)
+            .where(col(Transaction.group_id) == t.id)
+            .order_by(col(Transaction.created_at))
+        )
+        row["children"] = []
+        for child in children.all():
+            child_cat = await session.exec(select(Category).where(Category.id == child.category_id))
+            child_tags = await _get_transaction_tags(child.id, session)
+            row["children"].append(_transaction_to_dict(child, child_cat.first(), child_tags))
         return row
     return {"error": "Database error"}
 
@@ -927,6 +939,7 @@ class CreateTransactionInput:
     date: str | None = None
     tag_ids: list[str] = field(default_factory=list)
     tag_names: list[str] = field(default_factory=list)
+    group_id: str | None = None
 
 
 def _validate_item(item: TransactionItemInput) -> str | None:
@@ -1013,7 +1026,7 @@ async def _insert_item(
     return _transaction_to_dict(transaction, cat, tags)
 
 
-async def _insert_transaction(
+async def _insert_transaction(  # ruff: ignore[too-many-return-statements]
     params: CreateTransactionInput, user_id: uuid.UUID
 ) -> dict[str, Any] | str:
     w_id = _parse_uuid(params.wallet_id, "wallet_id")
@@ -1042,9 +1055,27 @@ async def _insert_transaction(
         if not wallet_result.first():
             return "Wallet not found"
 
-        result = await _insert_item(session, user_id, w_id, item)
+        g_id: uuid.UUID | None = None
+        if params.group_id:
+            parsed_gid = _parse_uuid(params.group_id, "group_id")
+            if isinstance(parsed_gid, str):
+                return parsed_gid
+            parent_result = await session.exec(
+                select(Transaction).where(
+                    Transaction.id == parsed_gid, Transaction.wallet_id == w_id
+                )
+            )
+            parent = parent_result.first()
+            if not parent:
+                return "Parent transaction not found"
+            if parent.group_id is not None:
+                return "Cannot nest a transaction under a sub-transaction"
+            g_id = parent.id
+
+        result = await _insert_item(session, user_id, w_id, item, group_id=g_id)
         if isinstance(result, str):
             return result
+        await adjust_group_parent_amount(session, g_id, params.amount)
         await session.commit()
         return result
     return "Database error"
@@ -1070,6 +1101,9 @@ async def create_transaction(params: CreateTransactionInput) -> dict[str, Any]:
         params.date: ISO 8601 date string (defaults to now if omitted).
         params.tag_ids: List of existing tag UUIDs to attach.
         params.tag_names: List of tag names — matched case-insensitively or created if new.
+        params.group_id: UUID of a group parent in the same wallet to add this as a
+            sub-transaction of. The parent's amount is increased by this amount (decreased
+            if negative) so it stays the sum of its sub-transactions.
     """
     user = await _get_authenticated_user()
     if params.type not in {"expense", "income"}:
