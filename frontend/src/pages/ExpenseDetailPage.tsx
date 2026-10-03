@@ -847,7 +847,7 @@ export function ExpenseDetailPage() {
                 <Link
                   key={child.id}
                   to={`/wallets/${walletId}/expenses/${child.id}`}
-                  onContextMenu={(e) => ctxMenu.open(e, child)}
+                  {...ctxMenu.bind(child)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',

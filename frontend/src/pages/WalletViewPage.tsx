@@ -210,7 +210,7 @@ export function WalletViewPage() {
   };
 
   // --- Bulk selection handlers ---
-  const handleSelect = useCallback((id: string, e: React.MouseEvent) => {
+  const handleSelect = useCallback((id: string, e?: React.MouseEvent) => {
     const items = data?.items ?? [];
     const clickedIndex = items.findIndex((item) => item.id === id);
 
@@ -222,7 +222,7 @@ export function WalletViewPage() {
       return;
     }
 
-    if (!isMobile && e.shiftKey && lastClickedIndexRef.current >= 0) {
+    if (!isMobile && e?.shiftKey && lastClickedIndexRef.current >= 0) {
       // Shift-click: select range
       const from = Math.min(lastClickedIndexRef.current, clickedIndex);
       const to = Math.max(lastClickedIndexRef.current, clickedIndex);
@@ -1018,6 +1018,7 @@ export function WalletViewPage() {
                 onNavigate={navigate}
                 backSearch={searchParams.toString()}
                 onContextMenuOpen={ctxMenu.open}
+                onLongPress={ctxMenu.openSheet}
                 onCategoryContextMenu={catMenu.open}
                 onCategoryClick={(id) => setParam({ category_ids: [id], page: null })}
               />
@@ -1067,7 +1068,7 @@ export function WalletViewPage() {
         onEditLabels={() => { setShowActionsBar(false); openEditLabelModal(); }}
         onAISuggest={() => { setShowActionsBar(false); setShowAISuggestModal(true); }}
       />
-      <TransactionContextMenu state={ctxMenu.state} onClose={ctxMenu.close} onChanged={load} />
+      <TransactionContextMenu state={ctxMenu.state} onClose={ctxMenu.close} onChanged={load} onSelect={(exp) => handleSelect(exp.id)} />
       <EditContextMenu
         state={catMenu.state}
         label={t('categories.modalEditTitle')}
@@ -1101,6 +1102,7 @@ function ExpenseRow({
   onNavigate,
   backSearch,
   onContextMenuOpen,
+  onLongPress,
   onCategoryContextMenu,
   onCategoryClick,
 }: {
@@ -1120,6 +1122,7 @@ function ExpenseRow({
   onNavigate: NavigateFunction;
   backSearch: string;
   onContextMenuOpen: (e: React.MouseEvent, expense: TransactionResponse) => void;
+  onLongPress: (expense: TransactionResponse) => void;
   onCategoryContextMenu: (e: React.MouseEvent, category: CategoryBrief) => void;
   onCategoryClick: (categoryId: string) => void;
 }) {
@@ -1128,7 +1131,7 @@ function ExpenseRow({
   const hasConversion = convertedAmount != null && globalCurrency != null;
   const color = amountColor(expense.amount, expense.type);
 
-  // Long-press state for mobile multi-select entry
+  // Long-press state for mobile: opens the action sheet, or toggles while selecting
   const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pressStartPosRef = useRef<{ x: number; y: number } | null>(null);
   // Track whether a long-press fired so the pointerUp click is suppressed
@@ -1141,7 +1144,8 @@ function ExpenseRow({
     pressTimerRef.current = setTimeout(() => {
       pressTimerRef.current = null;
       longPressDidFireRef.current = true;
-      onSelect(expense.id, e as unknown as React.MouseEvent);
+      if (isSelecting) onSelect(expense.id, e as unknown as React.MouseEvent);
+      else onLongPress(expense);
     }, 500);
   };
 

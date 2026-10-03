@@ -2,10 +2,11 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
-import { Check, ChevronRight, Copy, CopyPlus, RefreshCw, Search, Shapes, Tag, Trash2, Wallet } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Copy, CopyPlus, RefreshCw, Search, Shapes, SquareCheck, Tag, Trash2, Wallet } from 'lucide-react';
 import { expenses as expensesApi, categories as categoriesApi, tags as tagsApi, wallets as walletsApi } from '../lib/api';
 import { useToast } from './ui/Toast';
 import { Modal } from './ui/Modal';
+import { BottomSheet } from './ui/BottomSheet';
 import { DatePicker } from './ui/DatePicker';
 import { CategoryIcon } from '../lib/categoryIcons';
 import { localDateStr } from '../lib/utils';
@@ -15,19 +16,66 @@ export interface TransactionContextMenuState {
   x: number;
   y: number;
   expense: TransactionResponse;
+  /** Opened by long-press on a touch device — render as a bottom sheet */
+  sheet?: boolean;
 }
+
+const LONG_PRESS_MS = 450;
+const LONG_PRESS_TOLERANCE = 10;
 
 export function useTransactionContextMenu() {
   const [state, setState] = useState<TransactionContextMenuState | null>(null);
+  const press = useRef<{ x: number; y: number; timer: number; fired: boolean } | null>(null);
+
   const open = useCallback((e: React.MouseEvent, expense: TransactionResponse) => {
-    // Desktop only — let touch devices keep native behavior
-    if (window.matchMedia('(pointer: coarse)').matches) return;
     e.preventDefault();
+    // Touch devices open via long-press instead; just suppress the native menu
+    if (window.matchMedia('(pointer: coarse)').matches) return;
     e.stopPropagation();
     setState({ x: e.clientX, y: e.clientY, expense });
   }, []);
+
+  const openSheet = useCallback((expense: TransactionResponse) => {
+    navigator.vibrate?.(10);
+    setState({ x: 0, y: 0, expense, sheet: true });
+  }, []);
+
+  /** Props for a transaction tile: right-click on desktop, long-press on touch. */
+  const bind = useCallback((expense: TransactionResponse) => ({
+    className: 'long-pressable',
+    onContextMenu: (e: React.MouseEvent) => open(e, expense),
+    onTouchStart: (e: React.TouchEvent) => {
+      if (press.current) clearTimeout(press.current.timer);
+      if (e.touches.length !== 1) { press.current = null; return; }
+      const p = { x: e.touches[0].clientX, y: e.touches[0].clientY, timer: 0, fired: false };
+      p.timer = window.setTimeout(() => {
+        p.fired = true;
+        openSheet(expense);
+      }, LONG_PRESS_MS);
+      press.current = p;
+    },
+    onTouchMove: (e: React.TouchEvent) => {
+      const p = press.current;
+      if (!p || p.fired) return;
+      const t = e.touches[0];
+      if (Math.hypot(t.clientX - p.x, t.clientY - p.y) > LONG_PRESS_TOLERANCE) clearTimeout(p.timer);
+    },
+    onTouchEnd: (e: React.TouchEvent) => {
+      const p = press.current;
+      if (!p) return;
+      clearTimeout(p.timer);
+      // Swallow the tap that would otherwise follow the long-press (e.g. link navigation)
+      if (p.fired) e.preventDefault();
+      press.current = null;
+    },
+    onTouchCancel: () => {
+      if (press.current) clearTimeout(press.current.timer);
+      press.current = null;
+    },
+  }), [open, openSheet]);
+
   const close = useCallback(() => setState(null), []);
-  return { state, open, close };
+  return { state, open, openSheet, bind, close };
 }
 
 const MENU_WIDTH = 210;
@@ -47,10 +95,13 @@ export function TransactionContextMenu({
   state,
   onClose,
   onChanged,
+  onSelect,
 }: {
   state: TransactionContextMenuState | null;
   onClose: () => void;
   onChanged: () => void;
+  /** Adds a "Select" entry to the sheet that enters multi-select with this transaction */
+  onSelect?: (expense: TransactionResponse) => void;
 }) {
   const { t } = useTranslation();
   const toast = useToast();
@@ -107,9 +158,9 @@ export function TransactionContextMenu({
     });
   }, [state]);
 
-  // Close on outside click, Escape, scroll, resize
+  // Close on outside click, Escape, scroll, resize (desktop menu only — the sheet handles its own)
   useEffect(() => {
-    if (!state) return;
+    if (!state || state.sheet) return;
     const onMouseDown = (e: MouseEvent) => {
       const target = e.target as Node;
       if (menuRef.current?.contains(target) || submenuRef.current?.contains(target)) return;
@@ -138,7 +189,8 @@ export function TransactionContextMenu({
   useEffect(() => {
     if (!submenu) { setQuery(''); return; }
     setQuery('');
-    setTimeout(() => searchRef.current?.focus(), 0);
+    // Don't pop the on-screen keyboard in the sheet
+    if (!state?.sheet) setTimeout(() => searchRef.current?.focus(), 0);
   }, [submenu?.kind]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openSubmenu = (kind: SubmenuKind) => (e: React.MouseEvent) => {
@@ -304,9 +356,9 @@ export function TransactionContextMenu({
         display: 'flex',
         alignItems: 'center',
         gap: 8,
-        padding: '7px 10px',
+        padding: state?.sheet ? '11px 12px' : '7px 10px',
         borderRadius: 'calc(var(--radius) - 4px)',
-        fontSize: 13,
+        fontSize: state?.sheet ? 15 : 13,
         cursor: 'pointer',
         background: hovered === `sub-${key}` ? 'var(--cream)' : 'transparent',
         transition: 'background 0.1s',
@@ -320,7 +372,130 @@ export function TransactionContextMenu({
     </li>
   );
 
-  const menu = state && expense ? createPortal(
+  const submenuContent = (
+    <>
+    {submenu && submenu.kind !== 'wallet' && (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: state?.sheet ? '10px 16px' : '8px 10px', borderBottom: '1px solid var(--cream-dark)' }}>
+        <Search size={13} style={{ color: 'var(--ink-faint)', flexShrink: 0 }} />
+        <input
+          ref={searchRef}
+          style={{ flex: 1, border: 'none', outline: 'none', fontSize: state?.sheet ? 16 : 13, fontFamily: 'var(--font-body)', color: 'var(--ink)', background: 'transparent' }}
+          placeholder={submenu?.kind === 'category' ? t('contextMenu.searchCategories') : t('contextMenu.searchTags')}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+        />
+      </div>
+    )}
+    <ul style={{ listStyle: 'none', padding: 4, margin: 0, overflowY: 'auto' }}>
+      {submenu?.kind === 'category' && (
+        filteredCategories.length === 0
+          ? <li style={{ padding: 10, fontSize: 13, color: 'var(--ink-faint)', textAlign: 'center' }}>{t('contextMenu.noResults')}</li>
+          : filteredCategories.map((cat) => submenuRow(
+              cat.id,
+              cat.id === categoryId,
+              () => handleChangeCategory(cat),
+              <>
+                <CategoryIcon iconName={cat.icon} color={cat.color} size={11} containerSize={22} borderRadius={5} fallbackLetter={cat.name[0]} />
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: cat.id === categoryId ? 'var(--forest)' : 'var(--ink)' }}>{cat.name}</span>
+              </>,
+            ))
+      )}
+      {submenu?.kind === 'tags' && (
+        filteredTags.length === 0
+          ? <li style={{ padding: 10, fontSize: 13, color: 'var(--ink-faint)', textAlign: 'center' }}>{t('contextMenu.noResults')}</li>
+          : filteredTags.map((tg) => submenuRow(
+              tg.id,
+              tagIds.includes(tg.id),
+              () => handleToggleTag(tg),
+              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: tagIds.includes(tg.id) ? 'var(--forest)' : 'var(--ink)' }}>{tg.name}</span>,
+            ))
+      )}
+      {submenu?.kind === 'wallet' && (
+        otherWallets.length === 0
+          ? <li style={{ padding: 10, fontSize: 13, color: 'var(--ink-faint)', textAlign: 'center' }}>{t('contextMenu.noOtherWallets')}</li>
+          : otherWallets.map((w) => submenuRow(
+              w.id,
+              false,
+              () => handleMoveToWallet(w),
+              <>
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.name}</span>
+                <span style={{ fontSize: 11, color: 'var(--ink-faint)', flexShrink: 0 }}>{w.currency}</span>
+              </>,
+            ))
+      )}
+    </ul>
+    </>
+  );
+
+  const submenuTitle = { category: t('contextMenu.changeCategory'), tags: t('contextMenu.tags'), wallet: t('contextMenu.moveToWallet') };
+
+  const sheet = (
+    <BottomSheet open={!!state?.sheet} onClose={onClose}>
+      {expense && (submenu ? (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 8px 6px', borderBottom: submenu.kind === 'wallet' ? '1px solid var(--cream-dark)' : undefined }}>
+            <button className="icon-btn" aria-label={t('contextMenu.back')} onClick={() => setSubmenu(null)}>
+              <ChevronLeft size={20} />
+            </button>
+            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{submenuTitle[submenu.kind]}</span>
+          </div>
+          {submenuContent}
+        </>
+      ) : (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px 12px', borderBottom: '1px solid var(--cream-dark)' }}>
+            <CategoryIcon iconName={expense.category.icon} color={expense.category.color} size={16} containerSize={36} borderRadius={9} fallbackLetter={expense.category.name[0]} />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {expense.description ?? expense.category.name}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{expense.category.name}</div>
+            </div>
+          </div>
+          <div style={{ padding: 8, overflowY: 'auto' }}>
+            {onSelect && (
+              <button className="sheet-item" onClick={() => { onSelect(expense); onClose(); }}>
+                <SquareCheck size={18} style={{ color: 'var(--ink-light)', flexShrink: 0 }} />
+                {t('contextMenu.select')}
+              </button>
+            )}
+            <button className="sheet-item" onClick={() => { setDuplicateDate(localDateStr()); setDuplicateFor(expense); onClose(); }}>
+              <CopyPlus size={18} style={{ color: 'var(--ink-light)', flexShrink: 0 }} />
+              {t('contextMenu.duplicate')}
+            </button>
+            {([
+              ['category', Shapes, t('contextMenu.changeCategory')],
+              ['tags', Tag, t('contextMenu.tags')],
+              ['wallet', Wallet, t('contextMenu.moveToWallet')],
+            ] as const).map(([kind, Icon, label]) => (
+              // Position is unused in the sheet — the submenu replaces the main list
+              <button key={kind} className="sheet-item" onClick={() => setSubmenu({ kind, top: 0, left: 0 })}>
+                <Icon size={18} style={{ color: 'var(--ink-light)', flexShrink: 0 }} />
+                <span style={{ flex: 1 }}>{label}</span>
+                <ChevronRight size={16} style={{ color: 'var(--ink-faint)', flexShrink: 0 }} />
+              </button>
+            ))}
+            <button className="sheet-item" onClick={handleMakeRecurring}>
+              <RefreshCw size={18} style={{ color: 'var(--ink-light)', flexShrink: 0 }} />
+              {t('contextMenu.makeRecurring')}
+            </button>
+            <button className="sheet-item" onClick={handleCopyAmount}>
+              <Copy size={18} style={{ color: 'var(--ink-light)', flexShrink: 0 }} />
+              {t('contextMenu.copyAmount')}
+            </button>
+            <div style={{ height: 1, background: 'var(--cream-dark)', margin: '4px 8px' }} />
+            <button className="sheet-item sheet-item-danger" onClick={() => { setDeleteFor(expense); onClose(); }}>
+              <Trash2 size={18} style={{ flexShrink: 0 }} />
+              {t('common.delete')}
+            </button>
+          </div>
+        </>
+      ))}
+    </BottomSheet>
+  );
+
+  const menu = state && expense && !state.sheet ? createPortal(
     <>
       <div
         ref={menuRef}
@@ -422,57 +597,7 @@ export function TransactionContextMenu({
           }}
           onContextMenu={(e) => e.preventDefault()}
         >
-          {submenu.kind !== 'wallet' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderBottom: '1px solid var(--cream-dark)' }}>
-              <Search size={13} style={{ color: 'var(--ink-faint)', flexShrink: 0 }} />
-              <input
-                ref={searchRef}
-                style={{ flex: 1, border: 'none', outline: 'none', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--ink)', background: 'transparent' }}
-                placeholder={submenu.kind === 'category' ? t('contextMenu.searchCategories') : t('contextMenu.searchTags')}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
-              />
-            </div>
-          )}
-          <ul style={{ listStyle: 'none', padding: 4, margin: 0, overflowY: 'auto' }}>
-            {submenu.kind === 'category' && (
-              filteredCategories.length === 0
-                ? <li style={{ padding: 10, fontSize: 13, color: 'var(--ink-faint)', textAlign: 'center' }}>{t('contextMenu.noResults')}</li>
-                : filteredCategories.map((cat) => submenuRow(
-                    cat.id,
-                    cat.id === categoryId,
-                    () => handleChangeCategory(cat),
-                    <>
-                      <CategoryIcon iconName={cat.icon} color={cat.color} size={11} containerSize={22} borderRadius={5} fallbackLetter={cat.name[0]} />
-                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: cat.id === categoryId ? 'var(--forest)' : 'var(--ink)' }}>{cat.name}</span>
-                    </>,
-                  ))
-            )}
-            {submenu.kind === 'tags' && (
-              filteredTags.length === 0
-                ? <li style={{ padding: 10, fontSize: 13, color: 'var(--ink-faint)', textAlign: 'center' }}>{t('contextMenu.noResults')}</li>
-                : filteredTags.map((tg) => submenuRow(
-                    tg.id,
-                    tagIds.includes(tg.id),
-                    () => handleToggleTag(tg),
-                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: tagIds.includes(tg.id) ? 'var(--forest)' : 'var(--ink)' }}>{tg.name}</span>,
-                  ))
-            )}
-            {submenu.kind === 'wallet' && (
-              otherWallets.length === 0
-                ? <li style={{ padding: 10, fontSize: 13, color: 'var(--ink-faint)', textAlign: 'center' }}>{t('contextMenu.noOtherWallets')}</li>
-                : otherWallets.map((w) => submenuRow(
-                    w.id,
-                    false,
-                    () => handleMoveToWallet(w),
-                    <>
-                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.name}</span>
-                      <span style={{ fontSize: 11, color: 'var(--ink-faint)', flexShrink: 0 }}>{w.currency}</span>
-                    </>,
-                  ))
-            )}
-          </ul>
+          {submenuContent}
         </div>
       )}
     </>,
@@ -482,6 +607,7 @@ export function TransactionContextMenu({
   return (
     <>
       {menu}
+      {sheet}
 
       <Modal
         open={!!duplicateFor}

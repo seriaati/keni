@@ -514,6 +514,8 @@
     "invalidCredentials": "Invalid credentials"
   },
   "contextMenu": {
+    "back": "Back",
+    "select": "Select",
     "duplicate": "Duplicate…",
     "changeCategory": "Change category",
     "tags": "Tags",

@@ -371,7 +371,7 @@ export function DashboardPage() {
                 <Link
                   key={expense.id}
                   to={`/wallets/${activeWallet.id}/expenses/${expense.id}`}
-                  onContextMenu={(e) => ctxMenu.open(e, expense)}
+                  {...ctxMenu.bind(expense)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',

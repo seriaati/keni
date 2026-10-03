@@ -514,6 +514,8 @@
     "invalidCredentials": "憑證無效"
   },
   "contextMenu": {
+    "back": "返回",
+    "select": "選取",
     "duplicate": "建立副本…",
     "changeCategory": "變更類別",
     "tags": "標籤",
