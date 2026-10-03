@@ -5,7 +5,7 @@ import { Modal } from './ui/Modal';
 import { Select } from './ui/Select';
 import { CategoryIcon } from '../lib/categoryIcons';
 import type { TransactionResponse, WalletResponse } from '../lib/types';
-import { fmt, fmtDate } from '../lib/utils';
+import { amountColor, fmtSigned, fmtDate } from '../lib/utils';
 
 interface LinkedTransactionsPickerProps {
   open: boolean;
@@ -177,8 +177,8 @@ export function LinkedTransactionsPicker({
                       {t.category.name} · {fmtDate(t.date)}
                     </div>
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: t.type === 'income' ? 'var(--forest)' : 'var(--ink)', flexShrink: 0 }}>
-                    {t.type === 'income' ? '+' : '-'}{fmt(t.amount, walletCurrency(t.wallet_id))}
+                  <div style={{ fontSize: 13, fontWeight: 600, color: amountColor(t.amount, t.type), flexShrink: 0 }}>
+                    {fmtSigned(t.amount, t.type, walletCurrency(t.wallet_id), true)}
                   </div>
                   {linked && (
                     <span style={{ fontSize: 11, color: 'var(--forest)', fontWeight: 600, flexShrink: 0 }}>Linked</span>

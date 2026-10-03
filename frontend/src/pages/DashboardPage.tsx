@@ -7,7 +7,7 @@ import { expenses as expensesApi, budgets as budgetsApi, categories as categorie
 import { useWallet } from '../contexts/WalletContext';
 import { useAuth } from '../contexts/AuthContext';
 import type { BudgetResponse, CategoryBrief, CategoryResponse, TransactionResponse, TransactionSummary } from '../lib/types';
-import { fmt, fmtRelative, startOfMonth, endOfMonth, startOfWeek, getPeriodDateRange, getPeriodLabel } from '../lib/utils';
+import { amountColor, fmt, fmtSigned, fmtRelative, startOfMonth, endOfMonth, startOfWeek, getPeriodDateRange, getPeriodLabel } from '../lib/utils';
 import type { DashboardPeriod } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
 import { useColor } from '../lib/colors';
@@ -419,8 +419,8 @@ export function DashboardPage() {
                       <span>{fmtRelative(expense.date)}</span>
                     </div>
                   </div>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: expense.type === 'income' ? 'var(--forest)' : 'var(--ink)', flexShrink: 0 }}>
-                    {expense.type === 'income' ? '+' : ''}{fmt(expense.amount, activeWallet.currency)}
+                  <div style={{ fontSize: 15, fontWeight: 600, color: amountColor(expense.amount, expense.type), flexShrink: 0 }}>
+                    {fmtSigned(expense.amount, expense.type, activeWallet.currency)}
                   </div>
                 </Link>
               ))}
@@ -480,7 +480,7 @@ export function DashboardPage() {
                     <ResponsiveContainer width="100%" height={160}>
                       <PieChart>
                         <Pie
-                          data={sorted}
+                          data={sorted.filter((c) => c.total > 0)}
                           dataKey="total"
                           nameKey="category_name"
                           cx="50%"

@@ -11,7 +11,7 @@ import { CategorySelect } from '../components/ui/CategorySelect';
 import { Select } from '../components/ui/Select';
 import type { AICategorizeResponse, CategoryResponse, TransactionLinkBrief, TransactionResponse, CategoryBrief, TagBrief, TagResponse, WalletResponse } from '../lib/types';
 import { LinkedTransactionsPicker } from '../components/LinkedTransactionsPicker';
-import { fmt, fmtDate } from '../lib/utils';
+import { amountColor, fmt, fmtSigned, fmtDate } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
 import { useColor } from '../lib/colors';
 import { useAuth } from '../contexts/AuthContext';
@@ -710,11 +710,11 @@ export function ExpenseDetailPage() {
           ) : (
             <div>
               <div style={{ fontSize: 32, fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>
-                {expense.type === 'income' ? '+' : ''}{fmt(expense.amount, currency)}
+                {fmtSigned(expense.amount, expense.type, currency)}
               </div>
               {fxRate != null && user?.global_currency && (
                 <div style={{ fontSize: 14, color: 'var(--ink-mid)', marginTop: 4 }}>
-                  ≈ {expense.type === 'income' ? '+' : ''}{fmt(expense.amount * fxRate, user.global_currency)}
+                  ≈ {fmtSigned(expense.amount * fxRate, expense.type, user.global_currency)}
                 </div>
               )}
             </div>
@@ -924,8 +924,8 @@ export function ExpenseDetailPage() {
                           )}
                         </div>
                       </Link>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: linked.type === 'income' ? 'var(--forest)' : 'var(--ink)', flexShrink: 0 }}>
-                        {linked.type === 'income' ? '+' : '-'}{fmt(linked.amount, linkedWalletCurrency)}
+                      <div style={{ fontSize: 14, fontWeight: 600, color: amountColor(linked.amount, linked.type), flexShrink: 0 }}>
+                        {fmtSigned(linked.amount, linked.type, linkedWalletCurrency, true)}
                       </div>
                       {editing && (
                         <button

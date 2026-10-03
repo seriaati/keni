@@ -12,7 +12,7 @@ import { Modal } from '../components/ui/Modal';
 import { CategorySelect } from '../components/ui/CategorySelect';
 import { MultiCategorySelect } from '../components/ui/MultiCategorySelect';
 import type { CategoryBrief, CategoryResponse, TransactionListResponse, TransactionResponse, TagResponse, TagBrief, WalletSummary } from '../lib/types';
-import { fmt, fmtRelative } from '../lib/utils';
+import { amountColor, fmt, fmtSigned, fmtRelative } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
 import { useColor } from '../lib/colors';
 import { getExchangeRate } from '../lib/fx';
@@ -1126,8 +1126,7 @@ function ExpenseRow({
   const [isHovered, setIsHovered] = useState(false);
   const convertedAmount = fxRate != null ? expense.amount * fxRate : null;
   const hasConversion = convertedAmount != null && globalCurrency != null;
-  const sign = expense.type === 'income' ? '+' : '';
-  const amountColor = expense.type === 'income' ? 'var(--forest)' : 'var(--ink)';
+  const color = amountColor(expense.amount, expense.type);
 
   // Long-press state for mobile multi-select entry
   const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1270,9 +1269,9 @@ function ExpenseRow({
           <>
             <div
               className={switching ? 'amount-switching' : ''}
-              style={{ fontSize: 15, fontWeight: 600, color: amountColor }}
+              style={{ fontSize: 15, fontWeight: 600, color }}
             >
-              {sign}{showConverted ? fmt(convertedAmount!, globalCurrency!) : fmt(expense.amount, currency)}
+              {showConverted ? fmtSigned(convertedAmount!, expense.type, globalCurrency!) : fmtSigned(expense.amount, expense.type, currency)}
             </div>
             <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>
               {fmtRelative(expense.date)}
@@ -1280,8 +1279,8 @@ function ExpenseRow({
           </>
         ) : (
           <>
-            <div style={{ fontSize: 15, fontWeight: 600, color: amountColor }}>
-              {sign}{fmt(expense.amount, currency)}
+            <div style={{ fontSize: 15, fontWeight: 600, color }}>
+              {fmtSigned(expense.amount, expense.type, currency)}
             </div>
             <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>
               {hasConversion

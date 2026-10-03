@@ -18,7 +18,7 @@ import {
 import { expenses as expensesApi, categories as categoriesApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
 import type { CategoryResponse, TransactionAnalytics, TransactionResponse } from '../lib/types';
-import { fmt, fmtDateShort } from '../lib/utils';
+import { amountColor, fmt, fmtSigned, fmtDateShort } from '../lib/utils';
 import { DatePicker } from '../components/ui/DatePicker';
 import { Select } from '../components/ui/Select';
 import { Modal } from '../components/ui/Modal';
@@ -934,8 +934,8 @@ function DayDrawer({
                   {tx.category.name}
                 </div>
               </div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: tx.type === 'income' ? 'var(--forest)' : 'var(--ink)', flexShrink: 0 }}>
-                {tx.type === 'income' ? '+' : ''}{fmt(tx.amount, currency)}
+              <div style={{ fontSize: 14, fontWeight: 600, color: amountColor(tx.amount, tx.type), flexShrink: 0 }}>
+                {fmtSigned(tx.amount, tx.type, currency)}
               </div>
             </div>
           ))

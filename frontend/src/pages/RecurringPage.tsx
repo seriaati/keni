@@ -10,7 +10,7 @@ import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
 import { DatePicker } from '../components/ui/DatePicker';
 import type { CategoryResponse, RecurringTransactionResponse } from '../lib/types';
-import { fmt, fmtDate, getFrequencies, localDateStr } from '../lib/utils';
+import { amountColor, fmtSigned, fmtDate, getFrequencies, localDateStr } from '../lib/utils';
 
 export function RecurringPage() {
   const { t } = useTranslation();
@@ -252,8 +252,8 @@ export function RecurringPage() {
                 </div>
               </div>
 
-              <div style={{ fontSize: 16, fontWeight: 600, color: item.type === 'income' ? 'var(--forest)' : 'var(--ink)', flexShrink: 0 }}>
-                {item.type === 'income' ? '+' : ''}{fmt(item.amount, activeWallet.currency)}
+              <div style={{ fontSize: 16, fontWeight: 600, color: amountColor(item.amount, item.type), flexShrink: 0 }}>
+                {fmtSigned(item.amount, item.type, activeWallet.currency)}
               </div>
 
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
