@@ -440,3 +440,46 @@ textarea.input {
 .avatar-sm { width: 28px; height: 28px; font-size: 11px; }
 .avatar-md { width: 36px; height: 36px; font-size: 13px; }
 .avatar-lg { width: 48px; height: 48px; font-size: 16px; }
+
+/* ===== BOTTOM SHEET ===== */
+.bottom-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: oklch(18% 0.02 80 / 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+  transition: opacity 0.26s ease;
+  animation: fadeIn 0.2s ease;
+}
+
+.bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -8px 32px oklch(18% 0.02 80 / 0.12), 0 -2px 8px oklch(18% 0.02 80 / 0.08);
+  z-index: 1001;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+  max-height: 85dvh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUpSheet 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bottom-sheet-handle {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0 8px;
+  touch-action: none;
+  cursor: grab;
+  flex-shrink: 0;
+}
+
+.bottom-sheet-handle span {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--sand);
+}
