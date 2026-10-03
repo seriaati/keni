@@ -347,6 +347,7 @@
     "sectionDescription": "Description",
     "sectionTags": "Tags",
     "sectionSubTransactions": "Sub-transactions",
+    "addSubTransaction": "Add sub-transaction",
     "sectionLinked": "Linked transactions",
     "addLink": "Add link",
     "descriptionPlaceholder": "Add a description…",

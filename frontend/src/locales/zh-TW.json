@@ -347,6 +347,7 @@
     "sectionDescription": "描述",
     "sectionTags": "標籤",
     "sectionSubTransactions": "子交易",
+    "addSubTransaction": "新增子交易",
     "sectionLinked": "關聯交易",
     "addLink": "新增關聯",
     "descriptionPlaceholder": "新增描述…",

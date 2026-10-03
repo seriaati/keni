@@ -361,6 +361,7 @@ export function ExpenseDetailPage() {
   const [allWallets, setAllWallets] = useState<WalletResponse[]>([]);
   const [showLinkPicker, setShowLinkPicker] = useState(false);
   const [pendingLinks, setPendingLinks] = useState<TransactionLinkBrief[]>([]);
+  const [newChildren, setNewChildren] = useState<{ key: number; description: string; amount: string; category_id: string }[]>([]);
   const ctxMenu = useTransactionContextMenu();
   const tagMenu = useEditContextMenu<TagBrief>();
   const [editTag, setEditTag] = useState<TagBrief | null>(null);
@@ -418,6 +419,7 @@ export function ExpenseDetailPage() {
   const handleStartEdit = () => {
     if (!expense) return;
     setPendingLinks(expense.linked_transactions);
+    setNewChildren([]);
     setForm({
       amount: String(expense.amount),
       description: expense.description ?? '',
@@ -452,10 +454,26 @@ export function ExpenseDetailPage() {
         ...toAdd.map((id) => transactionLinks.add(expenseId, id)),
         ...toRemove.map((id) => transactionLinks.remove(expenseId, id)),
       ]);
+      const childrenToCreate = newChildren.filter((c) => c.amount !== '' && c.category_id);
+      for (const c of childrenToCreate) {
+        await expensesApi.create(form.wallet_id, {
+          group_id: expenseId,
+          amount: Number(c.amount),
+          description: c.description || undefined,
+          category_id: c.category_id,
+          type: form.type,
+          date: form.date ? new Date(form.date).toISOString() : undefined,
+        });
+      }
+      setNewChildren([]);
       setEditing(false);
       toast(t('expenseDetail.toastUpdated'), 'success');
       if (walletChanged) {
         navigate(`/wallets/${form.wallet_id}/expenses/${expenseId}`, { replace: true });
+        return;
+      }
+      if (childrenToCreate.length > 0) {
+        setRefreshKey((k) => k + 1);
         return;
       }
       setExpense({ ...updated, linked_transactions: pendingLinks });
@@ -841,6 +859,14 @@ export function ExpenseDetailPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
               <Layers size={13} style={{ color: 'var(--ink-faint)' }} />
               <span style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{t('expenseDetail.sectionSubTransactions')}</span>
+              {editing && (
+                <button
+                  onClick={() => setNewChildren((prev) => [...prev, { key: Date.now(), description: '', amount: '', category_id: form.category_id }])}
+                  style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--forest)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 6 }}
+                >
+                  <Plus size={12} /> {t('expenseDetail.addSubTransaction')}
+                </button>
+              )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {expense.children.map((child, i) => (
@@ -878,6 +904,43 @@ export function ExpenseDetailPage() {
                   </div>
                 </Link>
               ))}
+              {editing && newChildren.map((c) => {
+                const setChild = (patch: Partial<typeof c>) =>
+                  setNewChildren((prev) => prev.map((x) => (x.key === c.key ? { ...x, ...patch } : x)));
+                return (
+                  <div key={c.key} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 0', borderTop: '1px solid var(--cream)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input
+                        className="input"
+                        value={c.description}
+                        onChange={(e) => setChild({ description: e.target.value })}
+                        placeholder={t('expenseDetail.descriptionPlaceholder')}
+                        style={{ flex: 1, minWidth: 0 }}
+                      />
+                      <input
+                        className="input"
+                        type="number"
+                        step="0.01"
+                        value={c.amount}
+                        onChange={(e) => setChild({ amount: e.target.value })}
+                        placeholder="0.00"
+                        style={{ width: 110 }}
+                      />
+                      <button
+                        onClick={() => setNewChildren((prev) => prev.filter((x) => x.key !== c.key))}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-faint)', padding: 2, borderRadius: 4, display: 'flex', alignItems: 'center' }}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <CategorySelect
+                      value={c.category_id}
+                      categories={categories}
+                      onSelect={(cat) => setChild({ category_id: cat.id })}
+                    />
+                  </div>
+                );
+              })}
             </div>
             <div style={{ borderTop: '1px solid var(--cream-darker)', marginTop: 8, paddingTop: 10, display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--ink-light)' }}>
               <span>{t('expenseDetail.itemsCount', { count: expense.children.length, plural: expense.children.length !== 1 ? 's' : '' })}</span>

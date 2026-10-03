@@ -199,6 +199,7 @@ export const expenses = {
     date?: string;
     tag_ids?: string[];
     tag_names?: string[];
+    group_id?: string;
   }) =>
     request<TransactionResponse>(`/wallets/${walletId}/transactions`, {
       method: 'POST',
