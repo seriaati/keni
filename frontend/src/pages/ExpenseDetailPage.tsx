@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CornerUpLeft, Layers, Pencil, Trash2, Check, X, Plus, Search, Sparkles } from 'lucide-react';
+import { ArrowLeft, CornerUpLeft, Layers, Link2, Pencil, Trash2, Check, X, Plus, Search, Sparkles } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { expenses as expensesApi, categories as categoriesApi, tags as tagsApi, wallets as walletsApi, transactionLinks } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
@@ -970,7 +970,10 @@ export function ExpenseDetailPage() {
         {(expense.linked_transactions.length > 0 || editing) && (
           <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('expenseDetail.sectionLinked')}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Link2 size={13} style={{ color: 'var(--ink-faint)' }} />
+                <span style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{t('expenseDetail.sectionLinked')}</span>
+              </div>
               {editing && (
                 <button
                   onClick={() => setShowLinkPicker(true)}
