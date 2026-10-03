@@ -25,6 +25,8 @@ import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
 import { MultiCategorySelect } from '../components/ui/MultiCategorySelect';
 import { CategoryIcon } from '../lib/categoryIcons';
+import { resolveColor } from '../lib/colors';
+import { useTheme } from '../lib/theme';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 
 type Preset = 'this_month' | 'last_month' | 'last_3_months' | 'this_year' | 'custom';
@@ -128,6 +130,7 @@ interface HeatTip {
 
 export function InsightsPage() {
   const { t } = useTranslation();
+  const theme = useTheme();
   const { activeWallet } = useWallet();
   const navigate = useNavigate();
   const currency = activeWallet?.currency ?? 'USD';
@@ -290,10 +293,10 @@ export function InsightsPage() {
       byDay.set(r.day, row);
     }
     const data = [...byDay.values()].sort((a, b) => String(a.day).localeCompare(String(b.day)));
-    const cats = top.map((c, i) => ({ id: c.id as string | null, name: c.name, color: c.color ?? PALETTE[i % PALETTE.length] }));
+    const cats = top.map((c, i) => ({ id: c.id as string | null, name: c.name, color: resolveColor(c.color, theme) ?? PALETTE[i % PALETTE.length] }));
     if (hasOther) cats.push({ id: null, name: t('insights.other'), color: 'var(--ink-light)' });
     return { areaData: data, areaCategories: cats };
-  }, [analytics, t]);
+  }, [analytics, t, theme]);
 
   // Calendar heatmap: GitHub-style week columns over the range
   const heatmap = useMemo(() => {

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { Pipette } from 'lucide-react';
-import { COLOR_GROUPS } from '../../lib/colors';
+import { COLOR_GROUPS, isPaletteColor, useColor } from '../../lib/colors';
 import type { ColorGroup } from '../../lib/colors';
 
 type Props = {
@@ -12,13 +12,14 @@ export function ColorPicker({ value, onChange }: Props) {
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [customInput, setCustomInput] = useState('');
   const nativePickerRef = useRef<HTMLInputElement>(null);
+  const color = useColor();
 
   const handleGroupClick = (group: ColorGroup) => {
     if (expandedGroup === group.label) {
       setExpandedGroup(null);
     } else {
       setExpandedGroup(group.label);
-      onChange(group.shades[0]);
+      onChange(group.shades[0].id);
     }
   };
 
@@ -36,7 +37,7 @@ export function ColorPicker({ value, onChange }: Props) {
     onChange(v);
   };
 
-  const isCustom = value !== null && !COLOR_GROUPS.some((g) => g.shades.includes(value));
+  const isCustom = value !== null && !isPaletteColor(value);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -48,7 +49,7 @@ export function ColorPicker({ value, onChange }: Props) {
             width: 28,
             height: 28,
             borderRadius: '50%',
-            background: 'white',
+            background: 'var(--surface)',
             border: `2.5px solid ${value === null ? 'var(--ink-mid)' : 'var(--cream-darker)'}`,
             cursor: 'pointer',
             position: 'relative',
@@ -63,8 +64,8 @@ export function ColorPicker({ value, onChange }: Props) {
         </button>
 
         {COLOR_GROUPS.map((group) => {
-          const representative = group.shades[0];
-          const groupSelected = group.shades.includes(value ?? '');
+          const representative = color(group.shades[0].id) ?? undefined;
+          const groupSelected = group.shades.some((c) => c.id === value);
           return (
             <button
               key={group.label}
@@ -91,7 +92,7 @@ export function ColorPicker({ value, onChange }: Props) {
             width: 28,
             height: 28,
             borderRadius: '50%',
-            background: isCustom ? (value ?? 'white') : 'white',
+            background: isCustom ? (value ?? 'var(--surface)') : 'var(--surface)',
             border: `2.5px solid ${isCustom ? 'var(--ink-mid)' : 'var(--cream-darker)'}`,
             cursor: 'pointer',
             display: 'flex',
@@ -132,15 +133,15 @@ export function ColorPicker({ value, onChange }: Props) {
             </span>
             {group.shades.map((shade) => (
               <button
-                key={shade}
-                title={shade}
-                onClick={() => { onChange(shade); setExpandedGroup(null); }}
+                key={shade.id}
+                title={shade.id}
+                onClick={() => { onChange(shade.id); setExpandedGroup(null); }}
                 style={{
                   width: 28,
                   height: 28,
                   borderRadius: '50%',
-                  background: shade,
-                  border: `2.5px solid ${value === shade ? 'var(--ink-mid)' : 'transparent'}`,
+                  background: color(shade.id) ?? undefined,
+                  border: `2.5px solid ${value === shade.id ? 'var(--ink-mid)' : 'transparent'}`,
                   cursor: 'pointer',
                   flexShrink: 0,
                   transition: 'border-color 0.12s',

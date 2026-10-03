@@ -10,6 +10,7 @@ import type { BudgetResponse, CategoryResponse, TransactionResponse, Transaction
 import { fmt, fmtRelative, startOfMonth, endOfMonth, startOfWeek, getPeriodDateRange, getPeriodLabel } from '../lib/utils';
 import type { DashboardPeriod } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
+import { useColor } from '../lib/colors';
 import type { LayoutOutletContext } from '../components/Layout';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { TransactionContextMenu, useTransactionContextMenu } from '../components/TransactionContextMenu';
@@ -27,6 +28,7 @@ const FALLBACK_COLORS = [
 
 export function DashboardPage() {
   const { t } = useTranslation();
+  const color = useColor();
   const { user } = useAuth();
   const { activeWallet } = useWallet();
   const { expenseAddedKey } = useOutletContext<LayoutOutletContext>();
@@ -493,7 +495,7 @@ export function DashboardPage() {
                               startAngle={props.startAngle}
                               endAngle={props.endAngle}
                               cornerRadius={props.cornerRadius}
-                              fill={sorted[props.index]?.category_color ?? FALLBACK_COLORS[props.index % FALLBACK_COLORS.length]}
+                              fill={color(sorted[props.index]?.category_color) ?? FALLBACK_COLORS[props.index % FALLBACK_COLORS.length]}
                               style={{ cursor: 'pointer' }}
                             />
                           )}
@@ -510,7 +512,7 @@ export function DashboardPage() {
                           onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
                           onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
                         >
-                          <div style={{ width: 8, height: 8, borderRadius: 2, background: cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length], flexShrink: 0, alignSelf: 'center' }} />
+                          <div style={{ width: 8, height: 8, borderRadius: 2, background: color(cat.category_color) ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length], flexShrink: 0, alignSelf: 'center' }} />
                           <span style={{ fontSize: 13, color: 'var(--ink-mid)', flex: 1 }}>{cat.category_name}</span>
                           <span style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{total > 0 ? ((cat.total / total) * 100).toFixed(1) : 0}%</span>
                           <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)' }}>{fmt(cat.total, activeWallet.currency)}</span>
@@ -611,7 +613,7 @@ export function DashboardPage() {
                                 startAngle={props.startAngle}
                                 endAngle={props.endAngle}
                                 cornerRadius={props.cornerRadius}
-                                fill={sorted[props.index]?.category_color ?? FALLBACK_COLORS[props.index % FALLBACK_COLORS.length]}
+                                fill={color(sorted[props.index]?.category_color) ?? FALLBACK_COLORS[props.index % FALLBACK_COLORS.length]}
                                 style={{ cursor: 'pointer' }}
                               />
                             )}
@@ -628,7 +630,7 @@ export function DashboardPage() {
                             onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
                             onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
                           >
-                            <div style={{ width: 8, height: 8, borderRadius: 2, background: cat.category_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length], flexShrink: 0, alignSelf: 'center' }} />
+                            <div style={{ width: 8, height: 8, borderRadius: 2, background: color(cat.category_color) ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length], flexShrink: 0, alignSelf: 'center' }} />
                             <span style={{ fontSize: 13, color: 'var(--ink-mid)', flex: 1 }}>{cat.category_name}</span>
                             <span style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{total > 0 ? ((cat.total / total) * 100).toFixed(1) : 0}%</span>
                             <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--forest)' }}>{fmt(cat.total, activeWallet.currency)}</span>
@@ -659,13 +661,14 @@ export function DashboardPage() {
 }
 
 function PieTooltip({ active, payload, total, currency }: { active?: boolean; payload?: { name: string; value: number; payload: { category_color: string | null } }[]; total: number; currency: string }) {
+  const color = useColor();
   if (!active || !payload?.length) return null;
   const { name, value, payload: { category_color } } = payload[0];
   const pct = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
   return (
-    <div style={{ background: 'white', border: '1px solid var(--cream-darker)', borderRadius: 8, padding: '8px 12px', fontSize: 13, boxShadow: '0 2px 8px oklch(0% 0 0 / 0.08)' }}>
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--cream-darker)', borderRadius: 8, padding: '8px 12px', fontSize: 13, boxShadow: 'var(--shadow)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-        {category_color && <div style={{ width: 8, height: 8, borderRadius: 2, background: category_color, flexShrink: 0 }} />}
+        {category_color && <div style={{ width: 8, height: 8, borderRadius: 2, background: color(category_color) ?? undefined, flexShrink: 0 }} />}
         <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{name}</span>
       </div>
       <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>

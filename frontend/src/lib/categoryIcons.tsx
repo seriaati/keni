@@ -126,6 +126,7 @@ import {
   QrCode,
   type LucideIcon,
 } from 'lucide-react';
+import { useColor } from './colors';
 
 export const CATEGORY_ICONS: { name: string; icon: LucideIcon; label: string }[] = [
   { name: 'Utensils', icon: Utensils, label: 'Food' },
@@ -301,7 +302,8 @@ export function CategoryIcon({
   fallbackLetter,
 }: CategoryIconProps) {
   const IconComponent = iconName ? ICON_MAP.get(iconName) : undefined;
-  const iconColor = iconColorForBg(color);
+  const bg = useColor()(color);
+  const iconColor = iconColorForBg(bg);
 
   return (
     <div
@@ -309,7 +311,7 @@ export function CategoryIcon({
         width: containerSize,
         height: containerSize,
         borderRadius,
-        background: color ?? 'var(--cream-darker)',
+        background: bg ?? 'var(--cream-darker)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

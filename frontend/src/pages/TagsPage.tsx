@@ -6,8 +6,10 @@ import { useToast } from '../components/ui/Toast';
 import { Modal } from '../components/ui/Modal';
 import { ColorPicker } from '../components/ui/ColorPicker';
 import type { TagResponse } from '../lib/types';
+import { useColor } from '../lib/colors';
 
 export function TagsPage() {
+  const color = useColor();
   const { t } = useTranslation();
   const toast = useToast();
   const [tagList, setTagList] = useState<TagResponse[]>([]);
@@ -135,12 +137,12 @@ export function TagsPage() {
                 gap: 8,
                 padding: '6px 12px 6px 10px',
                 borderRadius: 100,
-                background: tag.color ? `${tag.color}14` : 'var(--cream-dark)',
-                border: `1.5px solid ${tag.color ? `${tag.color}50` : 'var(--cream-darker)'}`,
+                background: color(tag.color) ? `${color(tag.color)}14` : 'var(--cream-dark)',
+                border: `1.5px solid ${color(tag.color) ? `${color(tag.color)}50` : 'var(--cream-darker)'}`,
                 color: 'var(--ink-mid)',
               }}
             >
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: tag.color ?? 'var(--sand-dark)', flexShrink: 0 }} />
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: color(tag.color) ?? 'var(--sand-dark)', flexShrink: 0 }} />
               <span style={{ fontSize: 13, fontWeight: 500 }}>{tag.name}</span>
               <button
                 className="icon-btn"

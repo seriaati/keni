@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import operator
+import re
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -28,6 +29,7 @@ from app.models.tag import Tag
 from app.models.transaction import Transaction, TransactionLink, TransactionTag
 from app.models.user import User
 from app.models.wallet import Wallet
+from app.schemas.color import COLOR_PATTERN
 from app.services.category_tag import find_or_create_category, find_or_create_tag
 from app.services.mcp_oauth_provider import KeniOAuthProvider
 
@@ -341,6 +343,10 @@ async def list_categories() -> list[dict[str, Any]]:
     return []
 
 
+_COLOR_RE = re.compile(COLOR_PATTERN)
+_COLOR_ERROR = "color must be a palette id like 'green-1' or a hex code like '#rrggbb'"
+
+
 def _category_to_dict(c: Category) -> dict[str, Any]:
     return {
         "id": str(c.id),
@@ -361,15 +367,15 @@ async def create_category(
     Args:
         name: Category name (1-100 characters).
         icon: Optional icon name (max 50 characters).
-        color: Optional color value (max 20 characters).
+        color: Optional color: a palette id such as 'green-1' (adapts to light/dark theme) or a custom '#rrggbb' hex. Palette groups: green, blue, teal, purple, pink, red, orange, yellow, slate, brown, mauve, sage, neutral; shades 1-5 (e.g. 'teal-3').
     """
     user = await _get_authenticated_user()
     if not name.strip() or len(name) > 100:
         return {"error": "name must be 1-100 characters"}
     if icon is not None and len(icon) > 50:
         return {"error": "icon must be at most 50 characters"}
-    if color is not None and len(color) > 20:
-        return {"error": "color must be at most 20 characters"}
+    if color is not None and not _COLOR_RE.match(color):
+        return {"error": _COLOR_ERROR}
 
     async for session in get_session():
         cat = Category(user_id=user.id, name=name, icon=icon, color=color, is_system=False)
@@ -393,7 +399,7 @@ async def update_category(  # ruff: ignore[too-many-return-statements]
         category_id: UUID of the category to update.
         name: New category name (1-100 characters).
         icon: New icon name (max 50 characters).
-        color: New color value (max 20 characters).
+        color: New color: a palette id such as 'green-1' (adapts to light/dark theme) or a custom '#rrggbb' hex. Palette groups: green, blue, teal, purple, pink, red, orange, yellow, slate, brown, mauve, sage, neutral; shades 1-5 (e.g. 'teal-3').
     """
     user = await _get_authenticated_user()
     c_id = _parse_uuid(category_id, "category_id")
@@ -403,8 +409,8 @@ async def update_category(  # ruff: ignore[too-many-return-statements]
         return {"error": "name must be 1-100 characters"}
     if icon is not None and len(icon) > 50:
         return {"error": "icon must be at most 50 characters"}
-    if color is not None and len(color) > 20:
-        return {"error": "color must be at most 20 characters"}
+    if color is not None and not _COLOR_RE.match(color):
+        return {"error": _COLOR_ERROR}
 
     async for session in get_session():
         result = await session.exec(
@@ -508,13 +514,13 @@ async def create_tag(name: str, color: str | None = None) -> dict[str, Any]:
 
     Args:
         name: Tag name (1-100 characters).
-        color: Optional color value (max 20 characters).
+        color: Optional color: a palette id such as 'green-1' (adapts to light/dark theme) or a custom '#rrggbb' hex. Palette groups: green, blue, teal, purple, pink, red, orange, yellow, slate, brown, mauve, sage, neutral; shades 1-5 (e.g. 'teal-3').
     """
     user = await _get_authenticated_user()
     if not name.strip() or len(name) > 100:
         return {"error": "name must be 1-100 characters"}
-    if color is not None and len(color) > 20:
-        return {"error": "color must be at most 20 characters"}
+    if color is not None and not _COLOR_RE.match(color):
+        return {"error": _COLOR_ERROR}
 
     async for session in get_session():
         tag = Tag(user_id=user.id, name=name, color=color)
@@ -535,7 +541,7 @@ async def update_tag(
     Args:
         tag_id: UUID of the tag to update.
         name: New tag name (1-100 characters).
-        color: New color value (max 20 characters).
+        color: New color: a palette id such as 'green-1' (adapts to light/dark theme) or a custom '#rrggbb' hex. Palette groups: green, blue, teal, purple, pink, red, orange, yellow, slate, brown, mauve, sage, neutral; shades 1-5 (e.g. 'teal-3').
     """
     user = await _get_authenticated_user()
     t_id = _parse_uuid(tag_id, "tag_id")
@@ -543,8 +549,8 @@ async def update_tag(
         return {"error": t_id}
     if name is not None and (not name.strip() or len(name) > 100):
         return {"error": "name must be 1-100 characters"}
-    if color is not None and len(color) > 20:
-        return {"error": "color must be at most 20 characters"}
+    if color is not None and not _COLOR_RE.match(color):
+        return {"error": _COLOR_ERROR}
 
     async for session in get_session():
         result = await session.exec(select(Tag).where(Tag.id == t_id, Tag.user_id == user.id))

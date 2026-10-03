@@ -13,6 +13,7 @@ import type { AICategorizeResponse, CategoryResponse, TransactionLinkBrief, Tran
 import { LinkedTransactionsPicker } from '../components/LinkedTransactionsPicker';
 import { fmt, fmtDate } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
+import { useColor } from '../lib/colors';
 import { useAuth } from '../contexts/AuthContext';
 import { getExchangeRate } from '../lib/fx';
 import { TransactionContextMenu, useTransactionContextMenu } from '../components/TransactionContextMenu';
@@ -40,6 +41,7 @@ interface TagPickerProps {
 }
 
 function TagPicker({ selectedIds, allTags, onAdd, onRemove, onCreateAndAdd }: TagPickerProps) {
+  const color = useColor();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [creating, setCreating] = useState(false);
@@ -217,7 +219,7 @@ function TagPicker({ selectedIds, allTags, onAdd, onRemove, onCreateAndAdd }: Ta
                   width: 8,
                   height: 8,
                   borderRadius: '50%',
-                  background: tag.color ?? 'var(--ink-faint)',
+                  background: color(tag.color) ?? 'var(--ink-faint)',
                   flexShrink: 0,
                 }}
               />
@@ -272,8 +274,8 @@ function TagPicker({ selectedIds, allTags, onAdd, onRemove, onCreateAndAdd }: Ta
                 borderRadius: 100,
                 fontSize: 12,
                 fontFamily: 'var(--font-body)',
-                background: tag.color ? `${tag.color}14` : 'var(--cream-dark)',
-                border: `1.5px solid ${tag.color ? `${tag.color}50` : 'var(--sand)'}`,
+                background: color(tag.color) ? `${color(tag.color)}14` : 'var(--cream-dark)',
+                border: `1.5px solid ${color(tag.color) ? `${color(tag.color)}50` : 'var(--sand)'}`,
                 color: 'var(--ink-mid)',
               }}
             >
@@ -333,6 +335,7 @@ function TagPicker({ selectedIds, allTags, onAdd, onRemove, onCreateAndAdd }: Ta
 }
 
 export function ExpenseDetailPage() {
+  const color = useColor();
   const { t } = useTranslation();
   const { walletId, expenseId } = useParams<{ walletId: string; expenseId: string }>();
   const navigate = useNavigate();
@@ -810,7 +813,7 @@ export function ExpenseDetailPage() {
                   key={tag.id}
                   to={`/wallets/${walletId}?tag_ids=${tag.id}`}
                   className="chip"
-                  style={{ background: tag.color ? `${tag.color}14` : undefined, borderColor: tag.color ? `${tag.color}50` : undefined, textDecoration: 'none', color: 'inherit' }}
+                  style={{ background: color(tag.color) ? `${color(tag.color)}14` : undefined, borderColor: color(tag.color) ? `${color(tag.color)}50` : undefined, textDecoration: 'none', color: 'inherit' }}
                   onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.textDecoration = 'underline'; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.textDecoration = 'none'; }}
                 >

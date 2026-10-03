@@ -7,6 +7,7 @@ import { Modal } from '../components/ui/Modal';
 import { ColorPicker } from '../components/ui/ColorPicker';
 import type { CategoryResponse } from '../lib/types';
 import { CATEGORY_ICONS, CategoryIcon, iconColorForBg } from '../lib/categoryIcons';
+import { useColor } from '../lib/colors';
 
 type FormState = {
   name: string;
@@ -28,6 +29,7 @@ function CategoryForm({
   filteredIcons: typeof CATEGORY_ICONS;
 }) {
   const { t } = useTranslation();
+  const color = useColor();
   return (
     <>
       <div className="input-group">
@@ -62,7 +64,7 @@ function CategoryForm({
                 height: 36,
                 borderRadius: 8,
                 border: `2px solid ${form.icon === '' ? 'var(--forest)' : 'var(--cream-darker)'}`,
-                background: form.icon === '' ? (form.color ?? 'var(--cream-darker)') : 'white',
+                background: form.icon === '' ? (color(form.color) ?? 'var(--cream-darker)') : 'var(--surface)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -78,7 +80,7 @@ function CategoryForm({
           )}
           {filteredIcons.map(({ name, icon: Icon, label }) => {
             const selected = form.icon === name;
-            const iconColor = selected ? iconColorForBg(form.color) : 'var(--ink-mid)';
+            const iconColor = selected ? iconColorForBg(color(form.color)) : 'var(--ink-mid)';
             return (
               <button
                 key={name}
@@ -89,7 +91,7 @@ function CategoryForm({
                   height: 36,
                   borderRadius: 8,
                   border: `2px solid ${selected ? 'var(--forest)' : 'var(--cream-darker)'}`,
-                  background: selected ? (form.color ?? 'var(--cream-darker)') : 'white',
+                  background: selected ? (color(form.color) ?? 'var(--cream-darker)') : 'var(--surface)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',

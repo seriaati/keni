@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { createPortal } from 'react-dom';
 import { Plus, Search, X } from 'lucide-react';
 import type { TagResponse } from '../../lib/types';
+import { useColor } from '../../lib/colors';
 
 export function TagMultiSelect({
   value,
@@ -12,6 +13,7 @@ export function TagMultiSelect({
   onChange: (v: string) => void;
   allTags: TagResponse[];
 }) {
+  const color = useColor();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [dropPos, setDropPos] = useState<{ top: number; left: number; width: number; openUp: boolean } | null>(null);
@@ -148,7 +150,7 @@ export function TagMultiSelect({
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                 onMouseDown={(e) => { e.preventDefault(); addTag(tag.name); }}
               >
-                {tag.color && <span style={{ width: 8, height: 8, borderRadius: '50%', background: tag.color, flexShrink: 0 }} />}
+                {color(tag.color) && <span style={{ width: 8, height: 8, borderRadius: '50%', background: color(tag.color) ?? undefined, flexShrink: 0 }} />}
                 <span style={{ color: 'var(--ink)' }}>{tag.name}</span>
               </li>
             ))}

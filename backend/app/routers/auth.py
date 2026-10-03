@@ -34,7 +34,9 @@ async def _get_signups_enabled(session: AsyncSession) -> bool:
 
 
 def _create_others_category(user_id: uuid.UUID, session: AsyncSession) -> None:
-    category = Category(user_id=user_id, name="Others", icon="tag", color="#9CA3AF", is_system=True)
+    category = Category(
+        user_id=user_id, name="Others", icon="tag", color="neutral-1", is_system=True
+    )
     session.add(category)
 
 

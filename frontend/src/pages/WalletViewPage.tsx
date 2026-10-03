@@ -14,6 +14,7 @@ import { MultiCategorySelect } from '../components/ui/MultiCategorySelect';
 import type { CategoryResponse, TransactionListResponse, TransactionResponse, TagResponse, TagBrief, WalletSummary } from '../lib/types';
 import { fmt, fmtRelative } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
+import { useColor } from '../lib/colors';
 import { getExchangeRate } from '../lib/fx';
 import type { LayoutOutletContext } from '../components/Layout';
 import { TransactionContextMenu, useTransactionContextMenu } from '../components/TransactionContextMenu';
@@ -21,6 +22,7 @@ import { useIsMobile } from '../lib/useIsMobile';
 
 
 export function WalletViewPage() {
+  const color = useColor();
   const { t } = useTranslation();
   const { walletId } = useParams<{ walletId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -699,14 +701,14 @@ export function WalletViewPage() {
                     padding: '3px 10px', borderRadius: 100, fontSize: 12,
                     fontWeight: active ? 600 : 500,
                     cursor: 'pointer', transition: 'all 0.15s',
-                    border: `1.5px solid ${tag.color ? (active ? tag.color : `${tag.color}50`) : (active ? 'var(--ink-light)' : 'var(--cream-darker)')}`,
-                    background: tag.color ? `${tag.color}14` : 'var(--cream-dark)',
+                    border: `1.5px solid ${color(tag.color) ? (active ? color(tag.color) : `${color(tag.color)}50`) : (active ? 'var(--ink-light)' : 'var(--cream-darker)')}`,
+                    background: color(tag.color) ? `${color(tag.color)}14` : 'var(--cream-dark)',
                     color: active ? 'var(--ink)' : 'var(--ink-mid)',
                   }}
                 >
                   {active
-                    ? <Check size={13} strokeWidth={2.1} style={{ color: tag.color ?? 'var(--ink)', flexShrink: 0, display: 'block' }} />
-                    : <span style={{ width: 6, height: 6, borderRadius: '50%', background: tag.color ?? 'var(--sand-dark)', flexShrink: 0 }} />
+                    ? <Check size={13} strokeWidth={2.1} style={{ color: color(tag.color) ?? 'var(--ink)', flexShrink: 0, display: 'block' }} />
+                    : <span style={{ width: 6, height: 6, borderRadius: '50%', background: color(tag.color) ?? 'var(--sand-dark)', flexShrink: 0 }} />
                   }
                   {tag.name}
                 </button>
@@ -734,8 +736,8 @@ export function WalletViewPage() {
                       display: 'inline-flex', alignItems: 'center', gap: 5,
                       padding: '3px 10px', borderRadius: 100, fontSize: 12, fontWeight: 500,
                       cursor: 'pointer', transition: 'all 0.15s',
-                      border: `1.5px solid ${tag.color ? `${tag.color}50` : 'var(--cream-darker)'}`,
-                      background: tag.color ? `${tag.color}14` : 'var(--cream-dark)',
+                      border: `1.5px solid ${color(tag.color) ? `${color(tag.color)}50` : 'var(--cream-darker)'}`,
+                      background: color(tag.color) ? `${color(tag.color)}14` : 'var(--cream-dark)',
                       color: 'var(--ink-mid)',
                       textDecoration: active ? 'line-through' : 'none',
                     }}
@@ -923,16 +925,16 @@ export function WalletViewPage() {
                         fontSize: 12,
                         fontWeight: active ? 600 : 500,
                         cursor: 'pointer',
-                        border: `1.5px solid ${tag.color ? (active ? tag.color : `${tag.color}50`) : (active ? 'var(--ink-light)' : 'var(--cream-darker)')}`,
-                        background: tag.color ? `${tag.color}14` : 'var(--cream-dark)',
+                        border: `1.5px solid ${color(tag.color) ? (active ? color(tag.color) : `${color(tag.color)}50`) : (active ? 'var(--ink-light)' : 'var(--cream-darker)')}`,
+                        background: color(tag.color) ? `${color(tag.color)}14` : 'var(--cream-dark)',
                         color: active ? 'var(--ink)' : 'var(--ink-mid)',
                         opacity: eligible ? 1 : 0.4,
                         transition: 'all 0.15s',
                       }}
                     >
                       {active
-                        ? <Check size={13} strokeWidth={2.1} style={{ color: tag.color ?? 'var(--ink)', flexShrink: 0, display: 'block' }} />
-                        : <span style={{ width: 6, height: 6, borderRadius: '50%', background: tag.color ?? 'var(--sand-dark)', flexShrink: 0 }} />
+                        ? <Check size={13} strokeWidth={2.1} style={{ color: color(tag.color) ?? 'var(--ink)', flexShrink: 0, display: 'block' }} />
+                        : <span style={{ width: 6, height: 6, borderRadius: '50%', background: color(tag.color) ?? 'var(--sand-dark)', flexShrink: 0 }} />
                       }
                       {tag.name}
                     </button>
