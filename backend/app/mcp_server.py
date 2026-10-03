@@ -32,6 +32,7 @@ from app.models.wallet import Wallet
 from app.schemas.color import COLOR_PATTERN
 from app.services.category_tag import find_or_create_category, find_or_create_tag
 from app.services.mcp_oauth_provider import KeniOAuthProvider
+from app.services.transaction_group import adjust_group_parent_amount
 
 if TYPE_CHECKING:
     from app.services.mcp_oauth_provider import KeniAccessToken
@@ -1220,7 +1221,7 @@ class UpdateTransactionInput:
 
 
 @mcp.tool(annotations=_ann("Update Transaction", destructive=True, idempotent=True))
-async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]:  # ruff: ignore[complex-structure, too-many-return-statements, too-many-branches, too-many-locals]
+async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]:  # ruff: ignore[complex-structure, too-many-return-statements, too-many-branches, too-many-locals, too-many-statements]
     """
     Update an existing transaction.
 
@@ -1282,6 +1283,7 @@ async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]: 
         if params.type is not None:
             t.type = params.type
         if params.amount is not None:
+            await adjust_group_parent_amount(session, t.group_id, params.amount - t.amount)
             t.amount = params.amount
         if params.description is not None:
             t.description = params.description
@@ -1376,6 +1378,7 @@ async def delete_transaction(wallet_id: str, transaction_id: str) -> dict[str, A
                 await session.delete(tt)
             await session.delete(child)
 
+        await adjust_group_parent_amount(session, t.group_id, -t.amount)
         await session.delete(t)
         await session.commit()
         return {"deleted": transaction_id}

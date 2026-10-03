@@ -51,6 +51,7 @@ if TYPE_CHECKING:
     from app.services.ai_transaction import ParsedTransactionResult
 from app.services.category_tag import find_or_create_category, find_or_create_tag
 from app.services.pdf import extract_text_from_pdf
+from app.services.transaction_group import adjust_group_parent_amount
 from app.services.voice import transcribe_audio
 
 logger = logging.getLogger(__name__)
@@ -245,7 +246,10 @@ async def _create_single_transaction(
     all_tag_ids = list({*body.tag_ids, *name_resolved_tag_ids})
 
     if group_id is None and body.group_id is not None:
-        await _get_group_parent(body.group_id, wallet_id, session)
+        parent = await _get_group_parent(body.group_id, wallet_id, session)
+        parent.amount += body.amount
+        parent.updated_at = datetime.now(UTC)
+        session.add(parent)
     effective_group_id = group_id if group_id is not None else body.group_id
 
     transaction = Transaction(
@@ -733,6 +737,8 @@ async def bulk_delete_transactions(
         if transaction is None:
             continue
 
+        await adjust_group_parent_amount(session, transaction.group_id, -transaction.amount)
+
         children_result = await session.exec(
             select(Transaction).where(col(Transaction.group_id) == transaction.id)
         )
@@ -910,6 +916,9 @@ async def update_transaction(
     if body.type is not None:
         transaction.type = body.type
     if body.amount is not None:
+        await adjust_group_parent_amount(
+            session, transaction.group_id, body.amount - transaction.amount
+        )
         transaction.amount = body.amount
     if body.description is not None:
         transaction.description = body.description
@@ -947,5 +956,6 @@ async def delete_transaction(
     for tt in existing.all():
         await session.delete(tt)
 
+    await adjust_group_parent_amount(session, transaction.group_id, -transaction.amount)
     await session.delete(transaction)
     await session.commit()
