@@ -7,6 +7,7 @@ import { expenses as expensesApi, categories as categoriesApi, tags as tagsApi, 
 import { useToast } from '../components/ui/Toast';
 import { DatePicker } from '../components/ui/DatePicker';
 import { Modal } from '../components/ui/Modal';
+import { BottomSheet } from '../components/ui/BottomSheet';
 import { CategorySelect } from '../components/ui/CategorySelect';
 import { Select } from '../components/ui/Select';
 import type { AICategorizeResponse, CategoryResponse, TransactionLinkBrief, TransactionResponse, CategoryBrief, TagBrief, TagResponse, WalletResponse } from '../lib/types';
@@ -16,6 +17,7 @@ import { CategoryIcon } from '../lib/categoryIcons';
 import { useColor } from '../lib/colors';
 import { useAuth } from '../contexts/AuthContext';
 import { getExchangeRate } from '../lib/fx';
+import { useIsMobile } from '../lib/useIsMobile';
 import { TransactionContextMenu, useTransactionContextMenu } from '../components/TransactionContextMenu';
 import { EditContextMenu, useEditContextMenu } from '../components/EditContextMenu';
 import { TagModal } from '../components/TagModal';
@@ -363,6 +365,8 @@ export function ExpenseDetailPage() {
   const [pendingLinks, setPendingLinks] = useState<TransactionLinkBrief[]>([]);
   const [removedChildIds, setRemovedChildIds] = useState<string[]>([]);
   const [newChildren, setNewChildren] = useState<{ key: number; description: string; amount: string; category_id: string }[]>([]);
+  const isMobile = useIsMobile(768);
+  const [childDraft, setChildDraft] = useState<{ description: string; amount: string; category_id: string } | null>(null);
   const ctxMenu = useTransactionContextMenu();
   const tagMenu = useEditContextMenu<TagBrief>();
   const [editTag, setEditTag] = useState<TagBrief | null>(null);
@@ -870,7 +874,11 @@ export function ExpenseDetailPage() {
               <span style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{t('expenseDetail.sectionSubTransactions')}</span>
               {editing && (
                 <button
-                  onClick={() => setNewChildren((prev) => [...prev, { key: Date.now(), description: '', amount: '', category_id: form.category_id }])}
+                  onClick={() => {
+                    const blank = { description: '', amount: '', category_id: form.category_id };
+                    if (isMobile) setChildDraft(blank);
+                    else setNewChildren((prev) => [...prev, { key: Date.now(), ...blank }]);
+                  }}
                   style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--forest)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 6 }}
                 >
                   <Plus size={12} /> {t('expenseDetail.addSubTransaction')}
@@ -922,6 +930,27 @@ export function ExpenseDetailPage() {
                 </Link>
               ))}
               {editing && newChildren.map((c) => {
+                if (isMobile) {
+                  return (
+                    <div key={c.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderTop: '1px solid var(--cream)' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {c.description || categories.find((cat) => cat.id === c.category_id)?.name}
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{categories.find((cat) => cat.id === c.category_id)?.name}</div>
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', flexShrink: 0 }}>
+                        {fmt(Number(c.amount), currency)}
+                      </div>
+                      <button
+                        onClick={() => setNewChildren((prev) => prev.filter((x) => x.key !== c.key))}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-faint)', padding: 2, borderRadius: 4, display: 'flex', alignItems: 'center' }}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  );
+                }
                 const setChild = (patch: Partial<typeof c>) =>
                   setNewChildren((prev) => prev.map((x) => (x.key === c.key ? { ...x, ...patch } : x)));
                 return (
@@ -1106,6 +1135,58 @@ export function ExpenseDetailPage() {
         </div>,
         document.body,
       )}
+      <BottomSheet open={!!childDraft} onClose={() => setChildDraft(null)}>
+        {childDraft && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 20px 12px' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--ink)' }}>{t('expenseDetail.newSubTransactionTitle')}</div>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('expenseDetail.sectionAmount')}</span>
+              <input
+                className="input"
+                type="number"
+                step="0.01"
+                inputMode="decimal"
+                value={childDraft.amount}
+                onChange={(e) => setChildDraft({ ...childDraft, amount: e.target.value })}
+                placeholder="0.00"
+              />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('expenseDetail.sectionDescription')}</span>
+              <input
+                className="input"
+                value={childDraft.description}
+                onChange={(e) => setChildDraft({ ...childDraft, description: e.target.value })}
+                placeholder={t('expenseDetail.descriptionPlaceholder')}
+              />
+            </label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('expenseDetail.sectionCategory')}</span>
+              <CategorySelect
+                value={childDraft.category_id}
+                categories={categories}
+                onSelect={(cat) => setChildDraft({ ...childDraft, category_id: cat.id })}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setChildDraft(null)}>
+                {t('common.cancel')}
+              </button>
+              <button
+                className="btn btn-primary"
+                style={{ flex: 1 }}
+                disabled={childDraft.amount === '' || !childDraft.category_id}
+                onClick={() => {
+                  setNewChildren((prev) => [...prev, { key: Date.now(), ...childDraft }]);
+                  setChildDraft(null);
+                }}
+              >
+                <Plus size={14} /> {t('expenseDetail.addSubTransaction')}
+              </button>
+            </div>
+          </div>
+        )}
+      </BottomSheet>
       <TransactionContextMenu state={ctxMenu.state} onClose={ctxMenu.close} onChanged={() => setRefreshKey((k) => k + 1)} />
       <EditContextMenu
         state={tagMenu.state}

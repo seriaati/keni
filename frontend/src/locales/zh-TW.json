@@ -348,6 +348,7 @@
     "sectionTags": "標籤",
     "sectionSubTransactions": "子交易",
     "addSubTransaction": "新增",
+    "newSubTransactionTitle": "新增子交易",
     "parentAmountLocked": "子交易總額，請編輯子交易以變更",
     "sectionLinked": "關聯交易",
     "addLink": "新增",
