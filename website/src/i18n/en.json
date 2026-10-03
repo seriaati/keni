@@ -187,7 +187,7 @@
         ],
         "list": [
           "Account: a username, your password (stored only as a bcrypt hash, never in plain text), and optional profile settings such as display name, timezone, language, preferred currency, whether to use historical exchange rates, and a custom instruction for the AI.",
-          "Financial records: wallets with their name and currency, transactions with type, amount, description, date, tags, and an \"AI context\" note describing how the AI interpreted your input, plus categories, tags, budgets, recurring transaction rules, and links or groups between transactions.",
+          "Financial records: wallets with their name and currency, transactions with type, amount, description, date, and tags, plus categories, tags, budgets, recurring transaction rules, and links or groups between transactions.",
           "AI provider settings: which provider you chose (Anthropic, Google Gemini, OpenAI, or OpenRouter), the model names you selected, whether local OCR is enabled, and your API key. The API key is stored base64-encoded, which is an encoding and not encryption. Anyone with access to the database can read it. Use a dedicated key with a spending limit and revoke it at your provider if you stop using Keni.",
           "API tokens: a name, an expiry date, when the token was last used, and a SHA-256 hash of the token. The raw token is shown once and is not stored.",
           "MCP connections: for AI agents connected over MCP, the client's registered name and redirect URLs, short-lived authorization codes, and hashed access and refresh tokens with their scopes and expiry.",
@@ -232,7 +232,7 @@
         ],
         "list": [
           "You can delete transactions, wallets (which removes their transactions), categories, tags, budgets, recurring rules, API tokens, and your AI provider settings from within the app at any time.",
-          "You can export any wallet's transactions as CSV or JSON at any time, including the AI context notes.",
+          "You can export any wallet's transactions as CSV or JSON at any time.",
           "You can delete your whole account from Settings → Data. This immediately and permanently removes your account together with all wallets, transactions, categories, tags, budgets, recurring rules, API tokens, MCP connections, and AI provider settings. It cannot be undone, so export your wallets first if you want a copy."
         ]
       },
