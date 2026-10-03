@@ -8,7 +8,10 @@
     "logo": "Keni",
     "features": "Features",
     "privacy": "Privacy",
-    "cta": "Get started"
+    "cta": "Get started",
+    "themeLight": "Theme: Light",
+    "themeDark": "Theme: Dark",
+    "themeSystem": "Theme: System"
   },
   "footer": {
     "brand": "Keni",

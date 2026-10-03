@@ -8,7 +8,10 @@
     "logo": "Keni",
     "features": "功能介紹",
     "privacy": "隱私保護",
-    "cta": "立即開始"
+    "cta": "立即開始",
+    "themeLight": "主題：淺色",
+    "themeDark": "主題：深色",
+    "themeSystem": "主題：跟隨系統"
   },
   "footer": {
     "brand": "Keni",

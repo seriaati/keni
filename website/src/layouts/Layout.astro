@@ -90,6 +90,51 @@ const jsonLd = {
 
     <title>{title}</title>
 
+    <script is:inline>
+      // Theme: 'light' | 'dark' stored in localStorage 'keni-theme' (absent = system), same as the app.
+      // Runs before first paint so there is no flash of the wrong theme.
+      (() => {
+        const KEY = "keni-theme";
+        const NEXT = { light: "dark", dark: "system", system: "light" };
+        const root = document.documentElement;
+        const systemDark = matchMedia("(prefers-color-scheme: dark)");
+
+        let pref = "system";
+        try {
+          const v = localStorage.getItem(KEY);
+          if (v === "light" || v === "dark") pref = v;
+        } catch {}
+
+        function syncToggles() {
+          document.querySelectorAll(".theme-toggle").forEach((btn) => {
+            const label = btn.dataset[`label${pref[0].toUpperCase()}${pref.slice(1)}`];
+            btn.title = label;
+            btn.setAttribute("aria-label", label);
+          });
+        }
+
+        function apply() {
+          root.dataset.themePref = pref;
+          root.dataset.theme = pref === "system" ? (systemDark.matches ? "dark" : "light") : pref;
+          syncToggles();
+        }
+
+        apply();
+        // Follow the OS setting live while on 'system'
+        systemDark.addEventListener("change", apply);
+        document.addEventListener("DOMContentLoaded", syncToggles);
+        document.addEventListener("click", (e) => {
+          if (!e.target.closest(".theme-toggle")) return;
+          pref = NEXT[pref];
+          try {
+            if (pref === "system") localStorage.removeItem(KEY);
+            else localStorage.setItem(KEY, pref);
+          } catch {}
+          apply();
+        });
+      })();
+    </script>
+
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   </head>
   <body>
@@ -105,6 +150,23 @@ const jsonLd = {
           <a href="https://github.com/seriaati/keni" target="_blank" rel="noopener">GitHub</a>
         </div>
         <a href={altHref} class="nav-lang" hreflang={altLocale}>{altLabel}</a>
+        <button
+          type="button"
+          class="theme-toggle"
+          data-label-light={t.nav.themeLight}
+          data-label-dark={t.nav.themeDark}
+          data-label-system={t.nav.themeSystem}
+        >
+          <svg class="theme-icon theme-icon--light" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+          </svg>
+          <svg class="theme-icon theme-icon--dark" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+          </svg>
+          <svg class="theme-icon theme-icon--system" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+          </svg>
+        </button>
         <a href={t.site.appUrl} class="nav-cta">{t.nav.cta}</a>
       </nav>
     </header>
@@ -153,7 +215,7 @@ const jsonLd = {
     position: sticky;
     top: 0;
     z-index: 100;
-    background: oklch(97% 0.012 85 / 0.88);
+    background: color-mix(in oklch, var(--cream) 88%, transparent);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--cream-darker);
     transition: box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1);
@@ -224,6 +286,35 @@ const jsonLd = {
   .nav-lang:hover {
     color: var(--ink);
     border-color: var(--ink-light);
+  }
+
+  .theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    color: var(--ink-light);
+    border: 1px solid var(--cream-darker);
+    border-radius: var(--radius);
+    transition: color 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .theme-toggle:hover {
+    color: var(--ink);
+    border-color: var(--ink-light);
+  }
+
+  /* Icon follows the stored preference set on <html> by the head script */
+  .theme-icon {
+    display: none;
+  }
+
+  :global(:root[data-theme-pref="light"]) .theme-icon--light,
+  :global(:root[data-theme-pref="dark"]) .theme-icon--dark,
+  :global(:root[data-theme-pref="system"]) .theme-icon--system {
+    display: block;
   }
 
   .nav-cta {

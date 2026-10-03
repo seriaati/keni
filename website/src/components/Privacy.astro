@@ -84,7 +84,7 @@ const p = t.privacy;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--ink-light);
-    background: white;
+    background: var(--surface);
     border: 1px solid var(--cream-darker);
     padding: 4px 10px;
     border-radius: 100px;
@@ -133,8 +133,9 @@ const p = t.privacy;
   }
 
   /* ── Code block ─────────────────────────────────────────── */
+  /* Fixed dark panel in both themes (--forest flips to cream in dark) */
   .code-block {
-    background: var(--forest);
+    background: oklch(18% 0.01 80);
     border-radius: var(--radius-xl);
     overflow: hidden;
     box-shadow: var(--shadow-lg);

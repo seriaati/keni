@@ -219,7 +219,7 @@ const h = t.hero;
 }
 
 .mockup-shell {
-  background: white;
+  background: var(--surface);
   border-radius: 20px;
   box-shadow: var(--shadow-xl);
   width: 100%;
@@ -319,16 +319,16 @@ const h = t.hero;
   font-size: 12px;
   font-weight: 500;
   color: var(--ink-mid);
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--cream-darker);
   padding: 2px 8px;
   border-radius: 5px;
 }
 
 .mockup-chip--new {
-  color: oklch(38% 0.09 145);
-  background: oklch(92% 0.04 145);
-  border-color: oklch(82% 0.08 145);
+  color: var(--new-text);
+  background: var(--new-badge);
+  border-color: var(--new-border);
 }
 
 .mockup-ai-note {
@@ -349,7 +349,7 @@ const h = t.hero;
   font-size: 13px;
   font-weight: 500;
   color: var(--ink-mid);
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--cream-darker);
   padding: 7px 14px;
   border-radius: var(--radius-sm);
@@ -382,7 +382,7 @@ const h = t.hero;
 /* ── Floating stat cards ────────────────────────────────── */
 .stat-card {
   position: absolute;
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--cream-darker);
   border-radius: var(--radius-lg);
   padding: 12px 16px;
