@@ -51,7 +51,7 @@ if TYPE_CHECKING:
     from app.services.ai_transaction import ParsedTransactionResult
 from app.services.category_tag import find_or_create_category, find_or_create_tag
 from app.services.pdf import extract_text_from_pdf
-from app.services.transaction_group import adjust_group_parent_amount
+from app.services.transaction_group import adjust_group_parent_amount, has_children
 from app.services.voice import transcribe_audio
 
 logger = logging.getLogger(__name__)
@@ -217,6 +217,20 @@ async def _get_group_parent(
             detail="Cannot nest a transaction under a sub-transaction",
         )
     return parent
+
+
+async def _ensure_amount_editable(
+    transaction: Transaction, new_amount: float | None, session: AsyncSession
+) -> None:
+    if (
+        new_amount is not None
+        and new_amount != transaction.amount
+        and await has_children(session, transaction.id)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="A parent's amount is the sum of its sub-transactions; edit those instead",
+        )
 
 
 async def _create_single_transaction(
@@ -901,6 +915,8 @@ async def update_transaction(
         for child in children.all():
             child.wallet_id = body.wallet_id
             session.add(child)
+
+    await _ensure_amount_editable(transaction, body.amount, session)
 
     new_type = body.type if body.type is not None else transaction.type
     new_amount = body.amount if body.amount is not None else transaction.amount

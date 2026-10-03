@@ -32,7 +32,7 @@ from app.models.wallet import Wallet
 from app.schemas.color import COLOR_PATTERN
 from app.services.category_tag import find_or_create_category, find_or_create_tag
 from app.services.mcp_oauth_provider import KeniOAuthProvider
-from app.services.transaction_group import adjust_group_parent_amount
+from app.services.transaction_group import adjust_group_parent_amount, has_children
 
 if TYPE_CHECKING:
     from app.services.mcp_oauth_provider import KeniAccessToken
@@ -1274,6 +1274,15 @@ async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]: 
             if not cat_result.first():
                 return {"error": "Category not found"}
             t.category_id = c_id
+
+        if (
+            params.amount is not None
+            and params.amount != t.amount
+            and await has_children(session, t.id)
+        ):
+            return {
+                "error": "A parent's amount is the sum of its sub-transactions; edit those instead"
+            }
 
         new_type = params.type if params.type is not None else t.type
         new_amount = params.amount if params.amount is not None else t.amount
