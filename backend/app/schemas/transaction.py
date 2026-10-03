@@ -12,7 +12,7 @@ class TransactionCreate(BaseModel):
     category_name: str | None = None
     category_icon: str | None = None
     type: Literal["expense", "income"] = "expense"
-    amount: float = Field(ge=0)
+    amount: float
     description: str | None = Field(default=None, max_length=500)
     date: datetime | None = None
     tag_ids: list[uuid.UUID] = Field(default_factory=list)
@@ -32,6 +32,13 @@ class TransactionCreate(BaseModel):
             raise ValueError(msg)
         return self
 
+    @model_validator(mode="after")
+    def validate_amount(self) -> TransactionCreate:
+        if self.type == "income" and self.amount < 0:
+            msg = "Income amount must not be negative"
+            raise ValueError(msg)
+        return self
+
 
 class TransactionGroupCreate(BaseModel):
     group: TransactionCreate
@@ -42,7 +49,7 @@ class TransactionUpdate(BaseModel):
     wallet_id: uuid.UUID | None = None
     category_id: uuid.UUID | None = None
     type: Literal["expense", "income"] | None = None
-    amount: float | None = Field(default=None, ge=0)
+    amount: float | None = None
     description: str | None = Field(default=None, max_length=500)
     date: datetime | None = None
     tag_ids: list[uuid.UUID] | None = None

@@ -882,6 +882,14 @@ async def update_transaction(
             child.wallet_id = body.wallet_id
             session.add(child)
 
+    new_type = body.type if body.type is not None else transaction.type
+    new_amount = body.amount if body.amount is not None else transaction.amount
+    if new_type == "income" and new_amount < 0:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Income amount must not be negative",
+        )
+
     if body.category_id is not None:
         await _validate_category(body.category_id, current_user.id, session)
         transaction.category_id = body.category_id

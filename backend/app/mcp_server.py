@@ -931,10 +931,10 @@ class CreateTransactionInput:
 
 
 def _validate_item(item: TransactionItemInput) -> str | None:
-    if item.amount < 0:
-        return "Amount must not be negative"
     if item.type not in {"expense", "income"}:
         return "type must be 'expense' or 'income'"
+    if item.type == "income" and item.amount < 0:
+        return "Income amount must not be negative"
     if item.category_id and item.category_name:
         return "Provide either category_id or category_name, not both"
     if not item.category_id and not item.category_name:
@@ -1064,7 +1064,7 @@ async def create_transaction(params: CreateTransactionInput) -> dict[str, Any]:
 
     Args:
         params.wallet_id: UUID of the wallet to add the transaction to.
-        params.amount: Transaction amount (zero or positive).
+        params.amount: Transaction amount. Negative allowed for expenses (e.g. discounts); income must be zero or positive.
         params.type: Transaction type: "expense" (default) or "income".
         params.category_id: UUID of an existing category (mutually exclusive with category_name).
         params.category_name: Name of the category — matched case-insensitively or created if new.
@@ -1076,10 +1076,10 @@ async def create_transaction(params: CreateTransactionInput) -> dict[str, Any]:
         params.ai_context: Optional AI context/notes about this transaction.
     """
     user = await _get_authenticated_user()
-    if params.amount < 0:
-        return {"error": "Amount must not be negative"}
     if params.type not in {"expense", "income"}:
         return {"error": "type must be 'expense' or 'income'"}
+    if params.type == "income" and params.amount < 0:
+        return {"error": "Income amount must not be negative"}
     result = await _insert_transaction(params, user.id)
     if isinstance(result, str):
         return {"error": result}
@@ -1237,7 +1237,7 @@ async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]: 
         params.transaction_id: UUID of the transaction to update.
         params.category_id: New category UUID.
         params.type: New type: "expense" or "income".
-        params.amount: New amount (zero or positive).
+        params.amount: New amount. Negative allowed for expenses (e.g. discounts); income must be zero or positive.
         params.description: New description.
         params.date: New date (ISO 8601).
         params.tag_ids: Replace all tags with this list of tag UUIDs.
@@ -1253,8 +1253,6 @@ async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]: 
 
     if params.type and params.type not in {"expense", "income"}:
         return {"error": "type must be 'expense' or 'income'"}
-    if params.amount is not None and params.amount < 0:
-        return {"error": "Amount must not be negative"}
 
     async for session in get_session():
         wallet_result = await session.exec(
@@ -1280,6 +1278,11 @@ async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]: 
             if not cat_result.first():
                 return {"error": "Category not found"}
             t.category_id = c_id
+
+        new_type = params.type if params.type is not None else t.type
+        new_amount = params.amount if params.amount is not None else t.amount
+        if new_type == "income" and new_amount < 0:
+            return {"error": "Income amount must not be negative"}
 
         if params.type is not None:
             t.type = params.type

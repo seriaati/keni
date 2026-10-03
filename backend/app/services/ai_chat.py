@@ -224,7 +224,7 @@ CHAT_TOOLS: list[ChatTool] = [
                 },
                 "amount": {
                     "type": "number",
-                    "description": "Transaction amount (zero or positive).",
+                    "description": "Transaction amount. Negative allowed for expenses (e.g. discounts); income must be zero or positive.",
                 },
                 "type": {
                     "type": "string",
@@ -268,7 +268,10 @@ CHAT_TOOLS: list[ChatTool] = [
                     "type": "string",
                     "description": "UUID of the transaction to update.",
                 },
-                "amount": {"type": "number", "description": "New amount (zero or positive)."},
+                "amount": {
+                    "type": "number",
+                    "description": "New amount. Negative allowed for expenses (e.g. discounts); income must be zero or positive.",
+                },
                 "type": {
                     "type": "string",
                     "enum": ["expense", "income"],
@@ -637,12 +640,11 @@ async def _tool_create_transaction(  # ruff: ignore[too-many-return-statements, 
         return {"error": "Wallet not found or not accessible"}
 
     amount = float(args.get("amount", 0))
-    if amount < 0:
-        return {"error": "Amount must not be negative"}
-
     txn_type = args.get("type", "expense")
     if txn_type not in {"expense", "income"}:
         return {"error": "type must be 'expense' or 'income'"}
+    if txn_type == "income" and amount < 0:
+        return {"error": "Income amount must not be negative"}
 
     category_id_str: str | None = args.get("category_id")
     category_name: str | None = args.get("category_name")
@@ -730,16 +732,14 @@ async def _tool_update_transaction(  # ruff: ignore[complex-structure, too-many-
     if not t:
         return {"error": "Transaction not found"}
 
-    if "amount" in args:
-        amount = float(args["amount"])
-        if amount < 0:
-            return {"error": "Amount must not be negative"}
-        t.amount = amount
-
-    if "type" in args:
-        if args["type"] not in {"expense", "income"}:
-            return {"error": "type must be 'expense' or 'income'"}
-        t.type = args["type"]
+    if "type" in args and args["type"] not in {"expense", "income"}:
+        return {"error": "type must be 'expense' or 'income'"}
+    new_type = args.get("type", t.type)
+    new_amount = float(args["amount"]) if "amount" in args else t.amount
+    if new_type == "income" and new_amount < 0:
+        return {"error": "Income amount must not be negative"}
+    t.type = new_type
+    t.amount = new_amount
 
     if "description" in args:
         t.description = args["description"]
