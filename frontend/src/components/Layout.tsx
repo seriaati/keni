@@ -17,6 +17,7 @@ import {
   Download,
   LayoutDashboard,
   LogOut,
+  Monitor,
   Moon,
   MoreHorizontal,
   Plus,
@@ -35,8 +36,12 @@ import { CommandBar } from './CommandBar';
 import { Modal } from './ui/Modal';
 import { getSharedPayload, clearSharedPayload } from '../lib/shareTarget';
 import { getInitials } from '../lib/utils';
-import { setTheme, useTheme } from '../lib/theme';
+import { setThemePreference, useThemePreference } from '../lib/theme';
+import type { ThemePreference } from '../lib/theme';
 import './layout.css';
+
+const NEXT_THEME: Record<ThemePreference, ThemePreference> = { light: 'dark', dark: 'system', system: 'light' };
+const THEME_LABEL_KEYS = { light: 'nav.themeLight', dark: 'nav.themeDark', system: 'nav.themeSystem' } as const;
 
 const NAV_AFTER_TRANSACTIONS_CONFIG = [
   { to: '/budgets', icon: Zap, key: 'budgets' as const },
@@ -114,7 +119,7 @@ function VersionInfo() {
 export function Layout() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
-  const theme = useTheme();
+  const themePref = useThemePreference();
   const { wallets, activeWallet, setActiveWallet } = useWallet();
   const [cmdOpen, setCmdOpen] = useState(false);
   const [cmdInitialPayload, setCmdInitialPayload] = useState<{ text?: string; files?: File[] } | undefined>();
@@ -382,8 +387,8 @@ export function Layout() {
               <span className="user-name">{user?.display_name ?? user?.username}</span>
               {user?.is_admin && <span className="user-role">{t('nav.userRole')}</span>}
             </div>
-            <button className="icon-btn" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} title={t('nav.toggleTheme')}>
-              {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+            <button className="icon-btn" onClick={() => setThemePreference(NEXT_THEME[themePref])} title={t(THEME_LABEL_KEYS[themePref])}>
+              {themePref === 'light' ? <Sun size={14} /> : themePref === 'dark' ? <Moon size={14} /> : <Monitor size={14} />}
             </button>
             <button className="icon-btn" onClick={handleLogout} title={t('nav.signOut')}>
               <LogOut size={14} />
@@ -560,8 +565,8 @@ export function Layout() {
                   <span className="user-name">{user?.display_name ?? user?.username}</span>
                   {user?.is_admin && <span className="user-role">{t('nav.userRole')}</span>}
                 </div>
-                <button className="icon-btn" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} title={t('nav.toggleTheme')}>
-                  {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+                <button className="icon-btn" onClick={() => setThemePreference(NEXT_THEME[themePref])} title={t(THEME_LABEL_KEYS[themePref])}>
+                  {themePref === 'light' ? <Sun size={14} /> : themePref === 'dark' ? <Moon size={14} /> : <Monitor size={14} />}
                 </button>
                 <button className="icon-btn" onClick={handleLogout} title={t('nav.signOut')}>
                   <LogOut size={14} />
