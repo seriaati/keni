@@ -9,7 +9,7 @@ import { DatePicker } from '../components/ui/DatePicker';
 import { Modal } from '../components/ui/Modal';
 import { CategorySelect } from '../components/ui/CategorySelect';
 import { Select } from '../components/ui/Select';
-import type { AICategorizeResponse, CategoryResponse, TransactionLinkBrief, TransactionResponse, TagResponse, WalletResponse } from '../lib/types';
+import type { AICategorizeResponse, CategoryResponse, TransactionLinkBrief, TransactionResponse, CategoryBrief, TagBrief, TagResponse, WalletResponse } from '../lib/types';
 import { LinkedTransactionsPicker } from '../components/LinkedTransactionsPicker';
 import { fmt, fmtDate } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
@@ -17,6 +17,9 @@ import { useColor } from '../lib/colors';
 import { useAuth } from '../contexts/AuthContext';
 import { getExchangeRate } from '../lib/fx';
 import { TransactionContextMenu, useTransactionContextMenu } from '../components/TransactionContextMenu';
+import { EditContextMenu, useEditContextMenu } from '../components/EditContextMenu';
+import { TagModal } from '../components/TagModal';
+import { CategoryModal } from '../components/CategoryModal';
 
 interface DropdownPos {
   top: number;
@@ -359,6 +362,10 @@ export function ExpenseDetailPage() {
   const [showLinkPicker, setShowLinkPicker] = useState(false);
   const [pendingLinks, setPendingLinks] = useState<TransactionLinkBrief[]>([]);
   const ctxMenu = useTransactionContextMenu();
+  const tagMenu = useEditContextMenu<TagBrief>();
+  const [editTag, setEditTag] = useState<TagBrief | null>(null);
+  const catMenu = useEditContextMenu<CategoryBrief>();
+  const [editCategory, setEditCategory] = useState<CategoryBrief | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const [form, setForm] = useState({
@@ -740,6 +747,7 @@ export function ExpenseDetailPage() {
             ) : (
               <Link
                 to={`/wallets/${walletId}?category_ids=${expense.category.id}`}
+                onContextMenu={(e) => catMenu.open(e, expense.category)}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: 'inherit' }}
                 onMouseEnter={(e) => { (e.currentTarget.lastElementChild as HTMLElement).style.textDecoration = 'underline'; }}
                 onMouseLeave={(e) => { (e.currentTarget.lastElementChild as HTMLElement).style.textDecoration = 'none'; }}
@@ -812,6 +820,7 @@ export function ExpenseDetailPage() {
                 <Link
                   key={tag.id}
                   to={`/wallets/${walletId}?tag_ids=${tag.id}`}
+                  onContextMenu={(e) => tagMenu.open(e, tag)}
                   className="chip"
                   style={{ background: color(tag.color) ? `${color(tag.color)}14` : undefined, borderColor: color(tag.color) ? `${color(tag.color)}50` : undefined, textDecoration: 'none', color: 'inherit' }}
                   onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.textDecoration = 'underline'; }}
@@ -856,6 +865,7 @@ export function ExpenseDetailPage() {
                       <span
                         style={{ cursor: 'pointer' }}
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/wallets/${walletId}?category_ids=${child.category.id}`); }}
+                        onContextMenu={(e) => catMenu.open(e, child.category)}
                         onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
                       >
@@ -1025,6 +1035,30 @@ export function ExpenseDetailPage() {
         document.body,
       )}
       <TransactionContextMenu state={ctxMenu.state} onClose={ctxMenu.close} onChanged={() => setRefreshKey((k) => k + 1)} />
+      <EditContextMenu
+        state={tagMenu.state}
+        label={t('tags.modalEditTitle')}
+        onEdit={() => setEditTag(tagMenu.state?.item ?? null)}
+        onClose={tagMenu.close}
+      />
+      <EditContextMenu
+        state={catMenu.state}
+        label={t('categories.modalEditTitle')}
+        onEdit={() => setEditCategory(catMenu.state?.item ?? null)}
+        onClose={catMenu.close}
+      />
+      <CategoryModal
+        open={!!editCategory}
+        category={editCategory}
+        onClose={() => setEditCategory(null)}
+        onSaved={() => setRefreshKey((k) => k + 1)}
+      />
+      <TagModal
+        open={!!editTag}
+        tag={editTag}
+        onClose={() => setEditTag(null)}
+        onSaved={() => setRefreshKey((k) => k + 1)}
+      />
     </div>
   );
 }

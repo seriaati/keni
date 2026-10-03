@@ -11,13 +11,15 @@ import { DatePicker } from '../components/ui/DatePicker';
 import { Modal } from '../components/ui/Modal';
 import { CategorySelect } from '../components/ui/CategorySelect';
 import { MultiCategorySelect } from '../components/ui/MultiCategorySelect';
-import type { CategoryResponse, TransactionListResponse, TransactionResponse, TagResponse, TagBrief, WalletSummary } from '../lib/types';
+import type { CategoryBrief, CategoryResponse, TransactionListResponse, TransactionResponse, TagResponse, TagBrief, WalletSummary } from '../lib/types';
 import { fmt, fmtRelative } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
 import { useColor } from '../lib/colors';
 import { getExchangeRate } from '../lib/fx';
 import type { LayoutOutletContext } from '../components/Layout';
 import { TransactionContextMenu, useTransactionContextMenu } from '../components/TransactionContextMenu';
+import { EditContextMenu, useEditContextMenu } from '../components/EditContextMenu';
+import { CategoryModal } from '../components/CategoryModal';
 import { useIsMobile } from '../lib/useIsMobile';
 
 
@@ -31,6 +33,8 @@ export function WalletViewPage() {
   const { expenseAddedKey } = useOutletContext<LayoutOutletContext>();
   const navigate = useNavigate();
   const ctxMenu = useTransactionContextMenu();
+  const catMenu = useEditContextMenu<CategoryBrief>();
+  const [editCategory, setEditCategory] = useState<CategoryBrief | null>(null);
 
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
   const [fxRate, setFxRate] = useState<number | null>(null);
@@ -1014,6 +1018,7 @@ export function WalletViewPage() {
                 onNavigate={navigate}
                 backSearch={searchParams.toString()}
                 onContextMenuOpen={ctxMenu.open}
+                onCategoryContextMenu={catMenu.open}
                 onCategoryClick={(id) => setParam({ category_ids: [id], page: null })}
               />
             ))}
@@ -1063,6 +1068,18 @@ export function WalletViewPage() {
         onAISuggest={() => { setShowActionsBar(false); setShowAISuggestModal(true); }}
       />
       <TransactionContextMenu state={ctxMenu.state} onClose={ctxMenu.close} onChanged={load} />
+      <EditContextMenu
+        state={catMenu.state}
+        label={t('categories.modalEditTitle')}
+        onEdit={() => setEditCategory(catMenu.state?.item ?? null)}
+        onClose={catMenu.close}
+      />
+      <CategoryModal
+        open={!!editCategory}
+        category={editCategory}
+        onClose={() => setEditCategory(null)}
+        onSaved={load}
+      />
     </div>
   );
 }
@@ -1084,6 +1101,7 @@ function ExpenseRow({
   onNavigate,
   backSearch,
   onContextMenuOpen,
+  onCategoryContextMenu,
   onCategoryClick,
 }: {
   expense: TransactionResponse;
@@ -1102,6 +1120,7 @@ function ExpenseRow({
   onNavigate: NavigateFunction;
   backSearch: string;
   onContextMenuOpen: (e: React.MouseEvent, expense: TransactionResponse) => void;
+  onCategoryContextMenu: (e: React.MouseEvent, category: CategoryBrief) => void;
   onCategoryClick: (categoryId: string) => void;
 }) {
   const [isHovered, setIsHovered] = useState(false);
@@ -1211,6 +1230,7 @@ function ExpenseRow({
           <span
             style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0, cursor: isMobile ? undefined : 'pointer' }}
             onClick={isMobile ? undefined : (e) => { e.stopPropagation(); onCategoryClick(expense.category.id); }}
+            onContextMenu={(e) => onCategoryContextMenu(e, expense.category)}
             onMouseEnter={(e) => { if (!isMobile) e.currentTarget.style.textDecoration = 'underline'; }}
             onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
           >

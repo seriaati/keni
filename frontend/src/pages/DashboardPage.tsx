@@ -6,7 +6,7 @@ import { PieChart, Pie, Sector, ResponsiveContainer, Tooltip } from 'recharts';
 import { expenses as expensesApi, budgets as budgetsApi, categories as categoriesApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
 import { useAuth } from '../contexts/AuthContext';
-import type { BudgetResponse, CategoryResponse, TransactionResponse, TransactionSummary } from '../lib/types';
+import type { BudgetResponse, CategoryBrief, CategoryResponse, TransactionResponse, TransactionSummary } from '../lib/types';
 import { fmt, fmtRelative, startOfMonth, endOfMonth, startOfWeek, getPeriodDateRange, getPeriodLabel } from '../lib/utils';
 import type { DashboardPeriod } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
@@ -14,6 +14,8 @@ import { useColor } from '../lib/colors';
 import type { LayoutOutletContext } from '../components/Layout';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { TransactionContextMenu, useTransactionContextMenu } from '../components/TransactionContextMenu';
+import { EditContextMenu, useEditContextMenu } from '../components/EditContextMenu';
+import { CategoryModal } from '../components/CategoryModal';
 import { useIsMobile } from '../lib/useIsMobile';
 
 const FALLBACK_COLORS = [
@@ -55,6 +57,8 @@ export function DashboardPage() {
   const [categoryExpanded, setCategoryExpanded] = useState(false);
   const [incomeCategoryExpanded, setIncomeCategoryExpanded] = useState(false);
   const ctxMenu = useTransactionContextMenu();
+  const catMenu = useEditContextMenu<CategoryBrief>();
+  const [editCategory, setEditCategory] = useState<CategoryBrief | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Full reload: wallet change, new transaction added, or context-menu mutation
@@ -396,6 +400,7 @@ export function DashboardPage() {
                       <span
                         style={{ cursor: isMobile ? undefined : 'pointer' }}
                         onClick={isMobile ? undefined : (e) => { e.preventDefault(); e.stopPropagation(); navigate(`/wallets/${activeWallet.id}?category_ids=${expense.category.id}`); }}
+                        onContextMenu={(e) => catMenu.open(e, expense.category)}
                         onMouseEnter={(e) => { if (!isMobile) e.currentTarget.style.textDecoration = 'underline'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
                       >
@@ -656,6 +661,18 @@ export function DashboardPage() {
         </div>
       </div>
       <TransactionContextMenu state={ctxMenu.state} onClose={ctxMenu.close} onChanged={() => setRefreshKey((k) => k + 1)} />
+      <EditContextMenu
+        state={catMenu.state}
+        label={t('categories.modalEditTitle')}
+        onEdit={() => setEditCategory(catMenu.state?.item ?? null)}
+        onClose={catMenu.close}
+      />
+      <CategoryModal
+        open={!!editCategory}
+        category={editCategory}
+        onClose={() => setEditCategory(null)}
+        onSaved={() => setRefreshKey((k) => k + 1)}
+      />
     </div>
   );
 }
