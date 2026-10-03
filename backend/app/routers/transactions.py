@@ -199,6 +199,25 @@ async def _validate_category(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
 
 
+async def _get_group_parent(
+    group_id: uuid.UUID, wallet_id: uuid.UUID, session: AsyncSession
+) -> Transaction:
+    result = await session.exec(
+        select(Transaction).where(Transaction.id == group_id, Transaction.wallet_id == wallet_id)
+    )
+    parent = result.first()
+    if not parent:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Parent transaction not found"
+        )
+    if parent.group_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Cannot nest a transaction under a sub-transaction",
+        )
+    return parent
+
+
 async def _create_single_transaction(
     wallet_id: uuid.UUID,
     body: TransactionCreate,
@@ -225,6 +244,8 @@ async def _create_single_transaction(
 
     all_tag_ids = list({*body.tag_ids, *name_resolved_tag_ids})
 
+    if group_id is None and body.group_id is not None:
+        await _get_group_parent(body.group_id, wallet_id, session)
     effective_group_id = group_id if group_id is not None else body.group_id
 
     transaction = Transaction(
