@@ -4,7 +4,7 @@ import { Plus, Pencil, Trash2, Tags } from 'lucide-react';
 import { tags as tagsApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import { Modal } from '../components/ui/Modal';
-import { ColorPicker } from '../components/ui/ColorPicker';
+import { TagModal } from '../components/TagModal';
 import type { TagResponse } from '../lib/types';
 import { useColor } from '../lib/colors';
 
@@ -18,7 +18,6 @@ export function TagsPage() {
   const [editTag, setEditTag] = useState<TagResponse | null>(null);
   const [deleteTag, setDeleteTag] = useState<TagResponse | null>(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState<{ name: string; color: string | null }>({ name: '', color: null });
 
   const load = async () => {
     setLoading(true);
@@ -32,38 +31,6 @@ export function TagsPage() {
   };
 
   useEffect(() => { load(); }, []);
-
-  const openCreate = () => {
-    setForm({ name: '', color: null });
-    setShowCreate(true);
-  };
-
-  const openEdit = (t: TagResponse) => {
-    setForm({ name: t.name, color: t.color ?? null });
-    setEditTag(t);
-  };
-
-  const handleSave = async () => {
-    if (!form.name.trim()) return;
-    setSaving(true);
-    const payload = { name: form.name, color: form.color ?? undefined };
-    try {
-      if (editTag) {
-        await tagsApi.update(editTag.id, payload);
-        toast(t('tags.toastUpdated'), 'success');
-        setEditTag(null);
-      } else {
-        await tagsApi.create(payload);
-        toast(t('tags.toastCreated'), 'success');
-        setShowCreate(false);
-      }
-      await load();
-    } catch (e) {
-      toast(e instanceof Error ? e.message : 'Failed', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleDelete = async () => {
     if (!deleteTag) return;
@@ -80,25 +47,6 @@ export function TagsPage() {
     }
   };
 
-  const TagForm = () => (
-    <>
-      <div className="input-group">
-        <label className="input-label">{t('tags.fieldName')}</label>
-        <input
-          className="input"
-          placeholder={t('tags.fieldNamePlaceholder')}
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-          autoFocus
-        />
-      </div>
-      <div className="input-group">
-        <label className="input-label">{t('tags.fieldColor')}</label>
-        <ColorPicker value={form.color} onChange={(color) => setForm({ ...form, color })} />
-      </div>
-    </>
-  );
-
   return (
     <div className="animate-fade-in">
       <div className="page-header">
@@ -107,7 +55,7 @@ export function TagsPage() {
           <p className="page-subtitle">{t('tags.subtitle')}</p>
         </div>
         <div className="page-actions">
-          <button className="btn btn-primary btn-md" onClick={openCreate}>
+          <button className="btn btn-primary btn-md" onClick={() => setShowCreate(true)}>
             <Plus size={16} /> {t('tags.new')}
           </button>
         </div>
@@ -122,7 +70,7 @@ export function TagsPage() {
           <Tags size={48} className="empty-state-icon" />
           <p className="empty-state-title">{t('tags.emptyTitle')}</p>
           <p className="empty-state-desc">{t('tags.emptyDesc')}</p>
-          <button className="btn btn-primary btn-md" onClick={openCreate} style={{ marginTop: 8 }}>
+          <button className="btn btn-primary btn-md" onClick={() => setShowCreate(true)} style={{ marginTop: 8 }}>
             <Plus size={16} /> {t('common.create')}
           </button>
         </div>
@@ -146,7 +94,7 @@ export function TagsPage() {
               <span style={{ fontSize: 13, fontWeight: 500 }}>{tag.name}</span>
               <button
                 className="icon-btn"
-                onClick={() => openEdit(tag)}
+                onClick={() => setEditTag(tag)}
                 style={{ width: 22, height: 22, color: 'inherit', opacity: 0.6 }}
               >
                 <Pencil size={11} />
@@ -163,22 +111,12 @@ export function TagsPage() {
         </div>
       )}
 
-      <Modal
+      <TagModal
         open={showCreate || !!editTag}
+        tag={editTag}
         onClose={() => { setShowCreate(false); setEditTag(null); }}
-        title={editTag ? t('tags.modalEditTitle') : t('tags.modalCreateTitle')}
-        footer={
-          <>
-            <button className="btn btn-secondary btn-md" onClick={() => { setShowCreate(false); setEditTag(null); }}>{t('common.cancel')}</button>
-            <button className="btn btn-primary btn-md" onClick={handleSave} disabled={saving || !form.name.trim()}>
-              {saving && <span className="btn-spinner" />}
-              {editTag ? t('common.save') : t('common.create')}
-            </button>
-          </>
-        }
-      >
-        <TagForm />
-      </Modal>
+        onSaved={load}
+      />
 
       <Modal
         open={!!deleteTag}
