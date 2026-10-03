@@ -361,6 +361,7 @@ export function ExpenseDetailPage() {
   const [allWallets, setAllWallets] = useState<WalletResponse[]>([]);
   const [showLinkPicker, setShowLinkPicker] = useState(false);
   const [pendingLinks, setPendingLinks] = useState<TransactionLinkBrief[]>([]);
+  const [removedChildIds, setRemovedChildIds] = useState<string[]>([]);
   const [newChildren, setNewChildren] = useState<{ key: number; description: string; amount: string; category_id: string }[]>([]);
   const ctxMenu = useTransactionContextMenu();
   const tagMenu = useEditContextMenu<TagBrief>();
@@ -419,6 +420,7 @@ export function ExpenseDetailPage() {
   const handleStartEdit = () => {
     if (!expense) return;
     setPendingLinks(expense.linked_transactions);
+    setRemovedChildIds([]);
     setNewChildren([]);
     setForm({
       amount: String(expense.amount),
@@ -455,6 +457,9 @@ export function ExpenseDetailPage() {
         ...toAdd.map((id) => transactionLinks.add(expenseId, id)),
         ...toRemove.map((id) => transactionLinks.remove(expenseId, id)),
       ]);
+      for (const id of removedChildIds) {
+        await expensesApi.delete(form.wallet_id, id);
+      }
       const childrenToCreate = newChildren.filter((c) => c.amount !== '' && c.category_id);
       for (const c of childrenToCreate) {
         await expensesApi.create(form.wallet_id, {
@@ -466,6 +471,7 @@ export function ExpenseDetailPage() {
           date: form.date ? new Date(form.date).toISOString() : undefined,
         });
       }
+      setRemovedChildIds([]);
       setNewChildren([]);
       setEditing(false);
       toast(t('expenseDetail.toastUpdated'), 'success');
@@ -473,7 +479,7 @@ export function ExpenseDetailPage() {
         navigate(`/wallets/${form.wallet_id}/expenses/${expenseId}`, { replace: true });
         return;
       }
-      if (childrenToCreate.length > 0) {
+      if (removedChildIds.length > 0 || childrenToCreate.length > 0) {
         setRefreshKey((k) => k + 1);
         return;
       }
@@ -872,7 +878,7 @@ export function ExpenseDetailPage() {
               )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {expense.children.map((child, i) => (
+              {expense.children.filter((child) => !editing || !removedChildIds.includes(child.id)).map((child, i) => (
                 <Link
                   key={child.id}
                   to={`/wallets/${walletId}/expenses/${child.id}`}
@@ -905,6 +911,14 @@ export function ExpenseDetailPage() {
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', flexShrink: 0 }}>
                     {fmt(child.amount, currency)}
                   </div>
+                  {editing && (
+                    <button
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setRemovedChildIds((prev) => [...prev, child.id]); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-faint)', padding: 2, borderRadius: 4, display: 'flex', alignItems: 'center' }}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
                 </Link>
               ))}
               {editing && newChildren.map((c) => {
