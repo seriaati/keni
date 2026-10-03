@@ -188,12 +188,6 @@ export function RecurringReview({
           </div>
         )}
 
-        {recurring.ai_context && !recurring._editing && (
-          <div style={{ fontSize: 11, color: 'var(--ink-light)', fontStyle: 'italic' }}>
-            AI: {recurring.ai_context}
-          </div>
-        )}
-
         {wallets.length > 1 && selectedWalletId && (
           <div>
             <div style={{ fontSize: 10, color: 'var(--ink-light)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 4 }}>

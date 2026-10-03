@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CornerUpLeft, Bot, Layers, Pencil, Trash2, Check, X, Plus, Search, Sparkles } from 'lucide-react';
+import { ArrowLeft, CornerUpLeft, Layers, Pencil, Trash2, Check, X, Plus, Search, Sparkles } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { expenses as expensesApi, categories as categoriesApi, tags as tagsApi, wallets as walletsApi, transactionLinks } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
@@ -940,17 +940,6 @@ export function ExpenseDetailPage() {
                 })}
               </div>
             )}
-          </div>
-        )}
-
-        {/* AI context */}
-        {expense.ai_context && (
-          <div style={{ background: 'var(--green-tint-soft)', borderRadius: 14, border: '1px solid var(--green-border)', padding: '16px 20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              <Bot size={14} style={{ color: 'var(--forest)' }} />
-              <span style={{ fontSize: 11, color: 'var(--forest)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{t('expenseDetail.sectionAiContext')}</span>
-            </div>
-            <p style={{ fontSize: 13, color: 'var(--forest)', lineHeight: 1.6 }}>{expense.ai_context}</p>
           </div>
         )}
 

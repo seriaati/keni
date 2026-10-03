@@ -233,12 +233,6 @@ export const ExpenseCard = memo(function ExpenseCard({
         </div>
       )}
 
-      {expense.ai_context && !expense._editing && (
-        <div style={{ fontSize: 11, color: 'var(--ink-light)', fontStyle: 'italic' }}>
-          AI: {expense.ai_context}
-        </div>
-      )}
-
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
         {expense._editing ? (
           <>

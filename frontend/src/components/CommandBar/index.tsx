@@ -227,7 +227,6 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
         description: exp.description ?? undefined,
         date: exp.date ?? undefined,
         tag_names: exp.suggested_tags.map((t) => t.name),
-        ai_context: exp.ai_context ?? undefined,
       });
       toast(t('commandBar.toastSaved'), 'success');
       onExpenseAdded?.();
@@ -253,7 +252,6 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
           description: exp.description ?? undefined,
           date: exp.date ?? undefined,
           tag_names: exp.suggested_tags.map((t) => t.name),
-          ai_context: exp.ai_context ?? undefined,
         }),
       ));
       toast(t('commandBar.toastMultiSaved', { count: committed.length }), 'success');
@@ -443,7 +441,6 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
         is_new_category: false,
         description: null,
         date: today,
-        ai_context: null,
         suggested_tags: [],
         suggested_icon: null,
         type: 'expense',

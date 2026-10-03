@@ -51,7 +51,6 @@ export function MultipleReview({
       is_new_category: false,
       description: null,
       date: ref?.date ?? null,
-      ai_context: null,
       suggested_tags: [],
       suggested_icon: null,
       type: 'expense',

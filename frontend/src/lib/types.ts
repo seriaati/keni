@@ -82,7 +82,6 @@ export interface TransactionResponse {
   type: 'expense' | 'income';
   description: string | null;
   date: string;
-  ai_context: string | null;
   tags: TagBrief[];
   group_id: string | null;
   children: TransactionResponse[] | null;
@@ -132,7 +131,6 @@ export interface AIExpenseResponse {
   is_new_category: boolean;
   description: string | null;
   date: string | null;
-  ai_context: string | null;
   suggested_tags: SuggestedTag[];
   suggested_icon: string | null;
   type: 'expense' | 'income';
@@ -146,7 +144,6 @@ export interface AIRecurringResponse {
   description: string;
   frequency: string;
   next_due: string;
-  ai_context: string;
   type: 'expense' | 'income';
   suggested_tags: SuggestedTag[];
   suggested_icon: string | null;

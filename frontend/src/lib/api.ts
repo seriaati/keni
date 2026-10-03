@@ -199,7 +199,6 @@ export const expenses = {
     date?: string;
     tag_ids?: string[];
     tag_names?: string[];
-    ai_context?: string;
   }) =>
     request<TransactionResponse>(`/wallets/${walletId}/transactions`, {
       method: 'POST',
