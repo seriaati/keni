@@ -89,7 +89,6 @@ async def _build_response(transaction: Transaction, session: AsyncSession) -> Tr
         amount=brief.amount,
         description=brief.description,
         date=brief.date,
-        ai_context=transaction.ai_context,
         tags=brief.tags,
         created_at=transaction.created_at,
         updated_at=transaction.updated_at,

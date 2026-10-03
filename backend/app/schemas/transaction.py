@@ -17,7 +17,6 @@ class TransactionCreate(BaseModel):
     date: datetime | None = None
     tag_ids: list[uuid.UUID] = Field(default_factory=list)
     tag_names: list[str] = Field(default_factory=list)
-    ai_context: str | None = None
     group_id: uuid.UUID | None = None
 
     @model_validator(mode="after")
@@ -87,7 +86,6 @@ class TransactionResponse(BaseModel):
     amount: float
     description: str | None
     date: datetime
-    ai_context: str | None
     tags: list[TagBrief]
     created_at: datetime
     updated_at: datetime

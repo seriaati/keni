@@ -29,7 +29,6 @@ class Transaction(SQLModel, table=True):
             sa.DateTime(timezone=True), server_default=text("NOW()"), nullable=False
         ),
     )
-    ai_context: str | None = Field(default=None)
     created_at: datetime = Field(
         default=None,
         sa_column=sa.Column(

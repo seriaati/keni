@@ -84,7 +84,6 @@ async def _build_transaction_rows(
                 "description": transaction.description or "",
                 "date": transaction.date.isoformat(),
                 "tags": ", ".join(tag_names),
-                "ai_context": transaction.ai_context or "",
                 "created_at": transaction.created_at.isoformat(),
                 "updated_at": transaction.updated_at.isoformat(),
             }
@@ -133,7 +132,6 @@ async def export_transactions(  # ruff: ignore[too-many-arguments, too-many-posi
                 "description",
                 "date",
                 "tags",
-                "ai_context",
                 "created_at",
                 "updated_at",
             ],

@@ -912,7 +912,6 @@ class TransactionItemInput:
     date: str | None = None
     tag_ids: list[str] = field(default_factory=list)
     tag_names: list[str] = field(default_factory=list)
-    ai_context: str | None = None
 
 
 @dataclass
@@ -927,7 +926,6 @@ class CreateTransactionInput:
     date: str | None = None
     tag_ids: list[str] = field(default_factory=list)
     tag_names: list[str] = field(default_factory=list)
-    ai_context: str | None = None
 
 
 def _validate_item(item: TransactionItemInput) -> str | None:
@@ -1002,7 +1000,6 @@ async def _insert_item(
         amount=item.amount,
         description=item.description,
         date=transaction_date,
-        ai_context=item.ai_context,
     )
     session.add(transaction)
     await session.flush()
@@ -1032,7 +1029,6 @@ async def _insert_transaction(
         date=params.date,
         tag_ids=params.tag_ids,
         tag_names=params.tag_names,
-        ai_context=params.ai_context,
     )
     err = _validate_item(item)
     if err:
@@ -1073,7 +1069,6 @@ async def create_transaction(params: CreateTransactionInput) -> dict[str, Any]:
         params.date: ISO 8601 date string (defaults to now if omitted).
         params.tag_ids: List of existing tag UUIDs to attach.
         params.tag_names: List of tag names — matched case-insensitively or created if new.
-        params.ai_context: Optional AI context/notes about this transaction.
     """
     user = await _get_authenticated_user()
     if params.type not in {"expense", "income"}:
@@ -1105,7 +1100,7 @@ async def create_transactions(params: CreateTransactionsInput) -> dict[str, Any]
         params.wallet_id: UUID of the wallet to add the transactions to.
         params.items: List of transactions to create. Per item: amount (required),
             type ("expense"/"income"), category_id or category_name, category_icon,
-            description, date (ISO 8601), tag_ids, tag_names, ai_context.
+            description, date (ISO 8601), tag_ids, tag_names.
     """
     user = await _get_authenticated_user()
     if not params.items:

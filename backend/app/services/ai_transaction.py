@@ -51,7 +51,6 @@ class ParsedTransactionResult:
     is_new_category: bool
     description: str
     date: str
-    ai_context: str
     type: str = "expense"
     suggested_tags: list[SuggestedTagResult] = field(default_factory=list)
     suggested_icon: str | None = None
@@ -65,7 +64,6 @@ class ParsedGroupResult:
     category_name: str
     is_new_category: bool
     date: str
-    ai_context: str
     type: str = "expense"
     suggested_tags: list[SuggestedTagResult] = field(default_factory=list)
     suggested_icon: str | None = None
@@ -79,7 +77,6 @@ class ParsedRecurringResult:
     description: str
     frequency: str
     next_due: str
-    ai_context: str
     type: str = "expense"
     suggested_tags: list[SuggestedTagResult] = field(default_factory=list)
     suggested_icon: str | None = None
@@ -311,7 +308,6 @@ async def parse_transactions_with_ai(  # ruff: ignore[too-many-locals, too-many-
             description=parsed_rec.description,
             frequency=parsed_rec.frequency,
             next_due=parsed_rec.next_due,
-            ai_context=parsed_rec.ai_context,
             type=parsed_rec.type,
             suggested_tags=tags,
             suggested_icon=parsed_rec.suggested_icon
@@ -331,7 +327,6 @@ async def parse_transactions_with_ai(  # ruff: ignore[too-many-locals, too-many-
             is_new_category=is_new,
             description=parsed_txn.description,
             date=parsed_txn.date,
-            ai_context=parsed_txn.ai_context,
             type=parsed_txn.type,
             suggested_tags=tags,
             suggested_icon=parsed_txn.suggested_icon
@@ -355,7 +350,6 @@ async def parse_transactions_with_ai(  # ruff: ignore[too-many-locals, too-many-
             category_name=g.category_name,
             is_new_category=is_new,
             date=g.date,
-            ai_context=g.ai_context,
             type=g.type,
             suggested_tags=g_tags,
             suggested_icon=g.suggested_icon

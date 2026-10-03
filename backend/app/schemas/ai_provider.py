@@ -47,7 +47,6 @@ class AITransactionItem(BaseModel):
     is_new_category: bool
     description: str
     date: str
-    ai_context: str
     type: str
     suggested_tags: list[SuggestedTag]
     suggested_icon: str | None = None
@@ -59,7 +58,6 @@ class AITransactionGroupInfo(BaseModel):
     category_name: str
     is_new_category: bool
     date: str
-    ai_context: str
     type: str
     suggested_tags: list[SuggestedTag]
     suggested_icon: str | None = None
@@ -72,7 +70,6 @@ class AIRecurringItem(BaseModel):
     description: str
     frequency: str
     next_due: str
-    ai_context: str
     type: str
     suggested_tags: list[SuggestedTag]
     suggested_icon: str | None = None
