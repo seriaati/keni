@@ -105,6 +105,11 @@
   box-shadow: 0 0 0 3px var(--forest-focus);
 }
 
+.input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .input::placeholder {
   color: var(--ink-faint);
 }

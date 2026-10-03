@@ -348,6 +348,7 @@
     "sectionTags": "Tags",
     "sectionSubTransactions": "Sub-transactions",
     "addSubTransaction": "Add sub-transaction",
+    "parentAmountLocked": "Total of sub-transactions. Edit those to change it.",
     "sectionLinked": "Linked transactions",
     "addLink": "Add link",
     "descriptionPlaceholder": "Add a description…",

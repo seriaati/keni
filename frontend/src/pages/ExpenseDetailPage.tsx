@@ -437,9 +437,10 @@ export function ExpenseDetailPage() {
     setSaving(true);
     try {
       const walletChanged = form.wallet_id !== walletId;
+      const isParent = !!expense.children?.length;
       const updated = await expensesApi.update(walletId, expenseId, {
         wallet_id: walletChanged ? form.wallet_id : undefined,
-        amount: Number(form.amount),
+        amount: isParent ? undefined : Number(form.amount),
         description: form.description || undefined,
         category_id: form.category_id,
         date: form.date ? new Date(form.date).toISOString() : undefined,
@@ -722,6 +723,8 @@ export function ExpenseDetailPage() {
                 step="0.01"
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                disabled={!!expense.children?.length}
+                title={expense.children?.length ? t('expenseDetail.parentAmountLocked') : undefined}
                 style={{ fontSize: 24, fontFamily: 'var(--font-display)', height: 'auto', padding: '4px 8px' }}
               />
             </div>
