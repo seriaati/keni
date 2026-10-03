@@ -17,12 +17,14 @@ import {
   Download,
   LayoutDashboard,
   LogOut,
+  Moon,
   MoreHorizontal,
   Plus,
   PlusCircle,
   Plug,
   RefreshCw,
   Settings,
+  Sun,
   Tag,
   Tags,
   Zap,
@@ -33,6 +35,7 @@ import { CommandBar } from './CommandBar';
 import { Modal } from './ui/Modal';
 import { getSharedPayload, clearSharedPayload } from '../lib/shareTarget';
 import { getInitials } from '../lib/utils';
+import { setTheme, useTheme } from '../lib/theme';
 import './layout.css';
 
 const NAV_AFTER_TRANSACTIONS_CONFIG = [
@@ -111,6 +114,7 @@ function VersionInfo() {
 export function Layout() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
+  const theme = useTheme();
   const { wallets, activeWallet, setActiveWallet } = useWallet();
   const [cmdOpen, setCmdOpen] = useState(false);
   const [cmdInitialPayload, setCmdInitialPayload] = useState<{ text?: string; files?: File[] } | undefined>();
@@ -378,6 +382,9 @@ export function Layout() {
               <span className="user-name">{user?.display_name ?? user?.username}</span>
               {user?.is_admin && <span className="user-role">{t('nav.userRole')}</span>}
             </div>
+            <button className="icon-btn" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} title={t('nav.toggleTheme')}>
+              {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+            </button>
             <button className="icon-btn" onClick={handleLogout} title={t('nav.signOut')}>
               <LogOut size={14} />
             </button>
@@ -553,6 +560,9 @@ export function Layout() {
                   <span className="user-name">{user?.display_name ?? user?.username}</span>
                   {user?.is_admin && <span className="user-role">{t('nav.userRole')}</span>}
                 </div>
+                <button className="icon-btn" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} title={t('nav.toggleTheme')}>
+                  {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+                </button>
                 <button className="icon-btn" onClick={handleLogout} title={t('nav.signOut')}>
                   <LogOut size={14} />
                 </button>

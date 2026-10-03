@@ -12,6 +12,7 @@
   --cream-darker: oklch(88% 0.022 78);
   --sand: oklch(82% 0.028 75);
   --sand-dark: oklch(72% 0.032 72);
+  --surface: white;
 
   --forest: oklch(18% 0.01 80);
   --forest-mid: oklch(28% 0.01 80);
@@ -28,10 +29,22 @@
 
   --amber: oklch(72% 0.14 65);
   --amber-light: oklch(82% 0.12 70);
+  --amber-text: oklch(52% 0.14 65);
+  --amber-tint: oklch(97% 0.06 70);
   --rose: oklch(52% 0.12 20);
   --rose-light: oklch(93% 0.02 20);
   --rose-border: oklch(82% 0.04 20);
+  --rose-tint: oklch(97% 0.04 20);
   --sky: oklch(62% 0.1 230);
+
+  /* Green accents: active/positive tiles and banners, and "new" category/tag markers */
+  --green-tint: oklch(92% 0.06 155);
+  --green-tint-soft: oklch(96% 0.04 155);
+  --green-border: oklch(88% 0.06 155);
+  --new-tint: oklch(97% 0.02 145);
+  --new-border: oklch(82% 0.08 145);
+  --new-text: oklch(48% 0.09 145);
+  --new-badge: oklch(92% 0.04 145);
 
   --radius-sm: 6px;
   --radius: 10px;
@@ -51,6 +64,53 @@
   --tab-bar-height: 60px;
 
   color-scheme: light;
+}
+
+/* Dark theme — "Espresso". Set via data-theme on <html> (see lib/theme.ts). */
+:root[data-theme="dark"] {
+  --cream: oklch(16.5% 0.012 70);
+  --cream-dark: oklch(25% 0.014 70);
+  --cream-darker: oklch(29% 0.016 70);
+  --sand: oklch(36% 0.02 72);
+  --sand-dark: oklch(45% 0.022 72);
+  --surface: oklch(20.5% 0.013 70);
+
+  --forest: oklch(91% 0.022 85);
+  --forest-mid: oklch(82% 0.02 85);
+  --forest-light: oklch(70% 0.015 80);
+  --forest-focus: oklch(91% 0.022 85 / 0.15);
+  --forest-kbd: oklch(16.5% 0.012 70 / 0.3);
+  --forest-tint: oklch(28% 0.012 75);
+
+  --ink: oklch(93% 0.014 85);
+  --ink-mid: oklch(80% 0.014 80);
+  --ink-light: oklch(66% 0.014 78);
+  --ink-faint: oklch(54% 0.013 78);
+
+  --amber: oklch(76% 0.13 68);
+  --amber-light: oklch(40% 0.08 68);
+  --amber-text: oklch(80% 0.12 70);
+  --amber-tint: oklch(23% 0.04 68);
+  --rose: oklch(68% 0.14 22);
+  --rose-light: oklch(32% 0.06 20);
+  --rose-border: oklch(38% 0.07 20);
+  --rose-tint: oklch(22% 0.04 20);
+  --sky: oklch(72% 0.1 230);
+
+  --green-tint: oklch(30% 0.05 155);
+  --green-tint-soft: oklch(23% 0.04 155);
+  --green-border: oklch(36% 0.06 155);
+  --new-tint: oklch(23% 0.03 145);
+  --new-border: oklch(38% 0.06 145);
+  --new-text: oklch(78% 0.1 145);
+  --new-badge: oklch(30% 0.05 145);
+
+  --shadow-sm: 0 1px 3px oklch(0% 0 0 / 0.3);
+  --shadow: 0 2px 8px oklch(0% 0 0 / 0.35), 0 1px 2px oklch(0% 0 0 / 0.25);
+  --shadow-lg: 0 8px 32px oklch(0% 0 0 / 0.45), 0 2px 8px oklch(0% 0 0 / 0.3);
+  --shadow-xl: 0 20px 60px oklch(0% 0 0 / 0.55), 0 4px 16px oklch(0% 0 0 / 0.35);
+
+  color-scheme: dark;
 }
 
 html {

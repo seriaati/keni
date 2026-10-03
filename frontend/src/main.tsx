@@ -1,4 +1,5 @@
 import './lib/i18n';
+import './lib/theme';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 

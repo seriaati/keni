@@ -31,6 +31,7 @@
     "settings": "Settings",
     "admin": "Admin",
     "signOut": "Sign out",
+    "toggleTheme": "Toggle dark mode",
     "addTransaction": "Add transaction",
     "installApp": "Install app",
     "mcp": "MCP",
