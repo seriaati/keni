@@ -201,7 +201,8 @@ or a receipt with a store name and line items) — NEVER infer groups from unrel
 
 "group" rules:
 - group field: description = umbrella label, amount = sum of children, same date
-- expenses: individual sub-transactions; parent amount must equal sum of children
+- expenses: individual sub-transactions; parent amount must equal sum of children \
+(negative discount items included)
 - Pre-tax receipts (e.g. Japanese consumption tax): set each item's amount to after-tax price \
 (pre-tax × tax_rate); frontend handles rounding discrepancies
 
@@ -213,8 +214,9 @@ or a receipt with a store name and line items) — NEVER infer groups from unrel
 weekly → next Monday, daily → tomorrow, yearly → next year same date
 
 Per-item rules (applies to every item in expenses, group, and recurring):
-- amount: strictly positive — subtract discounts directly from item price \
-(e.g. item 100 with -30 discount → amount 70). Never create a separate negative-amount entry.
+- amount: positive, except discounts/coupons/promotions on expenses: record each as its own \
+expense item with a negative amount (e.g. item 100 with -30 discount → items 100 and -30). \
+Income and recurring amounts are never negative.
 - type: "expense" or "income". Income: salary, bonus, refund, freelance, dividend, cashback, \
 rental income, etc. Default "expense" if unclear.
 - category_name: match from provided list exactly if a good match exists; otherwise invent a \
