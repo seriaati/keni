@@ -89,7 +89,7 @@ export function GroupReview({
     <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ fontSize: 12, color: 'var(--ink-light)', fontWeight: 600 }}>
-          {showItems ? `Sub-expenses (${items.length})` : 'Group expense — parent total'}
+          {showItems ? `Sub-expenses (${items.length})` : 'Group expense: parent total'}
         </div>
         <button
           className="btn btn-ghost btn-sm"

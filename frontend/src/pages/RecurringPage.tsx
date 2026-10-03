@@ -304,7 +304,7 @@ export function RecurringPage() {
         }
       >
         <p style={{ fontSize: 14, color: 'var(--ink-mid)' }}>
-          {deleteItem?.description ? <><strong>{deleteItem.description}</strong> — </> : null}{t('recurring.deleteConfirm')}
+          {deleteItem?.description ? <><strong>{deleteItem.description}</strong>: </> : null}{t('recurring.deleteConfirm')}
         </p>
       </Modal>
     </div>
