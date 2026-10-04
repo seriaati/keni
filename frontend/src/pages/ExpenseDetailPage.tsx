@@ -1169,11 +1169,11 @@ export function ExpenseDetailPage() {
               />
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-              <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setChildDraft(null)}>
+              <button className="btn btn-secondary btn-lg" style={{ flex: 1 }} onClick={() => setChildDraft(null)}>
                 {t('common.cancel')}
               </button>
               <button
-                className="btn btn-primary"
+                className="btn btn-primary btn-lg"
                 style={{ flex: 1 }}
                 disabled={childDraft.amount === '' || !childDraft.category_id}
                 onClick={() => {
