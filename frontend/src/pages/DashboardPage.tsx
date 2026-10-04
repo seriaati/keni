@@ -1,8 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, ArrowRight, ChevronDown, Layers, Wallet } from 'lucide-react';
+import { AlertTriangle, ArrowRight, ChevronDown, Wallet } from 'lucide-react';
 import { PieChart, Pie, Sector, ResponsiveContainer, Tooltip } from 'recharts';
 import { expenses as expensesApi, budgets as budgetsApi, categories as categoriesApi } from '../lib/api';
 import { useWallet } from '../contexts/WalletContext';
@@ -18,6 +17,7 @@ import { TransactionContextMenu, useTransactionContextMenu } from '../components
 import { EditContextMenu, useEditContextMenu } from '../components/EditContextMenu';
 import { CategoryModal } from '../components/CategoryModal';
 import { useIsMobile } from '../lib/useIsMobile';
+import { TransactionMeta } from '../components/TransactionMeta';
 
 const FALLBACK_COLORS = [
   'var(--forest)',
@@ -397,7 +397,7 @@ export function DashboardPage() {
                     <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {expense.description ?? expense.category.name}
                     </div>
-                    <RecentMeta
+                    <TransactionMeta
                       categoryName={expense.category.name}
                       itemCount={expense.children?.length ?? 0}
                       date={fmtRelative(expense.date)}
@@ -732,86 +732,6 @@ function SummaryCard({
         </div>
       )}
       <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{sub}</div>
-    </div>
-  );
-}
-
-// Minimum width kept for an ellipsized category before falling back to date only.
-const META_MIN_CATEGORY_WIDTH = 32;
-const META_GAP = 5;
-
-type MetaMode = 'full' | 'short' | 'none' | 'date';
-
-// Single-line meta row for recent transactions. Measures each part in a hidden copy
-// and drops detail (items label → count → items → category) until it fits on one line.
-function RecentMeta({ category, categoryName, itemCount, date }: {
-  category: ReactNode;
-  categoryName: string;
-  itemCount: number;
-  date: string;
-}) {
-  const { t } = useTranslation();
-  const rowRef = useRef<HTMLDivElement>(null);
-  const measureRef = useRef<HTMLDivElement>(null);
-  const [mode, setMode] = useState<MetaMode>('full');
-  const itemsLabel = t('dashboard.itemsCount', { count: itemCount });
-
-  useLayoutEffect(() => {
-    const row = rowRef.current;
-    const measure = measureRef.current;
-    if (!row || !measure) return;
-    const update = () => {
-      const [cat, sep, full, short, dateW] = Array.from(measure.children).map((c) => (c as HTMLElement).offsetWidth);
-      const avail = row.clientWidth;
-      const withSep = (w: number) => w + META_GAP + sep + META_GAP;
-      const base = withSep(cat) + dateW;
-      if (itemCount > 0 && base + withSep(full) <= avail) setMode('full');
-      else if (itemCount > 0 && base + withSep(short) <= avail) setMode('short');
-      else if (withSep(META_MIN_CATEGORY_WIDTH) + dateW <= avail) setMode('none');
-      else setMode('date');
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(row);
-    ro.observe(measure);
-    return () => ro.disconnect();
-  }, [itemCount, categoryName, itemsLabel, date]);
-
-  const items = (label: ReactNode) => (
-    <>
-      <span>·</span>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
-        <Layers size={11} />
-        {label}
-      </span>
-    </>
-  );
-
-  return (
-    <div
-      ref={rowRef}
-      style={{ position: 'relative', fontSize: 12, color: 'var(--ink-faint)', display: 'flex', gap: META_GAP, alignItems: 'center', whiteSpace: 'nowrap', overflow: 'hidden' }}
-    >
-      <div
-        ref={measureRef}
-        aria-hidden
-        style={{ position: 'absolute', top: 0, left: 0, visibility: 'hidden', pointerEvents: 'none', display: 'flex' }}
-      >
-        <span>{categoryName}</span>
-        <span>·</span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><Layers size={11} />{itemsLabel}</span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><Layers size={11} />{itemCount}</span>
-        <span>{date}</span>
-      </div>
-      {mode !== 'date' && (
-        <>
-          <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{category}</span>
-          {mode === 'full' && items(itemsLabel)}
-          {mode === 'short' && items(itemCount)}
-          <span>·</span>
-        </>
-      )}
-      <span style={{ flexShrink: 0 }}>{date}</span>
     </div>
   );
 }

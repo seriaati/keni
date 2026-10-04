@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useState, useCallback, useMemo, useRef } fr
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useParams, useSearchParams, useOutletContext, useNavigate, type NavigateFunction } from 'react-router-dom';
-import { ArrowLeftRight, Check, ChevronDown, Command, Filter, FolderOpen, Layers, Plus, Search, SortAsc, SortDesc, Sparkles, Tag, Trash2, X } from 'lucide-react';
+import { ArrowLeftRight, Check, ChevronDown, Command, Filter, FolderOpen, Plus, Search, SortAsc, SortDesc, Sparkles, Tag, Trash2, X } from 'lucide-react';
 import { expenses as expensesApi, categories as categoriesApi, wallets as walletsApi, tags as tagsApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/Toast';
@@ -21,6 +21,7 @@ import { TransactionContextMenu, useTransactionContextMenu } from '../components
 import { EditContextMenu, useEditContextMenu } from '../components/EditContextMenu';
 import { CategoryModal } from '../components/CategoryModal';
 import { useIsMobile } from '../lib/useIsMobile';
+import { TransactionMeta } from '../components/TransactionMeta';
 
 
 export function WalletViewPage() {
@@ -1265,43 +1266,23 @@ function ExpenseRow({
         <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {expense.description ?? expense.category.name}
         </div>
-        <div style={{ fontSize: 12, color: 'var(--ink-faint)', display: 'flex', gap: 6, alignItems: 'center', overflow: 'hidden', flexWrap: 'nowrap' }}>
-          <span
-            style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0, cursor: isMobile ? undefined : 'pointer' }}
-            onClick={isMobile ? undefined : (e) => { e.stopPropagation(); onCategoryClick(expense.category.id); }}
-            onContextMenu={(e) => onCategoryContextMenu(e, expense.category)}
-            onMouseEnter={(e) => { if (!isMobile) e.currentTarget.style.textDecoration = 'underline'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
-          >
-            {expense.category.name}
-          </span>
-          {expense.children && expense.children.length > 0 && (
-            <>
-              <span style={{ flexShrink: 0 }}>·</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, whiteSpace: 'nowrap' }}>
-                <Layers size={11} />
-                {expense.children.length}
-              </span>
-            </>
-          )}
-          {expense.tags.length > 0 && (
-            <>
-              <span style={{ flexShrink: 0 }}>·</span>
-              {expense.tags.slice(0, 2).map((t) => (
-                <span key={t.id} className="chip" style={{ fontSize: 11, padding: '1px 6px', flexShrink: 0, whiteSpace: 'nowrap' }}>{t.name}</span>
-              ))}
-              {expense.tags.length > 2 && (
-                <span style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>+{expense.tags.length - 2}</span>
-              )}
-            </>
-          )}
-          {!isMobile && hasConversion && (
-            <>
-              <span style={{ flexShrink: 0 }}>·</span>
-              <span style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>{fmtRelative(expense.date)}</span>
-            </>
-          )}
-        </div>
+        <TransactionMeta
+          categoryName={expense.category.name}
+          itemCount={expense.children?.length ?? 0}
+          tags={expense.tags}
+          date={!isMobile && hasConversion ? fmtRelative(expense.date) : undefined}
+          category={
+            <span
+              style={{ cursor: isMobile ? undefined : 'pointer' }}
+              onClick={isMobile ? undefined : (e) => { e.stopPropagation(); onCategoryClick(expense.category.id); }}
+              onContextMenu={(e) => onCategoryContextMenu(e, expense.category)}
+              onMouseEnter={(e) => { if (!isMobile) e.currentTarget.style.textDecoration = 'underline'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
+            >
+              {expense.category.name}
+            </span>
+          }
+        />
       </div>
 
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
