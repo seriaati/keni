@@ -400,6 +400,7 @@ export function DashboardPage() {
                     <TransactionMeta
                       categoryName={expense.category.name}
                       itemCount={expense.children?.length ?? 0}
+                      tags={expense.tags}
                       date={fmtRelative(expense.date)}
                       category={
                         <span
