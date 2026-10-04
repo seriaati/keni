@@ -4,6 +4,7 @@ import { Bot, Send, User } from 'lucide-react';
 import { marked } from 'marked';
 import { chat as chatApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
+import { useIsMobile } from '../lib/useIsMobile';
 
 interface Message {
   id: string;
@@ -28,6 +29,7 @@ export function ChatPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const idCounter = useRef(0);
   const toast = useToast();
+  const isMobile = useIsMobile(768);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -238,9 +240,11 @@ export function ChatPage() {
           <Send size={15} style={{ color: input.trim() && !loading ? 'var(--cream)' : 'var(--ink-faint)' }} />
         </button>
       </div>
-      <p style={{ fontSize: 11, color: 'var(--ink-faint)', textAlign: 'center', marginTop: 6 }}>
-        Press Enter to send · Shift+Enter for new line
-      </p>
+      {!isMobile && (
+        <p style={{ fontSize: 11, color: 'var(--ink-faint)', textAlign: 'center', marginTop: 6 }}>
+          Press Enter to send · Shift+Enter for new line
+        </p>
+      )}
     </div>
   );
 }
