@@ -1,8 +1,8 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useParams, useSearchParams, useOutletContext, useNavigate, type NavigateFunction } from 'react-router-dom';
-import { ArrowLeftRight, Check, Command, Filter, FolderOpen, Layers, Plus, Search, SortAsc, SortDesc, Sparkles, Tag, Trash2, X } from 'lucide-react';
+import { ArrowLeftRight, Check, ChevronDown, Command, Filter, FolderOpen, Layers, Plus, Search, SortAsc, SortDesc, Sparkles, Tag, Trash2, X } from 'lucide-react';
 import { expenses as expensesApi, categories as categoriesApi, wallets as walletsApi, tags as tagsApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/Toast';
@@ -43,6 +43,9 @@ export function WalletViewPage() {
   const [showConverted, setShowConverted] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  // null = not yet measured; decided once on mobile after the tag chips first render
+  const [tagsCollapsed, setTagsCollapsed] = useState<boolean | null>(null);
+  const tagListRef = useRef<HTMLDivElement>(null);
 
   // --- Bulk selection state ---
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -467,6 +470,13 @@ export function WalletViewPage() {
 
   // Tags that can still match given the other active filters; ineligible ones are dimmed, not hidden.
   const availableTagIds = useMemo(() => new Set(data?.available_tag_ids ?? []), [data]);
+
+  // On mobile, collapse the tag filter by default when the chips wrap past 4 rows.
+  useLayoutEffect(() => {
+    if (!isMobile || tagsCollapsed !== null || !tagListRef.current) return;
+    const rows = new Set([...tagListRef.current.children].map((el) => (el as HTMLElement).offsetTop)).size;
+    setTagsCollapsed(rows > 4);
+  }, [isMobile, tagsCollapsed, showFilters, allTags]);
 
   const selectedTransactionTags = useMemo(() => {
     if (!data) return [] as TagBrief[];
@@ -911,8 +921,21 @@ export function WalletViewPage() {
           </div>
           {allTags.length > 0 && (
             <div className="input-group" style={{ gridColumn: '1 / -1' }}>
-              <label className="input-label">{t('walletView.filterTags')}</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {isMobile && tagsCollapsed !== null ? (
+                <button
+                  type="button"
+                  className="input-label"
+                  onClick={() => setTagsCollapsed(!tagsCollapsed)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
+                >
+                  {t('walletView.filterTags')}
+                  {selectedTagIds.length > 0 && ` (${selectedTagIds.length})`}
+                  <ChevronDown size={13} style={{ transition: 'transform 0.15s', transform: tagsCollapsed ? 'none' : 'rotate(180deg)' }} />
+                </button>
+              ) : (
+                <label className="input-label">{t('walletView.filterTags')}</label>
+              )}
+              {!(isMobile && tagsCollapsed) && <div ref={tagListRef} style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {allTags.map((tag) => {
                   const active = selectedTagIds.includes(tag.id);
                   const eligible = active || availableTagIds.has(tag.id);
@@ -944,7 +967,7 @@ export function WalletViewPage() {
                     </button>
                   );
                 })}
-              </div>
+              </div>}
             </div>
           )}
           {hasFilters && (
