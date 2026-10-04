@@ -290,6 +290,8 @@
     "filterTypeAll": "全部",
     "filterTypeExpense": "支出",
     "filterTypeIncome": "收入",
+    "filterSubTransactions": "子交易",
+    "filterHasSubTransactions": "含子交易",
     "filterTags": "標籤",
     "filterClearAll": "清除全部",
     "paginationPrev": "上一頁",

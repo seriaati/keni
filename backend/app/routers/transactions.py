@@ -11,7 +11,8 @@ from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile, status
 from PIL import Image as PILImage
-from sqlalchemy import func, or_
+from sqlalchemy import exists, func, or_
+from sqlalchemy.orm import aliased
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -650,7 +651,7 @@ async def get_transaction_analytics(
 
 
 @router.get("")
-async def list_transactions(  # ruff: ignore[too-many-arguments, too-many-positional-arguments]
+async def list_transactions(  # ruff: ignore[too-many-arguments, too-many-positional-arguments, too-many-branches]
     wallet_id: uuid.UUID,
     current_user: CurrentUser,
     session: DbDep,
@@ -666,6 +667,7 @@ async def list_transactions(  # ruff: ignore[too-many-arguments, too-many-positi
     sort_by: Annotated[str, Query(pattern="^(date|amount|category)$")] = "date",
     sort_order: Annotated[str, Query(pattern="^(asc|desc)$")] = "desc",
     include_children: Annotated[bool, Query()] = False,
+    with_children: Annotated[bool, Query(alias="has_children")] = False,
     transaction_type: Annotated[
         str | None, Query(alias="type", pattern="^(expense|income)$")
     ] = None,
@@ -693,6 +695,9 @@ async def list_transactions(  # ruff: ignore[too-many-arguments, too-many-positi
         query = query.where(col(Transaction.amount) <= max_amount)
     if search:
         query = query.where(col(Transaction.description).ilike(f"%{search}%"))
+    if with_children:
+        child = aliased(Transaction)
+        query = query.where(exists().where(col(child.group_id) == col(Transaction.id)))
 
     # Tags available given all OTHER active filters (ignoring the tag filter itself),
     # so the tag filter UI only offers tags that can actually match.

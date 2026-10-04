@@ -290,6 +290,8 @@
     "filterTypeAll": "All",
     "filterTypeExpense": "Expenses",
     "filterTypeIncome": "Income",
+    "filterSubTransactions": "Sub-transactions",
+    "filterHasSubTransactions": "With sub-transactions",
     "filterTags": "Tags",
     "filterClearAll": "Clear all",
     "paginationPrev": "Previous",
