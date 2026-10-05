@@ -65,11 +65,19 @@ jobs:
           jq --arg v "${{ steps.new-version.outputs.version }}" '.version = $v' package.json > package.json.tmp
           mv package.json.tmp package.json
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.3.2
+
+      - name: Bump backend pyproject.toml version
+        run: |
+          cd backend
+          uv version --no-sync "${{ steps.new-version.outputs.version }}"
+
       - name: Commit version bump
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add frontend/package.json
+          git add frontend/package.json backend/pyproject.toml backend/uv.lock
           git commit -m "chore: bump version to v${{ steps.new-version.outputs.version }}"
           git push
 
