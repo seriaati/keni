@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from typing import TYPE_CHECKING, Any
 
 from google import genai
@@ -100,6 +101,7 @@ class GeminiProvider(LLMProvider):
 
         schema = ParsedTransactionOutput.model_json_schema()
 
+        start = time.perf_counter()
         try:
             response = await self._client.aio.models.generate_content(
                 model=self._model,
@@ -112,6 +114,17 @@ class GeminiProvider(LLMProvider):
             )
         except Exception as exc:
             raise _wrap_google_error(exc) from exc
+
+        usage = response.usage_metadata
+        logger.info(
+            "Gemini parse: model=%s elapsed_ms=%.0f input=%s output=%s thinking=%s cached=%s",
+            self._model,
+            (time.perf_counter() - start) * 1000,
+            usage and usage.prompt_token_count,
+            usage and usage.candidates_token_count,
+            usage and usage.thoughts_token_count,
+            usage and usage.cached_content_token_count,
+        )
 
         raw_text = response.text
         if not raw_text:

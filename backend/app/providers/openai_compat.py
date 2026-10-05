@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from typing import TYPE_CHECKING, Any, cast
 
 import openai
@@ -96,6 +97,7 @@ class OpenAICompatibleProvider(LLMProvider):
         )
         parts.append(ChatCompletionContentPartTextParam(type="text", text=prompt_text))
 
+        start = time.perf_counter()
         try:
             response = await self._client.beta.chat.completions.parse(
                 model=self._model,
@@ -108,6 +110,19 @@ class OpenAICompatibleProvider(LLMProvider):
             )
         except Exception as exc:
             raise _wrap_openai_error(exc) from exc
+
+        usage = response.usage
+        logger.info(
+            "OpenAI parse: model=%s elapsed_ms=%.0f input=%s output=%s reasoning=%s cached=%s",
+            self._model,
+            (time.perf_counter() - start) * 1000,
+            usage and usage.prompt_tokens,
+            usage and usage.completion_tokens,
+            usage
+            and usage.completion_tokens_details
+            and usage.completion_tokens_details.reasoning_tokens,
+            usage and usage.prompt_tokens_details and usage.prompt_tokens_details.cached_tokens,
+        )
 
         parsed = response.choices[0].message.parsed
         if parsed is None:

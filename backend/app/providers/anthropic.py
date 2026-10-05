@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from typing import TYPE_CHECKING, Any, Literal, cast, get_args
 
 import anthropic
@@ -108,6 +109,7 @@ class AnthropicProvider(LLMProvider):
         )
         parts.append(TextBlockParam(type="text", text=prompt_text))
 
+        start = time.perf_counter()
         try:
             response = await self._client.messages.parse(
                 model=self._model,
@@ -122,6 +124,17 @@ class AnthropicProvider(LLMProvider):
             )
         except Exception as exc:
             raise _wrap_anthropic_error(exc) from exc
+
+        usage = response.usage
+        logger.info(
+            "Anthropic parse: model=%s elapsed_ms=%.0f input=%d output=%d cache_read=%s cache_write=%s",
+            self._model,
+            (time.perf_counter() - start) * 1000,
+            usage.input_tokens,
+            usage.output_tokens,
+            usage.cache_read_input_tokens,
+            usage.cache_creation_input_tokens,
+        )
 
         parsed = response.parsed_output
         if parsed is None:
