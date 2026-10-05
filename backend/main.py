@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
+import tomllib
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -35,6 +37,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_pyproject = tomllib.loads((Path(__file__).parent / "pyproject.toml").read_text())
+VERSION = _pyproject["project"]["version"]
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
@@ -59,7 +64,7 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
     scheduler.shutdown(wait=True)
 
 
-app = FastAPI(title="Keni API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Keni API", version=VERSION, lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
