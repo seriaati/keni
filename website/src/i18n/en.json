@@ -157,7 +157,7 @@
   "cta": {
     "title": "Start tracking",
     "titleEm": "without the hassle.",
-    "sub": "Self-host with Docker Compose for full control, or use the hosted instance free (data only stored for 2 weeks).",
+    "sub": "Self-host with Docker Compose for full control, or use the hosted instance free.",
     "btnPrimary": "Try hosted free",
     "btnSecondary": "Self-host with Docker ↗"
   },
@@ -166,7 +166,7 @@
     "pageDescription": "How Keni handles your data: what is stored, what is sent to your AI provider, how long the hosted instance keeps it, and how self-hosting differs.",
     "eyebrow": "Legal",
     "title": "Privacy Policy",
-    "updated": "Last updated: September 28, 2026",
+    "updated": "Last updated: October 5, 2026",
     "intro": [
       "Keni is an open-source personal finance tracker. This policy explains what data Keni collects, where it goes, and how long it is kept. It is written from the source code, so it describes what the software actually does rather than what a template says.",
       "It covers three things: the marketing website at keni.seria.moe, the free hosted instance at app.keni.seria.moe, and the Keni software itself when you run it on your own server. When you self-host, the person running that server is responsible for the data on it, not us. The sections below say where the two cases differ."
@@ -227,8 +227,8 @@
       {
         "heading": "Retention and deletion",
         "body": [
-          "On the hosted instance, a scheduled job runs daily and deletes transactions fourteen days after they were created, along with any grouped child transactions under them. This is why the hosted instance is described as keeping data for two weeks. The job only deletes transactions. Your account, wallets, categories, tags, budgets, recurring rules, and AI provider settings stay until you remove them.",
-          "When you self-host, this automatic deletion is off by default and your data is kept until you delete it or the server operator does."
+          "On the hosted instance, your data is kept until you delete it. There is no automatic deletion.",
+          "When you self-host, your data is kept until you delete it or the server operator does. Keni includes an optional job that automatically deletes old transactions, but it is off by default."
         ],
         "list": [
           "You can delete transactions, wallets (which removes their transactions), categories, tags, budgets, recurring rules, API tokens, and your AI provider settings from within the app at any time.",
@@ -240,7 +240,7 @@
         "heading": "Security",
         "body": [
           "The hosted instance is served over HTTPS. Passwords are hashed with bcrypt. API tokens and MCP tokens are stored as SHA-256 hashes. Login sessions use short-lived access tokens (thirty minutes) with refresh tokens valid for thirty days. Data is not encrypted at rest beyond what the hosting disk provides, and as noted above your AI provider key is stored encoded rather than encrypted.",
-          "The hosted instance is a free service run by one person. It is meant for trying Keni out, not as a place to keep records you cannot afford to lose. If you want full control over where your data lives, self-host."
+          "The hosted instance is a free service run by one person, with no uptime guarantee. Exporting your wallets now and then is a good way to keep your own copy. If you want full control over where your data lives, self-host."
         ],
         "list": []
       },

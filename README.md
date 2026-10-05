@@ -7,7 +7,7 @@
 Keni is a personal finance tracker built for people who want to record detailed transaction logs without spending much effort.
 It uses AI to take various kind of input (text, image, PDF, voice, etc.) and extract context about the transaction, then categorizes them for easier lookup in the future.
 
-Keni is built with privacy in mind. You can self-host with Docker Compose for full data control, or try it out for free with the hosted instance (data only stored for 2 weeks).
+Keni is built with privacy in mind. You can self-host with Docker Compose for full data control, or try it out for free with the hosted instance.
 For AI, Keni uses BYOK (bring your own key) and does not come with any cloud AI models. However, you can easily get free API keys from [Google Gemini](https://aistudio.google.com/) or [OpenRouter](https://openrouter.ai/).
 
 ## Demo
