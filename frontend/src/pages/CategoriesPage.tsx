@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Pencil, Trash2, Tag } from 'lucide-react';
+import { Plus, Pencil, Trash2, Tag, Palette } from 'lucide-react';
 import { categories as categoriesApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import { Modal } from '../components/ui/Modal';
 import { CategoryModal } from '../components/CategoryModal';
 import type { CategoryResponse } from '../lib/types';
 import { CategoryIcon } from '../lib/categoryIcons';
+import { pickDistinctColors } from '../lib/colors';
 
 export function CategoriesPage() {
   const { t } = useTranslation();
@@ -17,6 +18,9 @@ export function CategoriesPage() {
   const [editCat, setEditCat] = useState<CategoryResponse | null>(null);
   const [deleteCat, setDeleteCat] = useState<CategoryResponse | null>(null);
   const [saving, setSaving] = useState(false);
+  const [coloring, setColoring] = useState(false);
+
+  const uncolored = categories.filter((c) => !c.color && !c.is_system);
 
   const load = async () => {
     setLoading(true);
@@ -46,6 +50,20 @@ export function CategoriesPage() {
     }
   };
 
+  const handleAutoColor = async () => {
+    setColoring(true);
+    try {
+      const colors = pickDistinctColors(categories.map((c) => c.color), uncolored.length);
+      await Promise.all(uncolored.map((c, i) => categoriesApi.update(c.id, { color: colors[i] })));
+      toast(t('categories.toastAutoColored', { count: uncolored.length }), 'success');
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Failed', 'error');
+    } finally {
+      setColoring(false);
+      await load();
+    }
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="page-header">
@@ -54,6 +72,11 @@ export function CategoriesPage() {
           <p className="page-subtitle">{t('categories.subtitle')}</p>
         </div>
         <div className="page-actions">
+          {uncolored.length > 0 && (
+            <button className="btn btn-secondary btn-md" onClick={handleAutoColor} disabled={coloring}>
+              {coloring ? <span className="btn-spinner" /> : <Palette size={16} />} {t('categories.autoColor')}
+            </button>
+          )}
           <button className="btn btn-primary btn-md" onClick={() => setShowCreate(true)}>
             <Plus size={16} /> {t('categories.new')}
           </button>

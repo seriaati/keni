@@ -223,7 +223,10 @@
     "toastCreated": "類別已建立",
     "toastUpdated": "類別已更新",
     "toastDeleted": "類別已刪除，支出已移至其他",
-    "toastLoadFailed": "載入失敗"
+    "toastLoadFailed": "載入失敗",
+    "autoColor": "自動配色",
+    "toastAutoColored_one": "已為 1 個類別配色",
+    "toastAutoColored_other": "已為 {{count}} 個類別配色"
   },
   "tags": {
     "title": "標籤",

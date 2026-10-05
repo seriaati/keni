@@ -160,6 +160,62 @@ export function resolveColor(value: string | null | undefined, theme: Theme): st
   return PALETTE_BY_ID.get(value)?.[theme] ?? null;
 }
 
+function hexToRgb(hex: string): [number, number, number] | null {
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+  return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : null;
+}
+
+/** Closest palette id to a custom hex, so custom colors also count as "used". */
+function nearestPaletteId(hex: string): string | null {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+  let best: string | null = null;
+  let bestDist = Infinity;
+  for (const c of PALETTE_BY_ID.values()) {
+    for (const shade of [c.light, c.dark]) {
+      const other = hexToRgb(shade)!;
+      const dist = rgb.reduce((sum, v, i) => sum + (v - other[i]) ** 2, 0);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = c.id;
+      }
+    }
+  }
+  return best;
+}
+
+function randomItem<T>(items: T[]): T {
+  return items[Math.floor(Math.random() * items.length)];
+}
+
+/**
+ * Pick `count` random palette ids that avoid colors in `used` and spread across
+ * groups: each pick comes from the least-used group that still has a free shade.
+ * Overlaps only happen once the whole palette is exhausted.
+ */
+export function pickDistinctColors(used: (string | null)[], count: number): string[] {
+  const usedIds = new Set<string>();
+  for (const v of used) {
+    const id = !v ? null : isPaletteColor(v) ? v : nearestPaletteId(v);
+    if (id) usedIds.add(id);
+  }
+  const groupUse = new Map(COLOR_GROUPS.map((g) => [g, g.shades.filter((s) => usedIds.has(s.id)).length]));
+
+  const picks: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const withFree = COLOR_GROUPS.filter((g) => g.shades.some((s) => !usedIds.has(s.id)));
+    const pool = withFree.length ? withFree : COLOR_GROUPS;
+    const min = Math.min(...pool.map((g) => groupUse.get(g)!));
+    const group = randomItem(pool.filter((g) => groupUse.get(g) === min));
+    const free = group.shades.filter((s) => !usedIds.has(s.id));
+    const shade = randomItem(free.length ? free : group.shades);
+    usedIds.add(shade.id);
+    groupUse.set(group, min + 1);
+    picks.push(shade.id);
+  }
+  return picks;
+}
+
 /** Hook returning a resolver bound to the active theme. */
 export function useColor() {
   const theme = useTheme();

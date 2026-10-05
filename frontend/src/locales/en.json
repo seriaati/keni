@@ -223,7 +223,10 @@
     "toastCreated": "Category created",
     "toastUpdated": "Category updated",
     "toastDeleted": "Category deleted. Expenses moved to Others",
-    "toastLoadFailed": "Failed to load"
+    "toastLoadFailed": "Failed to load",
+    "autoColor": "Auto-color",
+    "toastAutoColored_one": "Colored 1 category",
+    "toastAutoColored_other": "Colored {{count}} categories"
   },
   "tags": {
     "title": "Tags",
