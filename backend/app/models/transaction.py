@@ -16,11 +16,14 @@ class Transaction(SQLModel, table=True):
         sa_column_kwargs={"server_default": text("gen_random_uuid()")},
     )
     wallet_id: uuid.UUID = Field(foreign_key="wallets.id", index=True, ondelete="CASCADE")
-    category_id: uuid.UUID = Field(foreign_key="categories.id")
+    category_id: uuid.UUID | None = Field(default=None, foreign_key="categories.id")
     group_id: uuid.UUID | None = Field(
         default=None, foreign_key="transactions.id", index=True, ondelete="CASCADE"
     )
-    type: str = Field(default="expense", max_length=10)
+    transfer_id: uuid.UUID | None = Field(
+        default=None, foreign_key="transfers.id", index=True, ondelete="CASCADE"
+    )
+    type: str = Field(default="expense", max_length=20)
     amount: float
     description: str | None = Field(default=None, max_length=500)
     date: datetime = Field(

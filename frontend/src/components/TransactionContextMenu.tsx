@@ -134,7 +134,7 @@ export function TransactionContextMenu({
     setSubmenu(null);
     setHovered(null);
     setTagIds(state.expense.tags.map((tg) => tg.id));
-    setCategoryId(state.expense.category.id);
+    setCategoryId(state.expense.category?.id ?? '');
     let cancelled = false;
     Promise.all([categoriesApi.list(), tagsApi.list(), walletsApi.list()])
       .then(([c, tg, w]) => {
@@ -266,7 +266,7 @@ export function TransactionContextMenu({
     navigate('/recurring', {
       state: {
         prefill: {
-          category_id: expense.category.id,
+          category_id: expense.category?.id,
           amount: expense.amount,
           type: expense.type,
           description: expense.description,
@@ -291,9 +291,9 @@ export function TransactionContextMenu({
     setBusy(true);
     try {
       await expensesApi.create(duplicateFor.wallet_id, {
-        category_id: duplicateFor.category.id,
+        category_id: duplicateFor.category?.id,
         amount: duplicateFor.amount,
-        type: duplicateFor.type,
+        type: duplicateFor.type === 'income' ? 'income' : 'expense',
         description: duplicateFor.description ?? undefined,
         date: new Date(duplicateDate).toISOString(),
         tag_ids: duplicateFor.tags.map((tg) => tg.id),
@@ -445,12 +445,12 @@ export function TransactionContextMenu({
       ) : (
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px 12px', borderBottom: '1px solid var(--cream-dark)' }}>
-            <CategoryIcon iconName={expense.category.icon} color={expense.category.color} size={16} containerSize={36} borderRadius={9} fallbackLetter={expense.category.name[0]} />
+            <CategoryIcon iconName={expense.category?.icon} color={expense.category?.color} size={16} containerSize={36} borderRadius={9} fallbackLetter={expense.category?.name[0]} />
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {expense.description ?? expense.category.name}
+                {expense.description ?? expense.category?.name}
               </div>
-              <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{expense.category.name}</div>
+              <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{expense.category?.name}</div>
             </div>
           </div>
           <div style={{ padding: 8, overflowY: 'auto' }}>

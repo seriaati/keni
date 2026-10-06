@@ -18,6 +18,9 @@ import { EditContextMenu, useEditContextMenu } from '../components/EditContextMe
 import { CategoryModal } from '../components/CategoryModal';
 import { useIsMobile } from '../lib/useIsMobile';
 import { TransactionMeta } from '../components/TransactionMeta';
+import { TransferModal } from '../components/TransferModal';
+import { TransferIcon } from '../components/TransferIcon';
+import { transferMeta, transferTitle } from '../lib/transfer';
 
 const FALLBACK_COLORS = [
   'var(--forest)',
@@ -42,6 +45,7 @@ export function DashboardPage() {
   const [incomeSummary, setIncomeSummary] = useState<TransactionSummary | null>(null);
   const [weekSummary, setWeekSummary] = useState<TransactionSummary | null>(null);
   const [recent, setRecent] = useState<TransactionResponse[]>([]);
+  const [openTransferId, setOpenTransferId] = useState<string | null>(null);
   const [budgets, setBudgets] = useState<BudgetResponse[]>([]);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -372,7 +376,12 @@ export function DashboardPage() {
                 <Link
                   key={expense.id}
                   to={`/wallets/${activeWallet.id}/expenses/${expense.id}`}
-                  {...ctxMenu.bind(expense)}
+                  {...(expense.transfer ? {} : ctxMenu.bind(expense))}
+                  onClick={(e) => {
+                    if (!expense.transfer) return;
+                    e.preventDefault();
+                    setOpenTransferId(expense.transfer.id);
+                  }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -385,35 +394,48 @@ export function DashboardPage() {
                   onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <CategoryIcon
-                    iconName={expense.category.icon}
-                    color={expense.category.color}
-                    size={16}
-                    containerSize={36}
-                    borderRadius={9}
-                    fallbackLetter={expense.category.name[0]}
-                  />
+                  {expense.category ? (
+                    <CategoryIcon
+                      iconName={expense.category.icon}
+                      color={expense.category.color}
+                      size={16}
+                      containerSize={36}
+                      borderRadius={9}
+                      fallbackLetter={expense.category.name[0]}
+                    />
+                  ) : (
+                    <TransferIcon size={16} containerSize={36} borderRadius={9} />
+                  )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {expense.description ?? expense.category.name}
+                      {expense.description || (expense.category ? expense.category.name : transferTitle(t, expense))}
                     </div>
-                    <TransactionMeta
-                      categoryName={expense.category.name}
-                      itemCount={expense.children?.length ?? 0}
-                      tags={expense.tags}
-                      date={fmtRelative(expense.date)}
-                      category={
-                        <span
-                          style={{ cursor: isMobile ? undefined : 'pointer' }}
-                          onClick={isMobile ? undefined : (e) => { e.preventDefault(); e.stopPropagation(); navigate(`/wallets/${activeWallet.id}?category_ids=${expense.category.id}`); }}
-                          onContextMenu={(e) => catMenu.open(e, expense.category)}
-                          onMouseEnter={(e) => { if (!isMobile) e.currentTarget.style.textDecoration = 'underline'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
-                        >
-                          {expense.category.name}
-                        </span>
-                      }
-                    />
+                    {expense.category ? (
+                      <TransactionMeta
+                        categoryName={expense.category.name}
+                        itemCount={expense.children?.length ?? 0}
+                        tags={expense.tags}
+                        date={fmtRelative(expense.date)}
+                        category={
+                          <span
+                            style={{ cursor: isMobile ? undefined : 'pointer' }}
+                            onClick={isMobile ? undefined : (e) => { e.preventDefault(); e.stopPropagation(); navigate(`/wallets/${activeWallet.id}?category_ids=${expense.category!.id}`); }}
+                            onContextMenu={(e) => catMenu.open(e, expense.category!)}
+                            onMouseEnter={(e) => { if (!isMobile) e.currentTarget.style.textDecoration = 'underline'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
+                          >
+                            {expense.category.name}
+                          </span>
+                        }
+                      />
+                    ) : (
+                      <TransactionMeta
+                        categoryName={transferMeta(t, expense, activeWallet.currency)}
+                        itemCount={0}
+                        date={fmtRelative(expense.date)}
+                        category={transferMeta(t, expense, activeWallet.currency)}
+                      />
+                    )}
                   </div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: amountColor(expense.amount, expense.type), flexShrink: 0 }}>
                     {fmtSigned(expense.amount, expense.type, activeWallet.currency)}
@@ -657,6 +679,12 @@ export function DashboardPage() {
         </div>
       </div>
       <TransactionContextMenu state={ctxMenu.state} onClose={ctxMenu.close} onChanged={() => setRefreshKey((k) => k + 1)} />
+      <TransferModal
+        open={openTransferId !== null}
+        onClose={() => setOpenTransferId(null)}
+        onSaved={() => setRefreshKey((k) => k + 1)}
+        transferId={openTransferId}
+      />
       <EditContextMenu
         state={catMenu.state}
         label={t('categories.modalEditTitle')}

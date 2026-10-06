@@ -5,7 +5,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
-from sqlmodel import select
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.dependencies import get_current_user, get_db
@@ -13,6 +13,7 @@ from app.models.transaction import Transaction
 from app.models.user import User
 from app.models.wallet import Wallet
 from app.schemas.wallet import WalletCreate, WalletResponse, WalletSummary, WalletUpdate
+from app.services.transfer import TRANSFER_IN, TRANSFER_OUT, count_wallet_transfers
 
 router = APIRouter(prefix="/api/wallets", tags=["wallets"])
 
@@ -97,6 +98,18 @@ async def get_wallet(
     )
     income_count = income_count_result.one()
 
+    transfer_totals_result = await session.exec(
+        select(Transaction.type, func.coalesce(func.sum(Transaction.amount), 0.0))
+        .where(
+            Transaction.wallet_id == wallet_id,
+            col(Transaction.type).in_([TRANSFER_IN, TRANSFER_OUT]),
+        )
+        .group_by(Transaction.type)
+    )
+    transfer_totals = {t: float(total) for t, total in transfer_totals_result.all()}
+    total_transfers_in = transfer_totals.get(TRANSFER_IN, 0.0)
+    total_transfers_out = transfer_totals.get(TRANSFER_OUT, 0.0)
+
     return WalletSummary(
         id=wallet.id,
         user_id=wallet.user_id,
@@ -107,7 +120,12 @@ async def get_wallet(
         expense_count=int(expense_count),
         total_income=float(total_income),
         income_count=int(income_count),
-        balance=float(total_income) - float(total_expenses),
+        total_transfers_in=total_transfers_in,
+        total_transfers_out=total_transfers_out,
+        balance=float(total_income)
+        - float(total_expenses)
+        + total_transfers_in
+        - total_transfers_out,
     )
 
 
@@ -131,5 +149,11 @@ async def update_wallet(
 @router.delete("/{wallet_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_wallet(wallet_id: uuid.UUID, current_user: CurrentUser, session: DbDep) -> None:
     wallet = await _get_wallet_or_404(wallet_id, current_user.id, session)
+    transfer_count = await count_wallet_transfers(session, wallet_id)
+    if transfer_count:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Wallet has {transfer_count} transfer(s); delete them first",
+        )
     await session.delete(wallet)
     await session.commit()

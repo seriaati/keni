@@ -13,16 +13,21 @@ export function fmt(amount: number, currency = 'USD'): string {
   }).format(amount);
 }
 
-// Formats a transaction amount with an explicit sign. Income is shown as "+",
-// expenses as-is (negative = discount) unless `signExpense` renders them as "-".
+// Money coming into the wallet: income, or the receiving side of a transfer.
+function isInflow(type: string): boolean {
+  return type === 'income' || type === 'transfer_in';
+}
+
+// Formats a transaction amount with an explicit sign. Inflows are shown as "+",
+// outflows as-is (negative = discount) unless `signExpense` renders them as "-".
 export function fmtSigned(amount: number, type: string, currency = 'USD', signExpense = false): string {
-  const value = type === 'income' || !signExpense ? amount : -amount;
+  const value = isInflow(type) || !signExpense ? amount : -amount;
   const formatted = fmt(value, currency);
-  return value > 0 && (type === 'income' || signExpense) ? `+${formatted}` : formatted;
+  return value > 0 && (isInflow(type) || signExpense) ? `+${formatted}` : formatted;
 }
 
 export function amountColor(amount: number, type: string): string {
-  return type === 'income' || amount < 0 ? 'var(--forest)' : 'var(--ink)';
+  return isInflow(type) || amount < 0 ? 'var(--forest)' : 'var(--ink)';
 }
 
 export function localDateStr(date = new Date()): string {

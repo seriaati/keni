@@ -54,13 +54,17 @@ async def _assert_owned(
 
 
 async def _build_brief(transaction: Transaction, session: AsyncSession) -> TransactionLinkBrief:
-    cat_result = await session.exec(select(Category).where(Category.id == transaction.category_id))
-    cat = cat_result.first()
-    category_brief = (
-        CategoryBrief(id=cat.id, name=cat.name, icon=cat.icon, color=cat.color)
-        if cat
-        else CategoryBrief(id=transaction.category_id, name="Unknown", icon=None, color=None)
-    )
+    category_brief: CategoryBrief | None = None
+    if transaction.category_id is not None:
+        cat_result = await session.exec(
+            select(Category).where(Category.id == transaction.category_id)
+        )
+        cat = cat_result.first()
+        category_brief = (
+            CategoryBrief(id=cat.id, name=cat.name, icon=cat.icon, color=cat.color)
+            if cat
+            else CategoryBrief(id=transaction.category_id, name="Unknown", icon=None, color=None)
+        )
     tag_result = await session.exec(
         select(Tag)
         .join(TransactionTag, col(Tag.id) == col(TransactionTag.tag_id))

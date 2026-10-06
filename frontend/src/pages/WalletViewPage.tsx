@@ -22,6 +22,10 @@ import { EditContextMenu, useEditContextMenu } from '../components/EditContextMe
 import { CategoryModal } from '../components/CategoryModal';
 import { useIsMobile } from '../lib/useIsMobile';
 import { TransactionMeta } from '../components/TransactionMeta';
+import { TransferModal } from '../components/TransferModal';
+import { TransferIcon } from '../components/TransferIcon';
+import { transferMeta, transferTitle } from '../lib/transfer';
+import { useWallet } from '../contexts/WalletContext';
 
 
 export function WalletViewPage() {
@@ -36,6 +40,9 @@ export function WalletViewPage() {
   const ctxMenu = useTransactionContextMenu();
   const catMenu = useEditContextMenu<CategoryBrief>();
   const [editCategory, setEditCategory] = useState<CategoryBrief | null>(null);
+  const { wallets: allWallets } = useWallet();
+  // undefined = closed, null = new transfer, string = edit that transfer
+  const [transferModalId, setTransferModalId] = useState<string | null | undefined>(undefined);
 
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
   const [fxRate, setFxRate] = useState<number | null>(null);
@@ -146,7 +153,7 @@ export function WalletViewPage() {
           end_date: endDate || undefined,
           min_amount: minAmount ? Number(minAmount) : undefined,
           max_amount: maxAmount ? Number(maxAmount) : undefined,
-          type: typeFilter === 'expense' || typeFilter === 'income' ? typeFilter : undefined,
+          type: typeFilter === 'expense' || typeFilter === 'income' || typeFilter === 'transfer' ? typeFilter : undefined,
           has_children: hasChildrenFilter ? 'true' : undefined,
         }),
       ]);
@@ -219,6 +226,7 @@ export function WalletViewPage() {
   const handleSelect = useCallback((id: string, e?: React.MouseEvent) => {
     const items = data?.items ?? [];
     const clickedIndex = items.findIndex((item) => item.id === id);
+    if (items[clickedIndex]?.transfer) return;
 
     if (!isSelecting) {
       // Enter selecting mode
@@ -235,7 +243,7 @@ export function WalletViewPage() {
       setSelectedIds((prev) => {
         const next = new Set(prev);
         for (let i = from; i <= to; i++) {
-          next.add(items[i].id);
+          if (!items[i].transfer) next.add(items[i].id);
         }
         return next;
       });
@@ -260,7 +268,7 @@ export function WalletViewPage() {
 
   const handleSelectAll = useCallback(() => {
     if (!data) return;
-    setSelectedIds(new Set(data.items.map((item) => item.id)));
+    setSelectedIds(new Set(data.items.filter((item) => !item.transfer).map((item) => item.id)));
     setIsSelecting(true);
   }, [data]);
 
@@ -413,7 +421,7 @@ export function WalletViewPage() {
       try {
         const result = await expensesApi.aiCategorize(walletId, item.id);
 
-        let categoryId = item.category.id;
+        let categoryId = item.category?.id ?? '';
         if (result.is_new_category) {
           const existing = localCategories.find((c) => c.name.toLowerCase() === result.category_name.toLowerCase());
           if (existing) {
@@ -803,6 +811,11 @@ export function WalletViewPage() {
         <div>
           <h1 className="page-title">{wallet?.name ?? t('walletView.titleFallback')}</h1>
         </div>
+        {allWallets.length > 1 && (
+          <button className="btn btn-secondary btn-sm" onClick={() => setTransferModalId(null)}>
+            <ArrowLeftRight size={14} /> {t('transfer.btnNew')}
+          </button>
+        )}
       </div>
 
       {/* Search & filter bar */}
@@ -911,6 +924,7 @@ export function WalletViewPage() {
                 { value: '', label: t('walletView.filterTypeAll') },
                 { value: 'expense', label: t('walletView.filterTypeExpense') },
                 { value: 'income', label: t('walletView.filterTypeIncome') },
+                { value: 'transfer', label: t('walletView.filterTypeTransfer') },
               ]}
             />
           </div>
@@ -1058,6 +1072,7 @@ export function WalletViewPage() {
                 onLongPress={ctxMenu.openSheet}
                 onCategoryContextMenu={catMenu.open}
                 onCategoryClick={(id) => setParam({ category_ids: [id], page: null })}
+                onOpenTransfer={setTransferModalId}
               />
             ))}
           </div>
@@ -1105,6 +1120,13 @@ export function WalletViewPage() {
         onEditLabels={() => { setShowActionsBar(false); openEditLabelModal(); }}
         onAISuggest={() => { setShowActionsBar(false); setShowAISuggestModal(true); }}
       />
+      <TransferModal
+        open={transferModalId !== undefined}
+        onClose={() => setTransferModalId(undefined)}
+        onSaved={load}
+        transferId={transferModalId}
+        defaultFromWalletId={walletId}
+      />
       <TransactionContextMenu state={ctxMenu.state} onClose={ctxMenu.close} onChanged={load} onSelect={(exp) => handleSelect(exp.id)} />
       <EditContextMenu
         state={catMenu.state}
@@ -1142,6 +1164,7 @@ function ExpenseRow({
   onLongPress,
   onCategoryContextMenu,
   onCategoryClick,
+  onOpenTransfer,
 }: {
   expense: TransactionResponse;
   currency: string;
@@ -1162,8 +1185,16 @@ function ExpenseRow({
   onLongPress: (expense: TransactionResponse) => void;
   onCategoryContextMenu: (e: React.MouseEvent, category: CategoryBrief) => void;
   onCategoryClick: (categoryId: string) => void;
+  onOpenTransfer: (transferId: string) => void;
 }) {
+  const { t } = useTranslation();
   const [isHovered, setIsHovered] = useState(false);
+  const transfer = expense.transfer;
+  const category = expense.category;
+  // With a custom description as the title, keep "To X" visible in the meta row.
+  const transferMetaText = expense.description
+    ? `${transferTitle(t, expense)} · ${transferMeta(t, expense, currency)}`
+    : transferMeta(t, expense, currency);
   const convertedAmount = fxRate != null ? expense.amount * fxRate : null;
   const hasConversion = convertedAmount != null && globalCurrency != null;
   const color = amountColor(expense.amount, expense.type);
@@ -1182,7 +1213,7 @@ function ExpenseRow({
       pressTimerRef.current = null;
       longPressDidFireRef.current = true;
       if (isSelecting) onSelect(expense.id, e as unknown as React.MouseEvent);
-      else onLongPress(expense);
+      else if (!transfer) onLongPress(expense);
     }, 500);
   };
 
@@ -1206,7 +1237,7 @@ function ExpenseRow({
     pressStartPosRef.current = null;
   };
 
-  const showCheckbox = isSelecting || (!isMobile && isHovered);
+  const showCheckbox = !transfer && (isSelecting || (!isMobile && isHovered));
 
   const rowContent = (
     <>
@@ -1243,14 +1274,18 @@ function ExpenseRow({
       </div>
 
       <div style={{ position: 'relative', flexShrink: 0 }}>
-        <CategoryIcon
-          iconName={expense.category.icon}
-          color={expense.category.color}
-          size={17}
-          containerSize={38}
-          borderRadius={10}
-          fallbackLetter={expense.category.name[0]}
-        />
+        {category ? (
+          <CategoryIcon
+            iconName={category.icon}
+            color={category.color}
+            size={17}
+            containerSize={38}
+            borderRadius={10}
+            fallbackLetter={category.name[0]}
+          />
+        ) : (
+          <TransferIcon size={17} containerSize={38} borderRadius={10} />
+        )}
         {isProcessing && (
           <div style={{
             position: 'absolute', inset: 0, borderRadius: 10,
@@ -1264,25 +1299,34 @@ function ExpenseRow({
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {expense.description ?? expense.category.name}
+          {expense.description || (category ? category.name : transferTitle(t, expense))}
         </div>
-        <TransactionMeta
-          categoryName={expense.category.name}
-          itemCount={expense.children?.length ?? 0}
-          tags={expense.tags}
-          date={!isMobile && hasConversion ? fmtRelative(expense.date) : undefined}
-          category={
-            <span
-              style={{ cursor: isMobile ? undefined : 'pointer' }}
-              onClick={isMobile ? undefined : (e) => { e.stopPropagation(); onCategoryClick(expense.category.id); }}
-              onContextMenu={(e) => onCategoryContextMenu(e, expense.category)}
-              onMouseEnter={(e) => { if (!isMobile) e.currentTarget.style.textDecoration = 'underline'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
-            >
-              {expense.category.name}
-            </span>
-          }
-        />
+        {category ? (
+          <TransactionMeta
+            categoryName={category.name}
+            itemCount={expense.children?.length ?? 0}
+            tags={expense.tags}
+            date={!isMobile && hasConversion ? fmtRelative(expense.date) : undefined}
+            category={
+              <span
+                style={{ cursor: isMobile ? undefined : 'pointer' }}
+                onClick={isMobile ? undefined : (e) => { e.stopPropagation(); onCategoryClick(category.id); }}
+                onContextMenu={(e) => onCategoryContextMenu(e, category)}
+                onMouseEnter={(e) => { if (!isMobile) e.currentTarget.style.textDecoration = 'underline'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
+              >
+                {category.name}
+              </span>
+            }
+          />
+        ) : (
+          <TransactionMeta
+            categoryName={transferMetaText}
+            itemCount={0}
+            date={!isMobile && hasConversion ? fmtRelative(expense.date) : undefined}
+            category={transferMetaText}
+          />
+        )}
       </div>
 
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -1346,6 +1390,8 @@ function ExpenseRow({
           }
           if (isSelecting) {
             onSelect(expense.id, e);
+          } else if (transfer) {
+            onOpenTransfer(transfer.id);
           } else {
             onNavigate(`/wallets/${walletId}/expenses/${expense.id}`, { state: { backSearch } });
           }
@@ -1373,12 +1419,14 @@ function ExpenseRow({
       role="row"
       aria-selected={isSelected}
       style={sharedStyle}
-      onContextMenu={(e) => onContextMenuOpen(e, expense)}
+      onContextMenu={transfer ? undefined : (e) => onContextMenuOpen(e, expense)}
       onClick={(e) => {
         if (isSelecting) {
           onSelect(expense.id, e);
         } else if (e.ctrlKey || e.metaKey || e.shiftKey) {
           onSelect(expense.id, e);
+        } else if (transfer) {
+          onOpenTransfer(transfer.id);
         } else {
           onNavigate(`/wallets/${walletId}/expenses/${expense.id}`, { state: { backSearch } });
         }

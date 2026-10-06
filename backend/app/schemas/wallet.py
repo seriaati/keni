@@ -27,4 +27,6 @@ class WalletSummary(WalletResponse):
     expense_count: int
     total_income: float
     income_count: int
+    total_transfers_in: float
+    total_transfers_out: float
     balance: float

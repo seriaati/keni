@@ -17,6 +17,7 @@ from app.models.tag import Tag
 from app.models.transaction import Transaction, TransactionTag
 from app.models.user import User
 from app.models.wallet import Wallet
+from app.services.transfer import build_transfer_brief
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -61,11 +62,14 @@ async def _build_transaction_rows(
 
     rows = []
     for transaction in transactions:
-        cat_result = await session.exec(
-            select(Category).where(Category.id == transaction.category_id)
-        )
-        cat = cat_result.first()
-        category_name = cat.name if cat else "Unknown"
+        category_name = ""
+        if transaction.category_id is not None:
+            cat_result = await session.exec(
+                select(Category).where(Category.id == transaction.category_id)
+            )
+            cat = cat_result.first()
+            category_name = cat.name if cat else "Unknown"
+        transfer = await build_transfer_brief(session, transaction)
 
         tag_result = await session.exec(
             select(Tag)
@@ -84,6 +88,8 @@ async def _build_transaction_rows(
                 "description": transaction.description or "",
                 "date": transaction.date.isoformat(),
                 "tags": ", ".join(tag_names),
+                "transfer_wallet": transfer.counterpart_wallet_name if transfer else "",
+                "transfer_amount": transfer.counterpart_amount if transfer else "",
                 "created_at": transaction.created_at.isoformat(),
                 "updated_at": transaction.updated_at.isoformat(),
             }
@@ -132,6 +138,8 @@ async def export_transactions(  # ruff: ignore[too-many-arguments, too-many-posi
                 "description",
                 "date",
                 "tags",
+                "transfer_wallet",
+                "transfer_amount",
                 "created_at",
                 "updated_at",
             ],

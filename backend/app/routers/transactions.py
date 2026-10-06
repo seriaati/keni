@@ -53,6 +53,7 @@ if TYPE_CHECKING:
 from app.services.category_tag import find_or_create_category, find_or_create_tag
 from app.services.pdf import extract_text_from_pdf
 from app.services.transaction_group import adjust_group_parent_amount, has_children
+from app.services.transfer import TRANSFER_IN, TRANSFER_OUT, build_transfer_brief
 from app.services.voice import transcribe_audio
 
 logger = logging.getLogger(__name__)
@@ -92,16 +93,30 @@ async def _get_transaction_or_404(
     return transaction
 
 
+async def _build_category_brief(
+    category_id: uuid.UUID | None, session: AsyncSession
+) -> CategoryBrief | None:
+    if category_id is None:
+        return None
+    cat_result = await session.exec(select(Category).where(Category.id == category_id))
+    cat = cat_result.first()
+    if cat is None:
+        return CategoryBrief(id=category_id, name="Unknown", icon=None, color=None)
+    return CategoryBrief(id=cat.id, name=cat.name, icon=cat.icon, color=cat.color)
+
+
+def _ensure_not_transfer_leg(transaction: Transaction) -> None:
+    if transaction.transfer_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This transaction is part of a transfer; edit the transfer instead",
+        )
+
+
 async def _build_linked_brief(
     transaction: Transaction, session: AsyncSession
 ) -> TransactionLinkBrief:
-    cat_result = await session.exec(select(Category).where(Category.id == transaction.category_id))
-    cat = cat_result.first()
-    category_brief = (
-        CategoryBrief(id=cat.id, name=cat.name, icon=cat.icon, color=cat.color)
-        if cat
-        else CategoryBrief(id=transaction.category_id, name="Unknown", icon=None, color=None)
-    )
+    category_brief = await _build_category_brief(transaction.category_id, session)
     tag_result = await session.exec(
         select(Tag)
         .join(TransactionTag, col(Tag.id) == col(TransactionTag.tag_id))
@@ -123,13 +138,7 @@ async def _build_linked_brief(
 async def _build_transaction_response(
     transaction: Transaction, session: AsyncSession, include_children: bool = True
 ) -> TransactionResponse:
-    cat_result = await session.exec(select(Category).where(Category.id == transaction.category_id))
-    cat = cat_result.first()
-    category_brief = (
-        CategoryBrief(id=cat.id, name=cat.name, icon=cat.icon, color=cat.color)
-        if cat
-        else CategoryBrief(id=transaction.category_id, name="Unknown", icon=None, color=None)
-    )
+    category_brief = await _build_category_brief(transaction.category_id, session)
 
     tag_result = await session.exec(
         select(Tag)
@@ -175,6 +184,7 @@ async def _build_transaction_response(
         created_at=transaction.created_at,
         updated_at=transaction.updated_at,
         group_id=transaction.group_id,
+        transfer=await build_transfer_brief(session, transaction),
         children=children,
         linked_transactions=linked_transactions,
     )
@@ -216,6 +226,11 @@ async def _get_group_parent(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Cannot nest a transaction under a sub-transaction",
+        )
+    if parent.transfer_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Cannot nest a transaction under a transfer",
         )
     return parent
 
@@ -540,7 +555,7 @@ async def get_transaction_summary(
     expenses = [t for t in transactions if t.type == "expense"]
     income = [t for t in transactions if t.type == "income"]
 
-    by_category: dict[uuid.UUID, dict] = {}
+    by_category: dict[uuid.UUID | None, dict] = {}
     for t in expenses:
         if t.category_id not in by_category:
             cat_result = await session.exec(select(Category).where(Category.id == t.category_id))
@@ -555,7 +570,7 @@ async def get_transaction_summary(
         by_category[t.category_id]["total"] += t.amount
         by_category[t.category_id]["count"] += 1
 
-    income_by_category: dict[uuid.UUID, dict] = {}
+    income_by_category: dict[uuid.UUID | None, dict] = {}
     for t in income:
         if t.category_id not in income_by_category:
             cat_result = await session.exec(select(Category).where(Category.id == t.category_id))
@@ -632,7 +647,7 @@ async def get_transaction_analytics(
     rows = list(cat_result)
 
     cat_ids = {cat_id for _, cat_id, _ in rows}
-    categories = {
+    categories: dict[uuid.UUID | None, Category] = {
         c.id: c
         for c in (await session.exec(select(Category).where(col(Category.id).in_(cat_ids)))).all()
     }
@@ -669,7 +684,7 @@ async def list_transactions(  # ruff: ignore[too-many-arguments, too-many-positi
     include_children: Annotated[bool, Query()] = False,
     with_children: Annotated[bool, Query(alias="has_children")] = False,
     transaction_type: Annotated[
-        str | None, Query(alias="type", pattern="^(expense|income)$")
+        str | None, Query(alias="type", pattern="^(expense|income|transfer)$")
     ] = None,
 ) -> TransactionListResponse:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
@@ -679,7 +694,9 @@ async def list_transactions(  # ruff: ignore[too-many-arguments, too-many-positi
     if not include_children:
         query = query.where(col(Transaction.group_id).is_(None))
 
-    if transaction_type is not None:
+    if transaction_type == "transfer":
+        query = query.where(col(Transaction.type).in_([TRANSFER_IN, TRANSFER_OUT]))
+    elif transaction_type is not None:
         query = query.where(Transaction.type == transaction_type)
     if date_range.start:
         query = query.where(col(Transaction.date) >= date_range.start)
@@ -753,7 +770,7 @@ async def bulk_delete_transactions(
             )
         )
         transaction = result.first()
-        if transaction is None:
+        if transaction is None or transaction.transfer_id is not None:
             continue
 
         await adjust_group_parent_amount(session, transaction.group_id, -transaction.amount)
@@ -841,7 +858,7 @@ async def bulk_update_transactions(
             )
         )
         transaction = result.first()
-        if transaction is None:
+        if transaction is None or transaction.transfer_id is not None:
             continue
 
         targets: list[Transaction] = [transaction]
@@ -905,6 +922,7 @@ async def update_transaction(
 ) -> TransactionResponse:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
     transaction = await _get_transaction_or_404(transaction_id, wallet_id, session)
+    _ensure_not_transfer_leg(transaction)
 
     if body.wallet_id is not None and body.wallet_id != wallet_id:
         if transaction.group_id is not None:
@@ -970,6 +988,7 @@ async def delete_transaction(
 ) -> None:
     await _get_wallet_or_404(wallet_id, current_user.id, session)
     transaction = await _get_transaction_or_404(transaction_id, wallet_id, session)
+    _ensure_not_transfer_leg(transaction)
 
     existing = await session.exec(
         select(TransactionTag).where(col(TransactionTag.transaction_id) == transaction.id)

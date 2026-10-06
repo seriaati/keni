@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Loader2, X } from 'lucide-react';
 import { transactionLinks } from '../lib/api';
 import { Modal } from './ui/Modal';
 import { Select } from './ui/Select';
 import { CategoryIcon } from '../lib/categoryIcons';
+import { TransferIcon } from './TransferIcon';
+import { transferTitle } from '../lib/transfer';
 import type { TransactionResponse, WalletResponse } from '../lib/types';
 import { amountColor, fmtSigned, fmtDate } from '../lib/utils';
 
@@ -28,6 +31,7 @@ export function LinkedTransactionsPicker({
   onLink,
   onUnlink,
 }: LinkedTransactionsPickerProps) {
+  const { t: tr } = useTranslation();
   const [selectedWalletId, setSelectedWalletId] = useState(currentWalletId);
   const [search, setSearch] = useState('');
   const [results, setResults] = useState<TransactionResponse[]>([]);
@@ -161,20 +165,24 @@ export function LinkedTransactionsPicker({
                   onMouseEnter={(e) => { if (!linked) (e.currentTarget as HTMLDivElement).style.background = 'var(--cream)'; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
                 >
-                  <CategoryIcon
-                    iconName={t.category.icon}
-                    color={t.category.color}
-                    size={14}
-                    containerSize={30}
-                    borderRadius={8}
-                    fallbackLetter={t.category.name[0]}
-                  />
+                  {t.category ? (
+                    <CategoryIcon
+                      iconName={t.category.icon}
+                      color={t.category.color}
+                      size={14}
+                      containerSize={30}
+                      borderRadius={8}
+                      fallbackLetter={t.category.name[0]}
+                    />
+                  ) : (
+                    <TransferIcon size={14} containerSize={30} borderRadius={8} />
+                  )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {t.description ?? t.category.name}
+                      {t.description || (t.category ? t.category.name : transferTitle(tr, t))}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--ink-faint)' }}>
-                      {t.category.name} · {fmtDate(t.date)}
+                      {t.category ? t.category.name : tr('transfer.label')} · {fmtDate(t.date)}
                     </div>
                   </div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: amountColor(t.amount, t.type), flexShrink: 0 }}>

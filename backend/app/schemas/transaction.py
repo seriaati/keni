@@ -67,10 +67,20 @@ class CategoryBrief(BaseModel):
     color: str | None
 
 
+class TransferBrief(BaseModel):
+    """The other side of the transfer a transaction belongs to."""
+
+    id: uuid.UUID
+    counterpart_wallet_id: uuid.UUID
+    counterpart_wallet_name: str
+    counterpart_currency: str
+    counterpart_amount: float
+
+
 class TransactionLinkBrief(BaseModel):
     id: uuid.UUID
     wallet_id: uuid.UUID
-    category: CategoryBrief
+    category: CategoryBrief | None
     type: str
     amount: float
     description: str | None
@@ -81,7 +91,7 @@ class TransactionLinkBrief(BaseModel):
 class TransactionResponse(BaseModel):
     id: uuid.UUID
     wallet_id: uuid.UUID
-    category: CategoryBrief
+    category: CategoryBrief | None
     type: str
     amount: float
     description: str | None
@@ -90,6 +100,7 @@ class TransactionResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     group_id: uuid.UUID | None = None
+    transfer: TransferBrief | None = None
     children: list[TransactionResponse] | None = None
     linked_transactions: list[TransactionLinkBrief] = Field(default_factory=list)
 

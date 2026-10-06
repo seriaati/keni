@@ -509,6 +509,8 @@ async def _tool_get_monthly_trend(
 
     raw: dict[str, dict[str, Any]] = {}
     for t in txns:
+        if t.type not in {"expense", "income"}:
+            continue
         period = t.date.strftime("%Y-%m")
         if period not in raw:
             raw[period] = {"period": period, "expense_total": 0.0, "income_total": 0.0, "count": 0}
@@ -620,8 +622,8 @@ async def _tool_get_transaction(
         "wallet_id": str(t.wallet_id),
         "type": t.type,
         "amount": t.amount,
-        "category": cat.name if cat else "Unknown",
-        "category_id": str(t.category_id),
+        "category": cat.name if cat else None,
+        "category_id": str(t.category_id) if t.category_id else None,
         "description": t.description or "",
         "date": t.date.strftime("%Y-%m-%d"),
         "tags": tags,
@@ -731,6 +733,10 @@ async def _tool_update_transaction(  # ruff: ignore[complex-structure, too-many-
     t = t_result.first()
     if not t:
         return {"error": "Transaction not found"}
+    if t.transfer_id is not None:
+        return {
+            "error": "This transaction is part of a transfer between wallets and can't be changed here"
+        }
 
     if "type" in args and args["type"] not in {"expense", "income"}:
         return {"error": "type must be 'expense' or 'income'"}
@@ -822,6 +828,10 @@ async def _tool_delete_transaction(
     t = t_result.first()
     if not t:
         return {"error": "Transaction not found"}
+    if t.transfer_id is not None:
+        return {
+            "error": "This transaction is part of a transfer between wallets and can't be changed here"
+        }
 
     existing_tags = await session.exec(
         select(TransactionTag).where(col(TransactionTag.transaction_id) == t.id)

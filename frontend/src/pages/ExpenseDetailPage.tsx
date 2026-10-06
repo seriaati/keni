@@ -22,6 +22,7 @@ import { TransactionContextMenu, useTransactionContextMenu } from '../components
 import { EditContextMenu, useEditContextMenu } from '../components/EditContextMenu';
 import { TagModal } from '../components/TagModal';
 import { CategoryModal } from '../components/CategoryModal';
+import { TransferModal } from '../components/TransferModal';
 
 interface DropdownPos {
   top: number;
@@ -411,10 +412,10 @@ export function ExpenseDetailPage() {
       setForm({
         amount: String(exp.amount),
         description: exp.description ?? '',
-        category_id: exp.category.id,
+        category_id: exp.category?.id ?? '',
         date: exp.date.slice(0, 10),
         tag_ids: exp.tags.map((t) => t.id),
-        type: exp.type,
+        type: exp.type === 'income' ? 'income' : 'expense',
         wallet_id: exp.wallet_id,
       });
     }).catch(() => toast(t('expenseDetail.toastLoadFailed'), 'error'))
@@ -429,10 +430,10 @@ export function ExpenseDetailPage() {
     setForm({
       amount: String(expense.amount),
       description: expense.description ?? '',
-      category_id: expense.category.id,
+      category_id: expense.category?.id ?? '',
       date: expense.date.slice(0, 10),
       tag_ids: expense.tags.map((tg) => tg.id),
-      type: expense.type,
+      type: expense.type === 'income' ? 'income' : 'expense',
       wallet_id: expense.wallet_id,
     });
     setEditing(true);
@@ -601,6 +602,20 @@ export function ExpenseDetailPage() {
   }
 
   if (!expense) return <p style={{ color: 'var(--ink-light)' }}>{t('expenseDetail.notFound')}</p>;
+
+  // Transfer rows (both sides and the fee) are edited as a whole through the transfer editor.
+  if (expense.transfer || !expense.category) {
+    const backToWallet = () => navigate(backSearch ? `/wallets/${walletId}?${backSearch}` : `/wallets/${walletId}`);
+    return (
+      <TransferModal
+        open
+        onClose={backToWallet}
+        onSaved={() => {}}
+        transferId={expense.transfer?.id}
+      />
+    );
+  }
+  const category = expense.category;
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: 560 }}>
@@ -778,7 +793,7 @@ export function ExpenseDetailPage() {
             ) : (
               <Link
                 to={`/wallets/${walletId}?category_ids=${expense.category.id}`}
-                onContextMenu={(e) => catMenu.open(e, expense.category)}
+                onContextMenu={(e) => catMenu.open(e, category)}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: 'inherit' }}
                 onMouseEnter={(e) => { (e.currentTarget.lastElementChild as HTMLElement).style.textDecoration = 'underline'; }}
                 onMouseLeave={(e) => { (e.currentTarget.lastElementChild as HTMLElement).style.textDecoration = 'none'; }}
@@ -902,18 +917,23 @@ export function ExpenseDetailPage() {
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {child.description ?? child.category.name}
+                      {child.description ?? child.category?.name}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>
-                      <span
-                        style={{ cursor: 'pointer' }}
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/wallets/${walletId}?category_ids=${child.category.id}`); }}
-                        onContextMenu={(e) => catMenu.open(e, child.category)}
-                        onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
-                      >
-                        {child.category.name}
-                      </span>
+                      {child.category && (() => {
+                        const childCategory = child.category;
+                        return (
+                          <span
+                            style={{ cursor: 'pointer' }}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/wallets/${walletId}?category_ids=${childCategory.id}`); }}
+                            onContextMenu={(e) => catMenu.open(e, childCategory)}
+                            onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
+                          >
+                            {childCategory.name}
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', flexShrink: 0 }}>
@@ -1027,10 +1047,10 @@ export function ExpenseDetailPage() {
                         onMouseLeave={(e) => { (e.currentTarget.firstElementChild as HTMLElement).style.textDecoration = 'none'; }}
                       >
                         <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {linked.description ?? linked.category.name}
+                          {linked.description ?? linked.category?.name ?? t('transfer.label')}
                         </div>
                         <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>
-                          {linked.category.name} · {fmtDate(linked.date)}
+                          {linked.category?.name ?? t('transfer.label')} · {fmtDate(linked.date)}
                           {linked.wallet_id !== walletId && allWallets.find((w) => w.id === linked.wallet_id) && (
                             <span> · {allWallets.find((w) => w.id === linked.wallet_id)!.name}</span>
                           )}

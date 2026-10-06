@@ -16,7 +16,7 @@ from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions, Re
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import Icon, ToolAnnotations
-from pydantic import AnyHttpUrl
+from pydantic import AnyHttpUrl, ValidationError
 from sqlalchemy import func, or_
 from sqlmodel import col, select
 
@@ -30,9 +30,23 @@ from app.models.transaction import Transaction, TransactionLink, TransactionTag
 from app.models.user import User
 from app.models.wallet import Wallet
 from app.schemas.color import COLOR_PATTERN
+from app.schemas.transfer import TransferCreate, TransferUpdate
 from app.services.category_tag import find_or_create_category, find_or_create_tag
 from app.services.mcp_oauth_provider import KeniOAuthProvider
 from app.services.transaction_group import adjust_group_parent_amount, has_children
+from app.services.transfer import (
+    TRANSFER_IN,
+    TRANSFER_OUT,
+    TransferError,
+    build_transfer_brief,
+    build_transfer_response,
+    count_wallet_transfers,
+    get_owned_transfer,
+)
+from app.services.transfer import create_transfer as create_transfer_record
+from app.services.transfer import delete_transfer as delete_transfer_record
+from app.services.transfer import list_transfers as list_transfer_records
+from app.services.transfer import update_transfer as update_transfer_record
 
 if TYPE_CHECKING:
     from app.services.mcp_oauth_provider import KeniAccessToken
@@ -175,8 +189,8 @@ async def _get_linked_transactions(transaction_id: uuid.UUID, session: Any) -> l
                 "amount": lt.amount,
                 "description": lt.description,
                 "date": lt.date.isoformat(),
-                "category": cat.name if cat else "Unknown",
-                "category_id": str(lt.category_id),
+                "category": cat.name if cat else None,
+                "category_id": str(lt.category_id) if lt.category_id else None,
             }
         )
     return linked
@@ -192,12 +206,13 @@ def _transaction_to_dict(
         "amount": t.amount,
         "description": t.description,
         "date": t.date.isoformat(),
-        "category": cat.name if cat else "Unknown",
-        "category_id": str(t.category_id),
+        "category": cat.name if cat else None,
+        "category_id": str(t.category_id) if t.category_id else None,
         "category_icon": cat.icon if cat else None,
         "category_color": cat.color if cat else None,
         "tags": tags,
         "group_id": str(t.group_id) if t.group_id else None,
+        "transfer_id": str(t.transfer_id) if t.transfer_id else None,
         "created_at": t.created_at.isoformat(),
         "updated_at": t.updated_at.isoformat(),
     }
@@ -302,6 +317,7 @@ async def delete_wallet(wallet_id: str) -> dict[str, Any]:
 
     WARNING: this also permanently deletes ALL transactions and recurring transactions
     in the wallet. Budgets scoped to the wallet become all-wallet budgets.
+    Fails while the wallet is part of any transfer; delete those transfers first.
 
     Args:
         wallet_id: UUID of the wallet to delete.
@@ -318,6 +334,13 @@ async def delete_wallet(wallet_id: str) -> dict[str, Any]:
         wallet = result.first()
         if not wallet:
             return {"error": "Wallet not found"}
+
+        transfer_count = await count_wallet_transfers(session, wallet.id)
+        if transfer_count:
+            return {
+                "error": f"Wallet has {transfer_count} transfer(s); delete them with "
+                "delete_transfer first"
+            }
 
         await session.delete(wallet)
         await session.commit()
@@ -716,6 +739,8 @@ async def list_transactions(params: ListTransactionsInput) -> dict[str, Any]:
     List transactions for a wallet with optional filters.
 
     Each item includes a "linked_count" field — the number of other transactions linked to it.
+    Items with a non-null "transfer_id" belong to a transfer between wallets (see
+    create_transfer); call get_transfer for the full picture.
     The linked transactions themselves are not included here; call get_transaction to retrieve
     the full "linked_transactions" objects for any item where linked_count > 0.
 
@@ -727,7 +752,7 @@ async def list_transactions(params: ListTransactionsInput) -> dict[str, Any]:
         params.end_date: ISO 8601 end date filter (e.g. "2024-01-31").
         params.category_id: UUID of category to filter by.
         params.tag_ids: List of tag UUIDs to filter by.
-        params.type: Filter by type: "expense" or "income".
+        params.type: Filter by type: "expense", "income", "transfer_in" or "transfer_out".
         params.search: Search in transaction descriptions.
         params.min_amount: Minimum amount filter.
         params.max_amount: Maximum amount filter.
@@ -782,6 +807,8 @@ async def get_transaction(wallet_id: str, transaction_id: str) -> dict[str, Any]
         cat = cat_result.first()
         tags = await _get_transaction_tags(t.id, session)
         row = _transaction_to_dict(t, cat, tags)
+        brief = await build_transfer_brief(session, t)
+        row["transfer"] = brief.model_dump(mode="json") if brief else None
         row["linked_transactions"] = await _get_linked_transactions(t.id, session)
         children = await session.exec(
             select(Transaction)
@@ -875,6 +902,8 @@ async def _compute_summary(params: GetSummaryInput, user_id: uuid.UUID) -> dict[
 
         total_expenses = sum(t.amount for t in expenses)
         total_income = sum(t.amount for t in income)
+        transfers_in = sum(t.amount for t in transactions if t.type == TRANSFER_IN)
+        transfers_out = sum(t.amount for t in transactions if t.type == TRANSFER_OUT)
 
         return {
             "wallet_id": params.wallet_id,
@@ -882,7 +911,9 @@ async def _compute_summary(params: GetSummaryInput, user_id: uuid.UUID) -> dict[
             "expense_count": len(expenses),
             "total_income": total_income,
             "income_count": len(income),
-            "balance": total_income - total_expenses,
+            "total_transfers_in": transfers_in,
+            "total_transfers_out": transfers_out,
+            "balance": total_income - total_expenses + transfers_in - transfers_out,
             "by_category": sorted(
                 by_category.values(), key=operator.itemgetter("total"), reverse=True
             ),
@@ -900,7 +931,9 @@ async def get_summary(params: GetSummaryInput) -> dict[str, Any]:
     Get a financial summary for a wallet.
 
     Returns total expenses, total income, balance, breakdown by category (expense and income),
-    and monthly spending by period.
+    and monthly spending by period. Transfers between the user's wallets are not income or
+    expense; they are reported separately as total_transfers_in/out (in this wallet's
+    currency) and only affect the balance.
 
     Args:
         params.wallet_id: UUID of the wallet to summarize.
@@ -1070,6 +1103,8 @@ async def _insert_transaction(  # ruff: ignore[too-many-return-statements]
                 return "Parent transaction not found"
             if parent.group_id is not None:
                 return "Cannot nest a transaction under a sub-transaction"
+            if parent.transfer_id is not None:
+                return "Cannot nest a transaction under a transfer"
             g_id = parent.id
 
         result = await _insert_item(session, user_id, w_id, item, group_id=g_id)
@@ -1297,6 +1332,11 @@ async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]: 
         t = t_result.first()
         if not t:
             return {"error": "Transaction not found"}
+        if t.transfer_id is not None:
+            return {
+                "error": "This transaction is part of a transfer; use update_transfer or "
+                "delete_transfer instead"
+            }
 
         if params.category_id is not None:
             c_id = _parse_uuid(params.category_id, "category_id")
@@ -1373,7 +1413,7 @@ async def update_transaction(params: UpdateTransactionInput) -> dict[str, Any]: 
 
 
 @mcp.tool(annotations=_ann("Delete Transaction", destructive=True, idempotent=True))
-async def delete_transaction(wallet_id: str, transaction_id: str) -> dict[str, Any]:
+async def delete_transaction(wallet_id: str, transaction_id: str) -> dict[str, Any]:  # ruff: ignore[too-many-return-statements]
     """
     Delete a transaction by ID.
 
@@ -1405,6 +1445,11 @@ async def delete_transaction(wallet_id: str, transaction_id: str) -> dict[str, A
         t = t_result.first()
         if not t:
             return {"error": "Transaction not found"}
+        if t.transfer_id is not None:
+            return {
+                "error": "This transaction is part of a transfer; use update_transfer or "
+                "delete_transfer instead"
+            }
 
         existing_tags = await session.exec(
             select(TransactionTag).where(col(TransactionTag.transaction_id) == t.id)
@@ -1532,6 +1577,235 @@ class GetSpendingSummaryInput:
     wallet_id: str
     start_date: str | None = None
     end_date: str | None = None
+
+
+@dataclass
+class CreateTransferInput:
+    from_wallet_id: str
+    to_wallet_id: str
+    from_amount: float
+    to_amount: float
+    fee_amount: float | None = None
+    fee_category_id: str | None = None
+    description: str | None = None
+    date: str | None = None
+
+
+@dataclass
+class UpdateTransferInput:
+    transfer_id: str
+    from_wallet_id: str | None = None
+    to_wallet_id: str | None = None
+    from_amount: float | None = None
+    to_amount: float | None = None
+    fee_amount: float | None = None
+    fee_category_id: str | None = None
+    description: str | None = None
+    date: str | None = None
+
+
+def _parse_transfer_fields(
+    params: CreateTransferInput | UpdateTransferInput,
+) -> dict[str, Any] | str:
+    fields: dict[str, Any] = {}
+    for name in ("from_wallet_id", "to_wallet_id", "fee_category_id"):
+        value = getattr(params, name)
+        if value is not None:
+            parsed = _parse_uuid(value, name)
+            if isinstance(parsed, str):
+                return parsed
+            fields[name] = parsed
+    if params.date is not None:
+        parsed_dt = _parse_dt(params.date, "date")
+        if isinstance(parsed_dt, str):
+            return parsed_dt
+        fields["date"] = parsed_dt
+    for name in ("from_amount", "to_amount", "fee_amount", "description"):
+        value = getattr(params, name)
+        if value is not None:
+            fields[name] = value
+    return fields
+
+
+def _validation_message(e: ValidationError) -> str:
+    return "; ".join(str(err["msg"]) for err in e.errors())
+
+
+@mcp.tool(annotations=_ann("Create Transfer"))
+async def create_transfer(params: CreateTransferInput) -> dict[str, Any]:
+    """
+    Record a transfer of money from one of the user's wallets to another.
+
+    A transfer moves money between two of the user's wallets. It is NOT income or expense:
+    it never appears in spending, income or budget totals, only in wallet balances. It is
+    stored as a "transfer_out" transaction in the source wallet and a "transfer_in"
+    transaction in the destination wallet; these rows can only be changed through the
+    transfer tools.
+
+    Amounts are always in each wallet's own currency and record what actually moved, e.g.
+    sending 100 USD that arrived as 3140 TWD is from_amount=100, to_amount=3140.
+    effective_rate (to_amount / from_amount) is the rate that was executed and never changes,
+    so later exchange-rate movements do not alter the transfer. For wallets in the same
+    currency, from_amount must equal to_amount. A fee (in the source wallet's currency) is
+    recorded as a real expense in the source wallet under fee_category_id.
+    Args:
+        params.from_wallet_id: UUID of the wallet the money left.
+        params.to_wallet_id: UUID of the wallet the money arrived in.
+        params.from_amount: Amount that left the source wallet, in its currency (> 0).
+        params.to_amount: Amount that arrived in the destination wallet, in its currency (> 0).
+        params.fee_amount: Optional fee charged to the source wallet, in its currency.
+        params.fee_category_id: Category UUID for the fee expense; required with fee_amount.
+        params.description: Optional note.
+        params.date: ISO 8601 date (default now).
+    """
+    user = await _get_authenticated_user()
+    fields = _parse_transfer_fields(params)
+    if isinstance(fields, str):
+        return {"error": fields}
+    try:
+        data = TransferCreate(**fields)
+    except ValidationError as e:
+        return {"error": _validation_message(e)}
+
+    async for session in get_session():
+        try:
+            transfer = await create_transfer_record(session, user.id, data)
+        except TransferError as e:
+            return {"error": str(e)}
+        response = await build_transfer_response(session, transfer)
+        return response.model_dump(mode="json")
+    return {"error": "Database error"}
+
+
+@mcp.tool(annotations=_ann("List Transfers", read_only=True, idempotent=True))
+async def list_transfers(
+    wallet_id: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    page: int = 1,
+    page_size: int = 20,
+) -> dict[str, Any]:
+    """
+    List transfers between the user's wallets, newest first.
+    See create_transfer for how transfers work.
+
+    Args:
+        wallet_id: Only transfers into or out of this wallet.
+        start_date: ISO 8601 start date filter.
+        end_date: ISO 8601 end date filter.
+        page: Page number (default 1).
+        page_size: Results per page (default 20, max 100).
+    """
+    user = await _get_authenticated_user()
+    w_id: uuid.UUID | None = None
+    if wallet_id is not None:
+        parsed = _parse_uuid(wallet_id, "wallet_id")
+        if isinstance(parsed, str):
+            return {"error": parsed}
+        w_id = parsed
+    start = _parse_dt(start_date, "start_date") if start_date else None
+    if isinstance(start, str):
+        return {"error": start}
+    end = _parse_dt(end_date, "end_date") if end_date else None
+    if isinstance(end, str):
+        return {"error": end}
+    page = max(1, page)
+    page_size = min(max(1, page_size), 100)
+
+    async for session in get_session():
+        transfers, total = await list_transfer_records(
+            session, user.id, wallet_id=w_id, start=start, end=end, page=page, page_size=page_size
+        )
+        items = [
+            (await build_transfer_response(session, t)).model_dump(mode="json") for t in transfers
+        ]
+        return {"items": items, "total": total, "page": page, "page_size": page_size}
+    return {"error": "Database error"}
+
+
+@mcp.tool(annotations=_ann("Get Transfer", read_only=True, idempotent=True))
+async def get_transfer(transfer_id: str) -> dict[str, Any]:
+    """
+    Get a transfer by ID, e.g. from the "transfer_id" of a transfer_in/transfer_out transaction.
+    See create_transfer for how transfers work.
+
+    Args:
+        transfer_id: UUID of the transfer.
+    """
+    user = await _get_authenticated_user()
+    t_id = _parse_uuid(transfer_id, "transfer_id")
+    if isinstance(t_id, str):
+        return {"error": t_id}
+    async for session in get_session():
+        try:
+            transfer = await get_owned_transfer(session, t_id, user.id)
+        except TransferError as e:
+            return {"error": str(e)}
+        response = await build_transfer_response(session, transfer)
+        return response.model_dump(mode="json")
+    return {"error": "Database error"}
+
+
+@mcp.tool(annotations=_ann("Update Transfer", destructive=True, idempotent=True))
+async def update_transfer(params: UpdateTransferInput) -> dict[str, Any]:
+    """
+    Update a transfer. Omitted fields stay unchanged; both wallets' transactions follow.
+    See create_transfer for how transfers work.
+
+    Args:
+        params.transfer_id: UUID of the transfer to update.
+        params.from_wallet_id: New source wallet UUID.
+        params.to_wallet_id: New destination wallet UUID.
+        params.from_amount: New amount sent, in the source wallet's currency.
+        params.to_amount: New amount received, in the destination wallet's currency.
+        params.fee_amount: New fee; 0 removes the fee.
+        params.fee_category_id: New category UUID for the fee expense.
+        params.description: New note.
+        params.date: New date (ISO 8601).
+    """
+    user = await _get_authenticated_user()
+    t_id = _parse_uuid(params.transfer_id, "transfer_id")
+    if isinstance(t_id, str):
+        return {"error": t_id}
+    fields = _parse_transfer_fields(params)
+    if isinstance(fields, str):
+        return {"error": fields}
+    try:
+        data = TransferUpdate(**fields)
+    except ValidationError as e:
+        return {"error": _validation_message(e)}
+
+    async for session in get_session():
+        try:
+            transfer = await get_owned_transfer(session, t_id, user.id)
+            transfer = await update_transfer_record(session, transfer, data)
+        except TransferError as e:
+            return {"error": str(e)}
+        response = await build_transfer_response(session, transfer)
+        return response.model_dump(mode="json")
+    return {"error": "Database error"}
+
+
+@mcp.tool(annotations=_ann("Delete Transfer", destructive=True, idempotent=True))
+async def delete_transfer(transfer_id: str) -> dict[str, Any]:
+    """
+    Delete a transfer along with its transactions in both wallets (and its fee, if any).
+
+    Args:
+        transfer_id: UUID of the transfer to delete.
+    """
+    user = await _get_authenticated_user()
+    t_id = _parse_uuid(transfer_id, "transfer_id")
+    if isinstance(t_id, str):
+        return {"error": t_id}
+    async for session in get_session():
+        try:
+            transfer = await get_owned_transfer(session, t_id, user.id)
+        except TransferError as e:
+            return {"error": str(e)}
+        await delete_transfer_record(session, transfer)
+        return {"deleted": transfer_id}
+    return {"error": "Database error"}
 
 
 @mcp.tool(annotations=_ann("Get Spending Summary", read_only=True, idempotent=True))
@@ -1706,6 +1980,8 @@ async def get_monthly_trend(params: GetMonthlyTrendInput) -> dict[str, Any]:
 
         raw: dict[str, dict[str, Any]] = {}
         for t in txns:
+            if t.type not in {"expense", "income"}:
+                continue
             period = t.date.strftime("%Y-%m")
             if period not in raw:
                 raw[period] = {

@@ -12,6 +12,8 @@ import type {
   TransactionResponse,
   TransactionSummary,
   TransactionAnalytics,
+  TransferRequest,
+  TransferResponse,
   GroupTransactionRequest,
   RecurringTransactionResponse,
   TagResponse,
@@ -289,6 +291,15 @@ export const expenses = {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
   },
+};
+
+export const transfers = {
+  get: (id: string) => request<TransferResponse>(`/transfers/${id}`),
+  create: (data: TransferRequest) =>
+    request<TransferResponse>('/transfers', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<TransferRequest>) =>
+    request<TransferResponse>(`/transfers/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id: string) => request<void>(`/transfers/${id}`, { method: 'DELETE' }),
 };
 
 export const categories = {

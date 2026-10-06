@@ -749,7 +749,7 @@ export function InsightsPage() {
                         <Link to={dateLink(tx.date)} className="insight-link" style={linkStyle}>{fmtDateShort(tx.date)}</Link>
                       </td>
                       <td style={{ padding: '8px' }}>
-                        <Link to={categoryLink(tx.category.id)} className="insight-link" style={linkStyle}>{tx.category.name}</Link>
+                        {tx.category && <Link to={categoryLink(tx.category.id)} className="insight-link" style={linkStyle}>{tx.category.name}</Link>}
                       </td>
                       <td style={{ padding: '8px', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         <Link to={`/wallets/${activeWallet.id}/expenses/${tx.id}`} className="insight-link" style={{ ...linkStyle, color: 'var(--ink-mid)' }}>
@@ -919,19 +919,19 @@ function DayDrawer({
               onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
             >
               <CategoryIcon
-                iconName={tx.category.icon}
-                color={tx.category.color}
+                iconName={tx.category?.icon ?? null}
+                color={tx.category?.color ?? null}
                 size={16}
                 containerSize={36}
                 borderRadius={10}
-                fallbackLetter={tx.category.name[0]}
+                fallbackLetter={tx.category?.name[0]}
               />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {tx.description ?? tx.category.name}
+                  {tx.description ?? tx.category?.name}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--ink-faint)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {tx.category.name}
+                  {tx.category?.name}
                 </div>
               </div>
               <div style={{ fontSize: 14, fontWeight: 600, color: amountColor(tx.amount, tx.type), flexShrink: 0 }}>

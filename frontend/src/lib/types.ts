@@ -29,6 +29,8 @@ export interface WalletSummary extends WalletResponse {
   expense_count: number;
   total_income: number;
   income_count: number;
+  total_transfers_in: number;
+  total_transfers_out: number;
   balance: number;
 }
 
@@ -63,11 +65,21 @@ export interface TagBrief {
   color: string | null;
 }
 
+export type TransactionType = 'expense' | 'income' | 'transfer_in' | 'transfer_out';
+
+export interface TransferBrief {
+  id: string;
+  counterpart_wallet_id: string;
+  counterpart_wallet_name: string;
+  counterpart_currency: string;
+  counterpart_amount: number;
+}
+
 export interface TransactionLinkBrief {
   id: string;
   wallet_id: string;
-  category: CategoryBrief;
-  type: 'expense' | 'income';
+  category: CategoryBrief | null;
+  type: TransactionType;
   amount: number;
   description: string | null;
   date: string;
@@ -77,13 +89,14 @@ export interface TransactionLinkBrief {
 export interface TransactionResponse {
   id: string;
   wallet_id: string;
-  category: CategoryBrief;
+  category: CategoryBrief | null;
   amount: number;
-  type: 'expense' | 'income';
+  type: TransactionType;
   description: string | null;
   date: string;
   tags: TagBrief[];
   group_id: string | null;
+  transfer: TransferBrief | null;
   children: TransactionResponse[] | null;
   linked_transactions: TransactionLinkBrief[];
   created_at: string;
@@ -91,6 +104,42 @@ export interface TransactionResponse {
 }
 
 export type ExpenseResponse = TransactionResponse;
+
+export interface TransferSide {
+  wallet_id: string;
+  wallet_name: string;
+  currency: string;
+  amount: number;
+  transaction_id: string | null;
+}
+
+export interface TransferResponse {
+  id: string;
+  date: string;
+  description: string | null;
+  source: TransferSide;
+  destination: TransferSide;
+  effective_rate: number;
+  fee: {
+    amount: number;
+    currency: string;
+    category: CategoryBrief | null;
+    transaction_id: string | null;
+  } | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TransferRequest {
+  from_wallet_id: string;
+  to_wallet_id: string;
+  from_amount: number;
+  to_amount: number;
+  fee_amount?: number;
+  fee_category_id?: string;
+  description?: string;
+  date?: string;
+}
 
 export interface TransactionListResponse {
   items: TransactionResponse[];

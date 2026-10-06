@@ -9,5 +9,6 @@ from app.models.recurring import RecurringTransaction
 from app.models.settings import AppSettings
 from app.models.tag import Tag
 from app.models.transaction import Transaction, TransactionLink, TransactionTag
+from app.models.transfer import Transfer
 from app.models.user import User
 from app.models.wallet import Wallet
