@@ -1,7 +1,7 @@
 {
   "site": {
     "title": "Keni | Money tracked without the friction",
-    "description": "Keni is a personal finance tracker built for people who want to record detailed transaction logs without spending much effort. It uses AI to take various kind of input (text, image, PDF, voice, etc.) and extract context about the transaction, then categorizes them for easier lookup in the future.",
+    "description": "An open-source, self-hosted personal finance tracker. Log expenses by typing naturally, scanning receipts, or speaking. Fast local processing, multi-currency support, and zero cloud markups.",
     "appUrl": "https://app.keni.seria.moe"
   },
   "nav": {
@@ -15,13 +15,13 @@
   },
   "footer": {
     "brand": "Keni",
-    "tagline": "Money tracked without the friction.",
+    "tagline": "Detailed financial records without the tedious bookkeeping.",
     "privacyPolicy": "Privacy policy",
     "support": "Support"
   },
   "hero": {
     "headline": "Money tracked without the friction.",
-    "sub": "Write it the way you'd say it, snap a receipt, or speak it. Keni works out the amount, category, tags and date, so your records stay detailed without the busywork.",
+    "sub": "Type a quick sentence, snap a paper receipt, or speak out loud. Keni parses the amount, category, tags, and date into an editable staging preview so your records stay thorough in seconds.",
     "ctaPrimary": "Start tracking free",
     "filledLabel": "Filled in for you:",
     "filledSeparator": ", ",
@@ -49,11 +49,11 @@
         ],
         "filled": [
           [
-            "date",
-            "today"
+            "Date",
+            "Today"
           ],
           [
-            "wallet",
+            "Wallet",
             "Personal"
           ]
         ]
@@ -80,7 +80,7 @@
         ],
         "filled": [
           [
-            "wallet",
+            "Wallet",
             "Personal"
           ]
         ]
@@ -107,11 +107,11 @@
         ],
         "filled": [
           [
-            "date",
-            "today"
+            "Date",
+            "Today"
           ],
           [
-            "wallet",
+            "Wallet",
             "Personal"
           ]
         ]
@@ -143,11 +143,11 @@
         ],
         "filled": [
           [
-            "date",
-            "today"
+            "Date",
+            "Today"
           ],
           [
-            "wallet",
+            "Wallet",
             "Personal"
           ]
         ]
@@ -174,11 +174,11 @@
         ],
         "filled": [
           [
-            "date",
-            "today"
+            "Date",
+            "Today"
           ],
           [
-            "wallet",
+            "Wallet",
             "Personal"
           ]
         ]
@@ -190,15 +190,15 @@
   },
   "features": {
     "label": "Features",
-    "title": "Everything you need to remove the hassle.",
-    "sub": "A privacy-first finance tracker built for people who want clarity without complexity.",
+    "title": "Bookkeeping that stays out of your way.",
+    "sub": "Granular records, multi-wallet organization, and flexible AI models, all running on your own terms.",
     "capture": {
       "label": "Capture",
       "title": "Log it the way it happens.",
       "items": [
         {
           "title": "⌘ K to log anything",
-          "body": "One command bar for income, spending, recurring bills, grouped expenses, or several transactions at once. Review and edit before saving.",
+          "body": "Hit ⌘K anywhere to log income, expenses, recurring bills, or multi-item splits in natural language. Keni infers the details and stages them for quick review before anything commits to your database.",
           "source": "Typed into ⌘ K",
           "example": {
             "text": "dinner 64, taxi home 18 last night",
@@ -236,7 +236,7 @@
         },
         {
           "title": "Receipt & invoice scanning",
-          "body": "Upload a photo of a paper receipt or a PDF e-invoice. The AI reads the total, line items, merchant, and date, then records it for you.",
+          "body": "Upload a photo of a paper receipt or a PDF invoice. Keni extracts the merchant, date, and individual line items into itemized records, processed in memory without storing raw files.",
           "source": "Read from a receipt photo",
           "kind": "receipt",
           "receipt": {
@@ -293,7 +293,7 @@
         },
         {
           "title": "Voice input",
-          "body": "Tap the mic and speak your expense. Audio is processed locally, nothing leaves your server.",
+          "body": "Tap the mic and say what you spent. An embedded Whisper model transcribes your voice in memory on your own server, so no audio ever leaves your machine.",
           "source": "Spoken into the mic",
           "example": {
             "text": "parking downtown, twelve fifty",
@@ -323,23 +323,23 @@
     },
     "organize": {
       "label": "Organize",
-      "title": "Find it again in seconds.",
+      "title": "Instant recall when you need it.",
       "items": [
         {
           "title": "Categories & tags",
-          "body": "Organize expenses with categories and tags. The AI suggests both automatically based on context, reducing your input to near zero. Filter by either when reviewing your history."
+          "body": "Context-aware tags and categories adapt to your spending habits over time. Routine transactions categorize themselves automatically, with clean filtering across your entire history."
         },
         {
           "title": "Multiple wallets",
-          "body": "Separate personal, business, travel, or shared expenses across wallets. Each wallet has its own currency, history, and analytics, which suits people living across borders."
+          "body": "Keep personal, freelance, shared, and travel expenses completely separate. Each wallet maintains its own native currency, exchange rates, and ledger history, built for cross-border life."
         },
         {
           "title": "Budgets",
-          "body": "Set budgets by period, category, or wallet. Get a visual warning right on the dashboard when you are close to or exceeding your limit."
+          "body": "Set monthly limits by category, wallet, or overall spend. Clear pacing bars show where you stand against your targets without loud warnings or artificial guilt."
         },
         {
           "title": "Dashboard at a glance",
-          "body": "Monthly total, weekly pace, daily average, recent transactions, and a category breakdown chart."
+          "body": "A calm, uncluttered overview: monthly totals, weekly burn rate, category breakdowns, and recent activity, surfaced without decorative chrome."
         }
       ],
       "ledgerCaption": "Recent transactions",
@@ -393,42 +393,42 @@
     },
     "connect": {
       "label": "Connect",
-      "title": "Plug in the tools you already use.",
+      "title": "Connected to your everyday tools.",
       "items": [
         {
           "title": "Chat with your data",
-          "body": "Ask anything in plain language, like chatting with a personal finance advisor. Get real answers from your actual numbers."
+          "body": "Ask questions in plain English: 'How much did I spend on dining out last month?' or 'What are my active recurring subscriptions?' Keni queries your actual ledger and returns exact numbers."
         },
         {
-          "title": "Model agnostic",
-          "body": "Bring your own API key. Keni works with OpenAI, OpenRouter, Anthropic, and Google Gemini."
+          "title": "Bring your own AI",
+          "body": "Plug in your own API key for Google Gemini, Anthropic, OpenAI, or OpenRouter. Take advantage of generous free tiers (like Gemini Flash) or run local models with zero subscription markups."
         },
         {
           "title": "MCP & API",
-          "body": "Connect Keni to your favorite AI agents via MCP, or integrate with third-party tools using your personal API key."
+          "body": "With native Model Context Protocol (MCP) support, tools like Claude Desktop or Cursor can query and update your ledger directly. Use personal API tokens to automate entries from custom scripts and shortcuts."
         }
       ],
       "chat": {
-        "question": "How much have I earned in total this month?",
-        "answer": "You've earned $4,320 this month across 3 income sources. Your biggest expense category is Dining at $496."
+        "question": "How did my dining spending change compared to last month?",
+        "answer": "You spent $496 across 14 dining entries in October, down 12% from September. Your largest single bill was $64 at Hollow Oak Bakery."
       }
     }
   },
   "privacy": {
     "label": "Open source · Self-hosted",
     "title": "Your data stays yours.",
-    "sub": "Self-host Keni so your personal finance data lives on your own disk. No ads, no tracking, no subscription fees.",
+    "sub": "Host Keni on your own server or VPS. No telemetry, no ad tracking, and no monetization of your transaction history. Just your data in your own PostgreSQL database.",
     "checklist": [
-      "All data stored locally on your own server",
-      "Bring your own AI provider: OpenAI, Anthropic, Gemini or OpenRouter",
-      "Local audio processing",
-      "Export your data anytime"
+      "PostgreSQL database hosted entirely on your server",
+      "Direct AI API calls with zero intermediary proxies",
+      "In-memory Whisper transcription so voice data never touches the cloud",
+      "Full data ownership with instant CSV and JSON export"
     ],
     "codeFilename": "docker-compose.yml"
   },
   "cta": {
-    "title": "Start tracking without the hassle.",
-    "sub": "Self-host with Docker Compose for full control, or use the hosted instance free.",
+    "title": "Detailed bookkeeping on your own terms.",
+    "sub": "Deploy in two minutes with Docker Compose, or try the free hosted instance to explore the workflow.",
     "btnPrimary": "Try hosted free",
     "btnSecondary": "Self-host with Docker"
   },
