@@ -85,8 +85,6 @@ export class Gloss {
     const box = this.root.getBoundingClientRect();
     const width = this.root.clientWidth;
     const row = parseFloat(getComputedStyle(this.root).getPropertyValue("--row")) || 52;
-    const rows: number[] = [];
-    let maxRow = 0;
     const items = placed
       .map((p) => {
         const r = p.el.getBoundingClientRect();
@@ -114,22 +112,44 @@ export class Gloss {
       n.style.setProperty("--d", animate ? `${k * 110}ms` : "0ms");
       n.style.setProperty("--d2", animate ? `${k * 110 + 220}ms` : "0ms");
       this.notesEl.append(n);
-
-      const lw = lab.offsetWidth;
-      let r = 0;
-      while (rows[r] !== undefined && rows[r] > it.x - 18) r++;
-      rows[r] = it.x + lw + 16;
-      maxRow = Math.max(maxRow, r);
-      n.style.setProperty("--lead", `${r * row}px`);
-      n.style.setProperty("--shift", `${Math.max(-it.x, Math.min(0, width - (it.x + lw)))}px`);
-      if (it.note.count && animate) countUp(value, it.note.value, k * 110 + 220);
-      return n;
+      return { n, lab, value };
     });
 
-    this.notesEl.style.height = `${(maxRow + 1) * row + 16}px`;
-    if (animate) requestAnimationFrame(() => requestAnimationFrame(() => made.forEach((n) => n.classList.add("in"))));
-    else made.forEach((n) => n.classList.add("in"));
+    // Measure every label before choosing rows (count-up shortens the value text, so it starts after).
+    const spans = made.map(({ lab }, k) => {
+      const { x } = items[k];
+      const s = x + Math.max(-x, Math.min(0, width - (x + lab.offsetWidth)));
+      return { s, e: s + lab.offsetWidth };
+    });
+    const rows = stack(items.map((it) => it.x), spans);
+    made.forEach(({ n, value }, k) => {
+      n.style.setProperty("--lead", `${rows[k] * row}px`);
+      n.style.setProperty("--shift", `${spans[k].s - items[k].x}px`);
+      if (items[k].note.count && animate) countUp(value, items[k].note.value, k * 110 + 220);
+    });
+
+    this.notesEl.style.height = `${(Math.max(0, ...rows) + 1) * row + 16}px`;
+    if (animate) requestAnimationFrame(() => requestAnimationFrame(() => made.forEach(({ n }) => n.classList.add("in"))));
+    else made.forEach(({ n }) => n.classList.add("in"));
   }
+}
+
+/**
+ * Pick a row for each note (notes sorted by x). Leads drop straight down from their brackets, so a label
+ * goes below every note to its right whose lead it would cross, and labels sharing a row never overlap.
+ */
+function stack(xs: number[], spans: { s: number; e: number }[]) {
+  const gap = 14;
+  const rows = xs.map(() => 0);
+  for (let a = xs.length - 2; a >= 0; a--) {
+    let r = 0;
+    for (let b = a + 1; b < xs.length; b++) if (xs[b] < spans[a].e + gap) r = Math.max(r, rows[b] + 1);
+    const clash = (r: number) =>
+      rows.some((rb, b) => b > a && rb === r && spans[b].s < spans[a].e + gap && spans[a].s < spans[b].e + gap);
+    while (clash(r)) r++;
+    rows[a] = r;
+  }
+  return rows;
 }
 
 /** Find each note's phrase in order of appearance, skipping overlaps. */
