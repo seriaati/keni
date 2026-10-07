@@ -213,3 +213,9 @@ img, svg { display: block; }
   }
   .js .reveal { opacity: 1; transform: none; }
 }
+
+/* Shortcut hints: ⌘ on Apple platforms, Ctrl elsewhere (data-mac set by the head script) */
+:root[data-mac] .mod-other,
+:root:not([data-mac]) .mod-mac {
+  display: none;
+}

@@ -1,0 +1,7 @@
+---
+// Copy with "⌘ K" shown as "Ctrl+K" off Apple platforms; the head script in Layout sets data-mac.
+interface Props { text: string }
+const parts = Astro.props.text.split(/(⌘ ?K)/);
+---
+
+{parts.map((p, i) => (i % 2 ? <><span class="mod-mac">{p}</span><span class="mod-other">Ctrl+K</span></> : p))}

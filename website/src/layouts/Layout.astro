@@ -103,6 +103,8 @@ const jsonLd = {
         const NEXT = { light: "dark", dark: "system", system: "light" };
         const root = document.documentElement;
         root.classList.add("js");
+        // Shortcut hints show ⌘ on Apple platforms, Ctrl elsewhere (see ShortcutText)
+        if (/Mac|iPhone|iPad|iPod/.test(navigator.platform)) root.dataset.mac = "";
         const systemDark = matchMedia("(prefers-color-scheme: dark)");
 
         let pref = "system";

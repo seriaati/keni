@@ -2,6 +2,7 @@
 import type { Translations } from "../i18n/index.ts";
 import Icon, { type IconName } from "./Icon.astro";
 import ReceiptDemo from "./ReceiptDemo.astro";
+import ShortcutText from "./ShortcutText.astro";
 import VoiceDemo from "./VoiceDemo.astro";
 interface Props { t: Translations }
 const { t } = Astro.props;
@@ -36,11 +37,11 @@ const connectIcons: IconName[] = ["chat", "key", "plug"];
           <article class="cap-row reveal">
             <div class="cap-text">
               {captureIcons[item.kind] && <Icon name={captureIcons[item.kind]} class="item-icon" />}
-              <h4 class="item-title">{item.title}</h4>
-              <p class="item-body">{item.body}</p>
+              <h4 class="item-title"><ShortcutText text={item.title} /></h4>
+              <p class="item-body"><ShortcutText text={item.body} /></p>
             </div>
             <figure class="cap-example">
-              <figcaption class="cap-source">{item.source}</figcaption>
+              <figcaption class="cap-source"><ShortcutText text={item.source} /></figcaption>
               {item.kind === "receipt" && <ReceiptDemo item={item} />}
               {item.kind === "voice" && <VoiceDemo item={item} />}
               {item.kind === "command" && item.example && (
