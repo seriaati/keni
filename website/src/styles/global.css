@@ -1,8 +1,8 @@
 /*
   Keni website design language ("Gloss").
   Warm parchment canvas, warm near-black ink, burnished amber as the single accent; Espresso for dark.
-  Instrument Serif for the gloss line, headlines and logo, Host Grotesk for everything else, IBM Plex Mono
-  for small uppercase labels. Left-aligned single columns.
+  Instrument Serif for the gloss line, headlines and logo, DM Sans for everything else (both match the
+  app), IBM Plex Mono for small uppercase labels. Left-aligned single columns.
   The signature motif is the gloss: an amber bracket under a phrase with a mono label hanging below it.
 */
 
@@ -27,7 +27,7 @@
   --btn-hover: oklch(28% 0.01 80);
   --btn-text: oklch(97% 0.012 85);
 
-  --f-sans: "Host Grotesk", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Helvetica Neue", Arial, sans-serif;
+  --f-sans: "DM Sans", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Helvetica Neue", Arial, sans-serif;
   --f-serif: "Instrument Serif", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", Georgia, serif;
   --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, "PingFang TC", "Noto Sans TC", monospace;
 
