@@ -35,7 +35,7 @@ import { useWallet } from '../contexts/WalletContext';
 import { CommandBar } from './CommandBar';
 import { Modal } from './ui/Modal';
 import { getSharedPayload, clearSharedPayload } from '../lib/shareTarget';
-import { getInitials } from '../lib/utils';
+import { CMD_K, getInitials } from '../lib/utils';
 import { setThemePreference, useThemePreference } from '../lib/theme';
 import type { ThemePreference } from '../lib/theme';
 import './layout.css';
@@ -308,7 +308,7 @@ export function Layout() {
         {/* Quick add button */}
         <button className="quick-add-btn" onClick={() => setCmdOpen(true)}>
           <span>{t('nav.addTransaction')}</span>
-          <kbd className="kbd-hint">⌘ K</kbd>
+          <kbd className="kbd-hint">{CMD_K}</kbd>
         </button>
 
         {/* Navigation */}

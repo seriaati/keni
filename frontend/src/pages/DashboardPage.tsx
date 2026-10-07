@@ -7,7 +7,7 @@ import { expenses as expensesApi, budgets as budgetsApi, categories as categorie
 import { useWallet } from '../contexts/WalletContext';
 import { useAuth } from '../contexts/AuthContext';
 import type { BudgetResponse, CategoryBrief, CategoryResponse, TransactionResponse, TransactionSummary } from '../lib/types';
-import { amountColor, fmt, fmtSigned, fmtRelative, startOfMonth, endOfMonth, startOfWeek, getPeriodDateRange, getPeriodLabel } from '../lib/utils';
+import { CMD_K, amountColor, fmt, fmtSigned, fmtRelative, startOfMonth, endOfMonth, startOfWeek, getPeriodDateRange, getPeriodLabel } from '../lib/utils';
 import type { DashboardPeriod } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
 import { useColor } from '../lib/colors';
@@ -364,7 +364,7 @@ export function DashboardPage() {
           ) : recent.length === 0 ? (
             <div className="empty-state" style={{ padding: '32px 16px' }}>
               <p className="empty-state-title">{t('dashboard.recentEmptyTitle')}</p>
-              <p className="empty-state-desc">{t('dashboard.recentEmptyDesc')}</p>
+              <p className="empty-state-desc">{t('dashboard.recentEmptyDesc', { shortcut: CMD_K })}</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

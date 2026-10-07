@@ -12,7 +12,7 @@ import { Modal } from '../components/ui/Modal';
 import { CategorySelect } from '../components/ui/CategorySelect';
 import { MultiCategorySelect } from '../components/ui/MultiCategorySelect';
 import type { CategoryBrief, CategoryResponse, TransactionListResponse, TransactionResponse, TagResponse, TagBrief, WalletSummary } from '../lib/types';
-import { amountColor, fmt, fmtSigned, fmtRelative } from '../lib/utils';
+import { CMD_K, amountColor, fmt, fmtSigned, fmtRelative } from '../lib/utils';
 import { CategoryIcon } from '../lib/categoryIcons';
 import { useColor } from '../lib/colors';
 import { getExchangeRate } from '../lib/fx';
@@ -1008,7 +1008,7 @@ export function WalletViewPage() {
         <div className="empty-state">
           <p className="empty-state-title">{t('walletView.noTransactionsTitle')}</p>
           <p className="empty-state-desc">
-            {hasFilters ? t('walletView.noTransactionsDescFiltered') : t('walletView.noTransactionsDescEmpty')}
+            {hasFilters ? t('walletView.noTransactionsDescFiltered') : t('walletView.noTransactionsDescEmpty', { shortcut: CMD_K })}
           </p>
         </div>
       ) : (
