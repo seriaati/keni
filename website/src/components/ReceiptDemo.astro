@@ -1,0 +1,397 @@
+---
+// Receipt scanning demo: a thermal receipt is swept by an amber scan line, and the fields Keni reads
+// (merchant, date, line items, total) are glossed to the right of it as the line passes them.
+import type { Translations } from "../i18n/index.ts";
+
+type CaptureItem = Translations["features"]["capture"]["items"][number];
+interface Props {
+  item: CaptureItem;
+}
+
+const { item } = Astro.props;
+const r = item.receipt;
+const notes = r ? [r.notes.merchant, r.notes.date, r.notes.items, r.notes.total] : [];
+const summary = notes.map((n) => `${n.label} ${n.value}`).join("; ");
+---
+
+{r && (
+  <div class="rd" data-receipt-demo>
+    <p class="rd-sr">{summary}</p>
+    <div class="rd-stage" aria-hidden="true">
+      <div class="rd-paper">
+        <div class="rd-sheet"><div class="rd-fill"></div></div>
+        <div class="rd-scan"></div>
+
+        <div class="rd-row rd-c rd-merchant rd-hit">
+          <span>{r.merchant}</span>
+          <div class="rd-note">
+            <div class="rd-br"></div><div class="rd-lead"></div>
+            <div class="rd-lab"><b>{r.notes.merchant.label}</b><span>{r.notes.merchant.value}</span></div>
+          </div>
+        </div>
+        <div class="rd-row rd-c rd-addr">{r.address}</div>
+
+        <div class="rd-rule"></div>
+        <div class="rd-row rd-hit">
+          <span>{r.date}</span><span>{r.time}</span>
+          <div class="rd-note">
+            <div class="rd-br"></div><div class="rd-lead"></div>
+            <div class="rd-lab"><b>{r.notes.date.label}</b><span>{r.notes.date.value}</span></div>
+          </div>
+        </div>
+
+        <div class="rd-rule"></div>
+        <div class="rd-items rd-hit">
+          {r.items.map(([name, price]) => (
+            <div class="rd-row"><span class="rd-name">{name}</span><span>{price}</span></div>
+          ))}
+          <div class="rd-note">
+            <div class="rd-br"></div><div class="rd-lead"></div>
+            <div class="rd-lab"><b>{r.notes.items.label}</b><span>{r.notes.items.value}</span></div>
+          </div>
+        </div>
+
+        <div class="rd-rule"></div>
+        <div class="rd-row rd-sub"><span>{r.subtotal[0]}</span><span>{r.subtotal[1]}</span></div>
+        <div class="rd-row rd-sub"><span>{r.tax[0]}</span><span>{r.tax[1]}</span></div>
+        <div class="rd-row rd-total rd-hit">
+          <span>{r.total[0]}</span><span>{r.total[1]}</span>
+          <div class="rd-note">
+            <div class="rd-br"></div><div class="rd-lead"></div>
+            <div class="rd-lab">
+              <b>{r.notes.total.label}</b>
+              <span data-count={r.notes.total.count ? r.notes.total.value : undefined}>{r.notes.total.value}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+<script>
+  import { reduced } from "../scripts/gloss.ts";
+
+  const SWEEP = 2200;
+  const easeInOut = (p: number) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+
+  /** Tween the number inside a formatted value ("$25.86", "NT$242") from zero. */
+  function countUp(el: HTMLElement, value: string) {
+    const m = /^(.*?)(\d[\d,]*(?:\.(\d+))?)(.*)$/.exec(value);
+    if (!m) return;
+    const [, pre, num, dec = "", post] = m;
+    const target = parseFloat(num.replace(/,/g, ""));
+    const fmt = (v: number) =>
+      pre + v.toLocaleString("en-US", { minimumFractionDigits: dec.length, maximumFractionDigits: dec.length }) + post;
+    const t0 = performance.now();
+    const step = (t: number) => {
+      const p = Math.min(1, (t - t0) / 700);
+      el.textContent = p < 1 ? fmt(target * (1 - Math.pow(1 - p, 4))) : value;
+      if (p < 1 && el.isConnected) requestAnimationFrame(step);
+    };
+    el.textContent = fmt(0);
+    requestAnimationFrame(step);
+  }
+
+  function init(root: HTMLElement) {
+    const paper = root.querySelector<HTMLElement>(".rd-paper")!;
+    const scan = root.querySelector<HTMLElement>(".rd-scan")!;
+    const hits = Array.from(root.querySelectorAll<HTMLElement>(".rd-hit"));
+    const counter = root.querySelector<HTMLElement>("[data-count]");
+    let raf = 0;
+    let state: "armed" | "playing" | "done" = "armed";
+
+    const showAll = () => {
+      hits.forEach((h) => h.classList.add("on"));
+      root.classList.add("is-done");
+    };
+
+    const reset = () => {
+      cancelAnimationFrame(raf);
+      root.classList.remove("is-scanning", "is-done");
+      hits.forEach((h) => h.classList.remove("on"));
+      if (counter) counter.textContent = counter.dataset.count ?? "";
+      state = "armed";
+    };
+
+    const play = () => {
+      state = "playing";
+      const top = paper.getBoundingClientRect().top;
+      // Each row lights up once the line reaches its middle.
+      const marks = hits.map((h) => {
+        const b = h.getBoundingClientRect();
+        return { el: h, y: b.top - top + b.height / 2 };
+      });
+      const travel = paper.offsetHeight - 10;
+      root.classList.add("is-scanning");
+      const t0 = performance.now();
+      const step = (t: number) => {
+        const p = Math.min(1, (t - t0) / SWEEP);
+        const y = easeInOut(p) * travel;
+        scan.style.transform = `translateY(${y}px)`;
+        for (const m of marks) {
+          if (y < m.y || m.el.classList.contains("on")) continue;
+          m.el.classList.add("on");
+          if (counter && m.el.contains(counter)) countUp(counter, counter.dataset.count ?? "");
+        }
+        if (p < 1) {
+          raf = requestAnimationFrame(step);
+        } else {
+          root.classList.remove("is-scanning");
+          root.classList.add("is-done");
+          state = "done";
+        }
+      };
+      raf = requestAnimationFrame(step);
+    };
+
+    if (reduced()) {
+      root.classList.add("is-static");
+      showAll();
+      return;
+    }
+
+    new IntersectionObserver(
+      ([e]) => {
+        if (!e.isIntersecting) {
+          if (state !== "armed") reset();
+        } else if (e.intersectionRatio >= 0.5 && state === "armed") {
+          play();
+        }
+      },
+      { threshold: [0, 0.5] },
+    ).observe(root);
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-receipt-demo]").forEach(init);
+</script>
+
+<style>
+  .rd {
+    --pw: 240px; /* receipt width */
+    --pad: 18px;
+    --gap: 6px; /* receipt edge to bracket */
+    --bw: 5px; /* bracket depth */
+    --lead: 22px;
+    container: rd / inline-size;
+    max-width: 100%;
+  }
+  .rd-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .rd-stage {
+    padding-block: 4px 2px;
+  }
+
+  /* ── Paper ── */
+
+  .rd-paper {
+    position: relative;
+    isolation: isolate;
+    width: var(--pw);
+    padding: calc(var(--pad) + 2px) var(--pad) calc(var(--pad) + 12px);
+    font: 400 12.5px/1.6 var(--f-mono);
+    color: var(--ink-mid);
+    font-variant-numeric: tabular-nums;
+  }
+  /* The torn edge is masked on this background layer only, so annotations outside the paper are never clipped. */
+  .rd-sheet {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    filter: drop-shadow(0 0 0.75px var(--faint)) drop-shadow(0 1px 1.5px color-mix(in oklch, var(--ink) 7%, transparent));
+  }
+  .rd-fill {
+    position: absolute;
+    inset: 0;
+    background: var(--paper-2);
+    background: oklch(from var(--paper) calc(l + 0.025) calc(c * 0.6) h);
+    border-radius: 3px 3px 0 0;
+    --z: 10px;
+    -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--z) 100%;
+    mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--z) 100%;
+  }
+
+  .rd-row {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    white-space: nowrap;
+  }
+  .rd-c {
+    justify-content: center;
+    text-align: center;
+  }
+  .rd-merchant {
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: 0.04em;
+  }
+  .rd-addr {
+    color: var(--mute);
+    white-space: normal;
+    text-wrap: balance;
+  }
+  .rd-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .rd-sub {
+    color: var(--mute);
+  }
+  .rd-total {
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .rd-rule {
+    height: 0;
+    margin-block: 9px;
+    border-top: 1px dashed var(--faint);
+  }
+  .rd-items {
+    position: relative;
+  }
+
+  /* ── Highlight band behind a read row ── */
+
+  .rd-hit {
+    isolation: isolate;
+  }
+  .rd-hit::before {
+    content: "";
+    position: absolute;
+    inset: 0 -6px;
+    z-index: -1;
+    border-radius: 3px;
+    background: var(--amber-wash);
+    transform-origin: left;
+    transition: transform 0.5s var(--ease);
+  }
+
+  /* ── Scan line ── */
+
+  .rd-scan {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    z-index: 2;
+    border-radius: 1px;
+    background: var(--amber);
+    box-shadow: 0 0 8px 2px var(--amber-wash);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.45s ease;
+  }
+  .rd.is-scanning .rd-scan {
+    opacity: 1;
+    transition-duration: 0.15s;
+  }
+
+  /* ── Glosses, hung outside the right edge ── */
+
+  .rd-note {
+    position: absolute;
+    top: 1px;
+    bottom: 1px;
+    left: calc(100% + var(--pad) + var(--gap));
+    white-space: normal;
+    text-align: left;
+    letter-spacing: normal;
+  }
+  .rd-br {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--bw);
+    border: 1.5px solid var(--amber);
+    border-left: 0;
+    transition: transform 0.45s var(--ease);
+  }
+  .rd-lead {
+    position: absolute;
+    top: calc(50% - 0.75px);
+    left: var(--bw);
+    width: var(--lead);
+    height: 1.5px;
+    background: var(--amber);
+    transform-origin: left;
+    transition: transform 0.3s ease 0.15s;
+  }
+  .rd-lab {
+    position: absolute;
+    top: 50%;
+    left: calc(var(--bw) + var(--lead) + 8px);
+    width: max-content;
+    max-width: calc(100cqi - var(--pw) - var(--gap) - var(--bw) - var(--lead) - 8px);
+    transform: translate(0, -50%);
+    transition: opacity 0.4s ease 0.25s, transform 0.45s var(--ease) 0.25s;
+  }
+  .rd-lab b {
+    display: block;
+    font: 500 10.5px/1.3 var(--f-mono);
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--amber-text);
+  }
+  .rd-lab span {
+    display: block;
+    font: 500 15px/1.35 var(--f-sans);
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Hidden until the scan line reads the row; without JS (or with reduced motion) everything is shown. */
+  :global(.js) .rd:not(.is-static) .rd-hit:not(.on)::before {
+    transform: scaleX(0);
+  }
+  :global(.js) .rd:not(.is-static) .rd-hit:not(.on) .rd-br {
+    transform: scaleY(0);
+  }
+  :global(.js) .rd:not(.is-static) .rd-hit:not(.on) .rd-lead {
+    transform: scaleX(0);
+  }
+  :global(.js) .rd:not(.is-static) .rd-hit:not(.on) .rd-lab {
+    opacity: 0;
+    transform: translate(-5px, -50%);
+  }
+  /* Resetting off screen should not animate backwards. */
+  .rd:not(.is-scanning):not(.is-done) .rd-hit::before,
+  .rd:not(.is-scanning):not(.is-done) .rd-hit * {
+    transition: none;
+  }
+
+  :lang(zh-TW) .rd-merchant,
+  :lang(zh-TW) .rd-lab span {
+    letter-spacing: 0;
+  }
+
+  /* ── Narrow columns ── */
+
+  @container rd (max-width: 480px) {
+    .rd-paper {
+      --pw: 190px;
+      --pad: 13px;
+      --lead: 12px;
+      font-size: 11px;
+    }
+    .rd-row {
+      gap: 8px;
+    }
+    .rd-lab b {
+      font-size: 9.5px;
+    }
+    .rd-lab span {
+      font-size: 13px;
+      line-height: 1.3;
+    }
+  }
+</style>

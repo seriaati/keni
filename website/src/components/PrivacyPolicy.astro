@@ -6,76 +6,69 @@ const p = t.privacyPolicy;
 ---
 
 <article class="policy">
-  <div class="policy-inner">
-    <header class="policy-header">
-      <p class="policy-eyebrow">{p.eyebrow}</p>
-      <h1 class="policy-title">{p.title}</h1>
-      <p class="policy-updated">{p.updated}</p>
-    </header>
+  <div class="wrap">
+    <div class="policy-inner">
+      <header class="policy-header">
+        <p class="label">{p.eyebrow}</p>
+        <h1 class="policy-title">{p.title}</h1>
+        <p class="policy-updated">{p.updated}</p>
+      </header>
 
-    {p.intro.map((para) => <p class="policy-intro">{para}</p>)}
+      {p.intro.map((para) => <p class="policy-intro">{para}</p>)}
 
-    {
-      p.sections.map((s) => (
-        <section class="policy-section">
-          <h2>{s.heading}</h2>
-          {s.body.map((para) => <p>{para}</p>)}
-          {s.list.length > 0 && (
-            <ul>
-              {s.list.map((item) => <li>{item}</li>)}
-            </ul>
-          )}
-        </section>
-      ))
-    }
+      {
+        p.sections.map((s) => (
+          <section class="policy-section">
+            <h2>{s.heading}</h2>
+            {s.body.map((para) => <p>{para}</p>)}
+            {s.list.length > 0 && (
+              <ul>
+                {s.list.map((item) => <li>{item}</li>)}
+              </ul>
+            )}
+          </section>
+        ))
+      }
 
-    <p class="policy-source">
-      <a href="https://github.com/seriaati/keni" target="_blank" rel="noopener">github.com/seriaati/keni</a>
-    </p>
+      <p class="policy-source">
+        <a href="https://github.com/seriaati/keni" target="_blank" rel="noopener" class="text-link">github.com/seriaati/keni</a>
+      </p>
+    </div>
   </div>
 </article>
 
 <style>
   .policy {
-    padding: clamp(48px, 7vw, 88px) 0 0;
+    padding-top: clamp(56px, 8vw, 104px);
   }
 
   .policy-inner {
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 0 clamp(20px, 5vw, 48px);
+    max-width: 700px;
   }
 
   .policy-header {
-    margin-bottom: 36px;
-  }
-
-  .policy-eyebrow {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--ink-light);
-    margin-bottom: 12px;
+    margin-bottom: clamp(36px, 5vw, 52px);
   }
 
   .policy-title {
-    font-family: var(--font-display);
+    margin-top: 16px;
     font-size: clamp(40px, 5vw, 60px);
-    font-weight: 400;
-    line-height: 1.05;
+    font-weight: 600;
+    line-height: 1.04;
+    letter-spacing: -0.028em;
     color: var(--ink);
+    text-wrap: balance;
   }
 
   .policy-updated {
-    font-size: 14px;
-    color: var(--ink-light);
-    margin-top: 14px;
+    margin-top: 18px;
+    font: 400 13px/1.4 var(--f-mono);
+    color: var(--mute);
   }
 
   .policy-intro {
-    font-size: clamp(16px, 1.6vw, 18px);
-    line-height: 1.65;
+    font-size: 17px;
+    line-height: 1.7;
     color: var(--ink-mid);
   }
 
@@ -84,57 +77,62 @@ const p = t.privacyPolicy;
   }
 
   .policy-section {
-    margin-top: 44px;
+    margin-top: 48px;
   }
 
   .policy-section h2 {
-    font-family: var(--font-display);
-    font-size: clamp(26px, 3vw, 32px);
-    font-weight: 400;
-    line-height: 1.15;
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
     color: var(--ink);
+    text-wrap: balance;
     margin-bottom: 14px;
   }
 
   .policy-section p,
   .policy-section li {
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.7;
     color: var(--ink-mid);
   }
 
   .policy-section p + p {
-    margin-top: 12px;
+    margin-top: 14px;
   }
 
   .policy-section ul {
-    margin-top: 14px;
-    padding-left: 20px;
+    list-style: none;
+    margin-top: 16px;
     display: flex;
     flex-direction: column;
     gap: 10px;
   }
 
-  .policy-section li::marker {
-    color: var(--forest-light);
+  .policy-section li {
+    position: relative;
+    padding-left: 22px;
+  }
+
+  .policy-section li::before {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: calc(0.85em - 3px);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--amber);
   }
 
   .policy-source {
-    margin-top: 48px;
+    margin-top: 56px;
     padding-top: 24px;
-    border-top: 1px solid var(--cream-darker);
-    font-size: 13px;
-    color: var(--ink-light);
+    border-top: 1px solid var(--rule);
   }
 
-  .policy-source a {
-    color: var(--ink-mid);
-    text-decoration: underline;
-    text-decoration-color: var(--sand-dark);
-    text-underline-offset: 3px;
-  }
-
-  .policy-source a:hover {
-    color: var(--ink);
+  :lang(zh-TW) .policy-title,
+  :lang(zh-TW) .policy-section h2 {
+    letter-spacing: 0;
   }
 </style>

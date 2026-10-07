@@ -6,534 +6,276 @@ const h = t.hero;
 ---
 
 <section class="hero">
-  <div class="hero-inner">
-    <div class="hero-text">
-      <p class="hero-eyebrow animate-fade-up">{h.eyebrow}</p>
-      <h1 class="hero-headline animate-fade-up delay-1">
-        {h.headline}<br /><em>{h.headlineEm}</em>
-      </h1>
-      <p class="hero-sub animate-fade-up delay-2">{h.sub}</p>
-      <div class="hero-actions animate-fade-up delay-3">
-        <a href={t.site.appUrl} class="btn-primary">{h.ctaPrimary}</a>
-        <button class="btn-ghost btn-demo" id="demo-open">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.8"/>
-            <polygon points="10,8 17,12 10,16"/>
+  <div class="wrap">
+    <div
+      class="gloss hero-gloss"
+      role="img"
+      aria-label={h.exampleLabel}
+      data-examples={JSON.stringify(h.examples)}
+      data-filled-label={h.filledLabel}
+      data-filled-separator={h.filledSeparator}
+    >
+      <div class="hero-line-box">
+        <div class="gloss-line" aria-hidden="true">{h.examples[0].text}</div>
+      </div>
+      <div class="gloss-notes" aria-hidden="true"></div>
+    </div>
+    <p class="hero-filled" aria-hidden="true"></p>
+
+    <div class="hero-foot">
+      <h1>{h.headline}</h1>
+      <p class="hero-sub">{h.sub}</p>
+      <div class="hero-actions">
+        <a href={t.site.appUrl} class="btn">{h.ctaPrimary}</a>
+        <button type="button" class="demo-open" aria-haspopup="dialog">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <circle cx="12" cy="12" r="9.25" /><path d="M10 8.6v6.8l5.4-3.4z" fill="currentColor" stroke="none" />
           </svg>
           {h.watchDemo}
         </button>
       </div>
     </div>
-
-    <div class="hero-visual animate-fade-up delay-2">
-      <div class="mockup-shell">
-        <div class="mockup-bar">
-          <div class="mockup-dot"></div>
-          <div class="mockup-dot"></div>
-          <div class="mockup-dot"></div>
-        </div>
-        <div class="mockup-cmd">
-          <svg class="mockup-zap" width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-          </svg>
-          <span class="mockup-cmd-text">{h.mockup.cmdText}<span class="mockup-cursor">|</span></span>
-          <span class="mockup-cmd-hint">{h.mockup.cmdHint}</span>
-        </div>
-        <div class="mockup-result">
-          <div class="mockup-row">
-            <span class="mockup-label">{h.mockup.labelAmount}</span>
-            <span class="mockup-value mockup-value--display">{h.mockup.amount}</span>
-          </div>
-          <div class="mockup-row">
-            <span class="mockup-label">{h.mockup.labelCategory}</span>
-            <span class="mockup-value">{h.mockup.category}</span>
-          </div>
-          <div class="mockup-row">
-            <span class="mockup-label">{h.mockup.labelTags}</span>
-            <span class="mockup-chip">{h.mockup.tagWork}</span>
-            <span class="mockup-chip mockup-chip--new">{h.mockup.tagTeam}</span>
-          </div>
-          <p class="mockup-ai-note">{h.mockup.aiNote}</p>
-          <div class="mockup-actions">
-            <button class="mockup-btn-ghost">{h.mockup.btnEdit}</button>
-            <button class="mockup-btn-primary">{h.mockup.btnSave}</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="stat-card stat-card--month">
-        <span class="stat-label">{h.statMonth.label}</span>
-        <span class="stat-value">{h.statMonth.value}</span>
-        <span class="stat-sub">{h.statMonth.sub}</span>
-      </div>
-
-      <div class="stat-card stat-card--budget">
-        <span class="stat-label">{h.statBudget.label}</span>
-        <div class="stat-bar-wrap">
-          <div class="stat-bar" style="width: 68%"></div>
-        </div>
-        <span class="stat-sub">{h.statBudget.sub}</span>
-      </div>
-    </div>
   </div>
 </section>
 
-<!-- Demo video modal -->
-<div id="demo-modal" class="demo-backdrop" aria-modal="true" role="dialog" aria-label="Demo video">
-  <div class="demo-dialog">
-    <button class="demo-close" id="demo-close" aria-label="Close">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-      </svg>
-    </button>
-    <video
-      id="demo-video"
-      class="demo-video"
-      src="https://share.seria.moe/demo.mp4"
-      controls
-      playsinline
-      preload="auto"
-    ></video>
-  </div>
-</div>
+<dialog class="demo" aria-label={h.demoLabel}>
+  <button type="button" class="demo-close" aria-label={h.demoClose}>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
+  </button>
+  <video class="demo-video" src="https://share.seria.moe/demo.mp4" controls playsinline preload="none"></video>
+</dialog>
 
 <script>
-  const modal = document.getElementById('demo-modal') as HTMLElement;
-  const video = document.getElementById('demo-video') as HTMLVideoElement;
-  const openBtn = document.getElementById('demo-open');
-  const closeBtn = document.getElementById('demo-close');
-
-  function openModal() {
-    modal.classList.add('is-open');
-    document.body.style.overflow = 'hidden';
-    video.play().catch(() => {});
+  // Demo video: a native <dialog> gives focus trapping and Escape handling for free.
+  const dialog = document.querySelector<HTMLDialogElement>("dialog.demo");
+  const video = dialog?.querySelector("video");
+  if (dialog && video) {
+    const close = () => dialog.close();
+    document.querySelector(".demo-open")?.addEventListener("click", () => {
+      dialog.showModal();
+      video.play().catch(() => {});
+    });
+    dialog.querySelector(".demo-close")?.addEventListener("click", close);
+    dialog.addEventListener("click", (e) => { if (e.target === dialog) close(); });
+    dialog.addEventListener("close", () => { video.pause(); video.currentTime = 0; });
   }
+</script>
 
-  function closeModal() {
-    modal.classList.remove('is-open');
-    document.body.style.overflow = '';
-    video.pause();
-    video.currentTime = 0;
+<script>
+  import { Gloss, wait, reduced, type GlossExample } from "../scripts/gloss.ts";
+
+  type HeroExample = GlossExample & { filled: [string, string][] };
+
+  const root = document.querySelector<HTMLElement>(".hero-gloss");
+  const filledEl = document.querySelector<HTMLElement>(".hero-filled");
+
+  if (root && filledEl) {
+    const examples: HeroExample[] = JSON.parse(root.dataset.examples ?? "[]");
+    const filledLabel = root.dataset.filledLabel ?? "";
+    const separator = root.dataset.filledSeparator ?? ", ";
+    const gloss = new Gloss(root);
+    let current: { ex: HeroExample; placed: ReturnType<Gloss["paint"]> } | null = null;
+
+    const setFilled = (ex: HeroExample | null) => {
+      filledEl.textContent = "";
+      if (!ex) return;
+      const label = document.createElement("span");
+      label.textContent = filledLabel;
+      const list = document.createElement("span");
+      ex.filled.forEach(([kind, value], i) => {
+        if (i) list.append(separator);
+        const em = document.createElement("em");
+        em.textContent = value;
+        list.append(`${kind} `, em);
+      });
+      filledEl.append(label, list);
+    };
+
+    // Typing pauses while the tab is hidden so the loop does not burn cycles in the background.
+    const visible = async () => {
+      while (document.hidden) await wait(500);
+    };
+
+    const play = async () => {
+      for (let n = 0; ; n++) {
+        const ex = examples[n % examples.length];
+        const chars = [...ex.text];
+        for (let i = 1; i <= chars.length; i++) {
+          await visible();
+          gloss.paint(chars.slice(0, i).join(""), null, true);
+          await wait(reduced() ? 0 : 48 + Math.random() * 46);
+        }
+        await wait(380);
+        current = { ex, placed: gloss.paint(ex.text, ex.notes, true) };
+        gloss.annotate(current.placed);
+        setFilled(ex);
+        await wait(4600);
+        current = null;
+        gloss.clear();
+        setFilled(null);
+        for (let i = chars.length; i >= 0; i--) {
+          gloss.paint(chars.slice(0, i).join(""), null, true);
+          await wait(reduced() ? 0 : 14);
+        }
+        await wait(260);
+      }
+    };
+
+    addEventListener("resize", () => {
+      if (current) {
+        current.placed = gloss.paint(current.ex.text, current.ex.notes, true);
+        gloss.annotate(current.placed, false);
+      } else gloss.fit();
+    });
+
+    (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
+      gloss.paint("", null, true);
+      play();
+    });
   }
-
-  openBtn?.addEventListener('click', openModal);
-  closeBtn?.addEventListener('click', closeModal);
-  modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal(); });
 </script>
 
 <style>
-.hero {
-  padding: clamp(64px, 10vw, 120px) 0 clamp(48px, 8vw, 96px);
-  overflow: hidden;
-}
-
-.hero-inner {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 clamp(20px, 5vw, 48px);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: clamp(40px, 6vw, 80px);
-  align-items: center;
-}
-
-.hero-eyebrow {
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-light);
-  margin-bottom: 16px;
-}
-
-.hero-headline {
-  font-family: var(--font-display);
-  font-size: clamp(40px, 5.5vw, 68px);
-  font-weight: 400;
-  line-height: 1.08;
-  color: var(--ink);
-  margin-bottom: 24px;
-}
-.hero-headline em { font-style: italic; color: var(--forest-light); }
-
-.hero-sub {
-  font-size: clamp(15px, 1.6vw, 17px);
-  color: var(--ink-mid);
-  line-height: 1.65;
-  max-width: 440px;
-  margin-bottom: 36px;
-}
-
-.hero-actions {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--forest);
-  color: var(--cream);
-  font-size: 14px;
-  font-weight: 500;
-  padding: 11px 22px;
-  border-radius: var(--radius);
-  transition:
-    opacity 0.15s,
-    transform 0.18s cubic-bezier(0.25, 1, 0.5, 1),
-    box-shadow 0.18s cubic-bezier(0.25, 1, 0.5, 1);
-}
-.btn-primary:hover {
-  opacity: 0.88;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px oklch(18% 0.01 80 / 0.18);
-}
-.btn-primary:active {
-  transform: translateY(0) scale(0.97);
-  opacity: 1;
-  box-shadow: none;
-  transition-duration: 0.08s;
-}
-
-.btn-ghost {
-  font-size: 14px;
-  color: var(--ink-light);
-  padding: 11px 4px;
-  transition: color 0.15s, transform 0.18s cubic-bezier(0.25, 1, 0.5, 1);
-}
-.btn-ghost:hover {
-  color: var(--ink);
-  transform: translateX(3px);
-}
-
-/* ── Mockup ─────────────────────────────────────────────── */
-.hero-visual {
-  position: relative;
-  display: flex;
-  justify-content: center;
-}
-
-.mockup-shell {
-  background: var(--surface);
-  border-radius: 20px;
-  box-shadow: var(--shadow-xl);
-  width: 100%;
-  max-width: 400px;
-  overflow: hidden;
-  border: 1px solid var(--cream-darker);
-  position: relative;
-  z-index: 1;
-}
-
-.mockup-bar {
-  display: flex;
-  gap: 6px;
-  padding: 12px 14px;
-  background: var(--cream);
-  border-bottom: 1px solid var(--cream-darker);
-}
-
-.mockup-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--sand);
-}
-
-.mockup-cmd {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--cream-darker);
-}
-
-.mockup-zap { color: var(--forest); flex-shrink: 0; }
-
-.mockup-cmd-text {
-  flex: 1;
-  font-size: 14px;
-  color: var(--ink);
-}
-
-.mockup-cursor {
-  color: var(--forest);
-  animation: blink 1s step-end infinite;
-}
-
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
-
-.mockup-cmd-hint {
-  font-size: 11px;
-  color: var(--ink-faint);
-  background: var(--cream-dark);
-  padding: 2px 7px;
-  border-radius: 5px;
-}
-
-.mockup-result {
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.mockup-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--cream);
-  border-radius: 8px;
-  padding: 9px 12px;
-}
-
-.mockup-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--ink-light);
-  width: 68px;
-  flex-shrink: 0;
-}
-
-.mockup-value {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ink);
-}
-
-.mockup-value--display {
-  font-family: var(--font-display);
-  font-size: 20px;
-}
-
-.mockup-chip {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--ink-mid);
-  background: var(--surface);
-  border: 1px solid var(--cream-darker);
-  padding: 2px 8px;
-  border-radius: 5px;
-}
-
-.mockup-chip--new {
-  color: var(--new-text);
-  background: var(--new-badge);
-  border-color: var(--new-border);
-}
-
-.mockup-ai-note {
-  font-size: 12px;
-  color: var(--ink-faint);
-  font-style: italic;
-  padding: 0 2px;
-}
-
-.mockup-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  padding-top: 4px;
-}
-
-.mockup-btn-ghost {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink-mid);
-  background: var(--surface);
-  border: 1px solid var(--cream-darker);
-  padding: 7px 14px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-family: var(--font-body);
-  transition: background 0.15s, border-color 0.15s, transform 0.15s cubic-bezier(0.25, 1, 0.5, 1);
-}
-.mockup-btn-ghost:hover {
-  background: var(--cream);
-  border-color: var(--sand);
-  transform: translateY(-1px);
-}
-.mockup-btn-ghost:active { transform: scale(0.97); transition-duration: 0.08s; }
-
-.mockup-btn-primary {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--cream);
-  background: var(--forest);
-  border: none;
-  padding: 7px 14px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-family: var(--font-body);
-  transition: opacity 0.15s, transform 0.15s cubic-bezier(0.25, 1, 0.5, 1);
-}
-.mockup-btn-primary:hover { opacity: 0.85; transform: translateY(-1px); }
-.mockup-btn-primary:active { transform: scale(0.97); opacity: 1; transition-duration: 0.08s; }
-
-/* ── Floating stat cards ────────────────────────────────── */
-.stat-card {
-  position: absolute;
-  background: var(--surface);
-  border: 1px solid var(--cream-darker);
-  border-radius: var(--radius-lg);
-  padding: 12px 16px;
-  box-shadow: var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  z-index: 2;
-  animation: floatCard 5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-  transition: box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-}
-
-.stat-card:hover {
-  box-shadow: var(--shadow-xl);
-  animation-play-state: paused;
-}
-
-@keyframes floatCard {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-7px); }
-}
-
-.stat-card--month {
-  bottom: -16px;
-  left: -24px;
-  animation-delay: 0s;
-}
-
-.stat-card--budget {
-  top: -16px;
-  right: -20px;
-  min-width: 160px;
-  animation-delay: 2s;
-}
-
-.stat-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--ink-faint);
-}
-
-.stat-value {
-  font-family: var(--font-display);
-  font-size: 22px;
-  color: var(--ink);
-  line-height: 1;
-}
-
-.stat-sub {
-  font-size: 11px;
-  color: var(--ink-faint);
-}
-
-.stat-bar-wrap {
-  height: 5px;
-  background: var(--cream-dark);
-  border-radius: 99px;
-  overflow: hidden;
-  margin: 2px 0;
-}
-
-.stat-bar {
-  height: 100%;
-  background: var(--amber);
-  border-radius: 99px;
-}
-
-/* ── Demo button ────────────────────────────────────────── */
-.btn-demo {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  background: none;
-  border: none;
-  font-family: var(--font-body);
-}
-
-/* ── Demo modal ──────────────────────────────────────────── */
-.demo-backdrop {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: oklch(10% 0.01 80 / 0.72);
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  backdrop-filter: blur(4px);
-}
-
-.demo-backdrop.is-open {
-  display: flex;
-  animation: backdropIn 0.2s ease;
-}
-
-@keyframes backdropIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-.demo-dialog {
-  position: relative;
-  width: 100%;
-  max-width: 900px;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: 0 32px 80px oklch(10% 0.01 80 / 0.4);
-  animation: dialogIn 0.25s cubic-bezier(0.25, 1, 0.5, 1);
-}
-
-@keyframes dialogIn {
-  from { opacity: 0; transform: scale(0.95) translateY(12px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-.demo-video {
-  display: block;
-  width: 100%;
-  max-height: 80vh;
-  background: #000;
-}
-
-.demo-close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 10;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: oklch(10% 0.01 80 / 0.55);
-  color: white;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s;
-}
-.demo-close:hover { background: oklch(10% 0.01 80 / 0.8); }
-
-/* ── Responsive ─────────────────────────────────────────── */
-@media (max-width: 768px) {
-  .hero-inner {
-    grid-template-columns: 1fr;
+  /* The hero fills the first screen below the header and has a fixed height: the typing loop
+     changes the line and its labels, so every part inside reserves its space up front and the
+     sections below never move. */
+  .hero {
+    height: max(600px, calc(100svh - var(--header-h)));
   }
 
-  .hero-visual {
-    display: none;
+  .hero > .wrap {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-bottom: clamp(24px, 6vh, 72px);
   }
-}
+
+  .hero-line-box {
+    height: calc(1.12 * clamp(38px, 7.6vw, 108px));
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .hero-gloss :global(.gloss-notes) {
+    height: 172px !important;
+    transition: none;
+  }
+
+  .hero-filled {
+    font: 400 12.5px/1.5 var(--f-mono);
+    color: var(--mute);
+    height: 3em;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 4px 14px;
+  }
+
+  .hero-filled :global(em) {
+    font-style: normal;
+    color: var(--ink);
+  }
+
+  .hero-foot {
+    margin-top: clamp(16px, 4vh, 48px);
+    display: grid;
+    gap: 18px;
+    max-width: 620px;
+  }
+
+  h1 {
+    font: 600 clamp(26px, 3.1vw, 38px)/1.08 var(--f-sans);
+    letter-spacing: -0.028em;
+    text-wrap: balance;
+  }
+
+  :lang(zh-TW) h1 {
+    letter-spacing: 0;
+    line-height: 1.25;
+  }
+
+  .hero-sub {
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--mute);
+    max-width: 54ch;
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 28px;
+    align-items: center;
+    margin-top: 10px;
+  }
+
+  .demo-open {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    color: var(--ink);
+    padding-block: 12px;
+    transition: color 0.2s;
+  }
+
+  .demo-open svg {
+    color: var(--amber);
+  }
+
+  .demo-open:hover {
+    color: var(--amber-text);
+  }
+
+  .demo {
+    margin: auto;
+    width: min(960px, calc(100vw - 32px));
+    max-height: calc(100svh - 32px);
+    border: 0;
+    border-radius: var(--radius);
+    background: #000;
+    overflow: hidden;
+    padding: 0;
+  }
+
+  .demo::backdrop {
+    background: oklch(12% 0.01 70 / 0.72);
+    backdrop-filter: blur(4px);
+  }
+
+  .demo[open] {
+    animation: demo-in 0.3s var(--ease);
+  }
+
+  @keyframes demo-in {
+    from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  }
+
+  .demo-video {
+    display: block;
+    width: 100%;
+    max-height: calc(100svh - 32px);
+  }
+
+  .demo-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 1;
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: oklch(97% 0.012 85);
+    background: oklch(12% 0.01 70 / 0.6);
+    transition: background-color 0.2s;
+  }
+
+  .demo-close:hover {
+    background: oklch(12% 0.01 70 / 0.85);
+  }
 </style>

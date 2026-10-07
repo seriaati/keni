@@ -6,42 +6,39 @@ const p = t.privacy;
 ---
 
 <section class="privacy" id="privacy">
-  <div class="privacy-inner">
-    <div class="privacy-grid">
-      <div class="privacy-text reveal">
-        <span class="tag">{p.tag}</span>
-        <h2 class="section-title">{p.title}<br /><em>{p.titleEm}</em></h2>
-        <p class="section-sub">{p.sub}</p>
-        <ul class="check-list reveal-stagger">
-          {
-            p.checklist.map((item) => (
-              <li class="reveal">
-                <svg
-                  width="13"
-                  height="13"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                {item}
-              </li>
-            ))
-          }
-        </ul>
-      </div>
+  <div class="wrap">
+    <header class="privacy-head reveal">
+      <p class="label">{p.label}</p>
+      <h2 class="privacy-title">{p.title}</h2>
+      <p class="privacy-sub">{p.sub}</p>
+    </header>
 
-      <div class="code-block reveal-scale">
-        <div class="code-header">
-          <span class="code-dot"></span>
-          <span class="code-dot"></span>
-          <span class="code-dot"></span>
-          <span class="code-filename">{p.codeFilename}</span>
-        </div>
+    <div class="privacy-body reveal">
+      <ul class="check-list">
+        {
+          p.checklist.map((item) => (
+            <li>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.25"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              <span>{item}</span>
+            </li>
+          ))
+        }
+      </ul>
+
+      <figure class="code">
+        <figcaption class="label code-caption">{p.codeFilename}</figcaption>
         <pre
           class="code-body"><code><span class="c-key">services</span><span class="c-punc">:</span>
   <span class="c-key">keni</span><span class="c-punc">:</span>
@@ -51,151 +48,100 @@ const p = t.privacy;
       <span class="c-key">STT_PROVIDER</span><span class="c-punc">:</span> <span class="c-str">"local"</span>
     <span class="c-key">ports</span><span class="c-punc">:</span>
       <span class="c-punc">-</span> <span class="c-str">"8000:8000"</span></code></pre>
-      </div>
+      </figure>
     </div>
   </div>
 </section>
 
 <style>
   .privacy {
-    padding: clamp(64px, 8vw, 100px) 0;
-    background: var(--cream-dark);
-    border-top: 1px solid var(--cream-darker);
-    border-bottom: 1px solid var(--cream-darker);
+    padding-top: clamp(96px, 12vw, 160px);
   }
 
-  .privacy-inner {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 0 clamp(20px, 5vw, 48px);
-  }
-
-  .privacy-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: clamp(40px, 6vw, 80px);
-    align-items: center;
-  }
-
-  .tag {
-    display: inline-block;
-    font-size: 11px;
+  .privacy-title {
+    margin-top: 16px;
+    font-size: clamp(30px, 3.6vw, 42px);
     font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--ink-light);
-    background: var(--surface);
-    border: 1px solid var(--cream-darker);
-    padding: 4px 10px;
-    border-radius: 100px;
-    margin-bottom: 16px;
-  }
-
-  .section-title {
-    font-family: var(--font-display);
-    font-size: clamp(32px, 4vw, 52px);
-    font-weight: 400;
-    line-height: 1.1;
+    line-height: 1.08;
+    letter-spacing: -0.028em;
     color: var(--ink);
-  }
-  .section-title em {
-    font-style: italic;
-    color: var(--forest-light);
+    text-wrap: balance;
+    max-width: 20ch;
   }
 
-  .section-sub {
-    font-size: clamp(14px, 1.5vw, 16px);
-    color: var(--ink-mid);
-    line-height: 1.65;
-    margin-top: 14px;
-    max-width: 400px;
+  .privacy-sub {
+    margin-top: 18px;
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--mute);
+    max-width: 60ch;
+    text-wrap: pretty;
+  }
+
+  .privacy-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    gap: clamp(32px, 6vw, 88px);
+    align-items: start;
+    margin-top: clamp(40px, 5vw, 64px);
   }
 
   .check-list {
     list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 28px;
+    border-top: 1px solid var(--rule);
   }
 
   .check-list li {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 14px;
-    color: var(--ink-mid);
+    align-items: baseline;
+    gap: 14px;
+    padding-block: 16px;
+    border-bottom: 1px solid var(--rule);
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--ink);
   }
 
   .check-list svg {
-    color: var(--forest-light);
     flex-shrink: 0;
+    color: var(--amber);
+    transform: translateY(2px);
   }
 
-  /* ── Code block ─────────────────────────────────────────── */
-  /* Fixed dark panel in both themes (--forest flips to cream in dark) */
-  .code-block {
-    background: oklch(18% 0.01 80);
-    border-radius: var(--radius-xl);
-    overflow: hidden;
-    box-shadow: var(--shadow-lg);
+  .code {
+    min-width: 0;
   }
 
-  .code-header {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 12px 16px;
-    background: oklch(22% 0.01 80);
-    border-bottom: 1px solid oklch(28% 0.01 80);
-  }
-
-  .code-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: oklch(35% 0.01 80);
-  }
-
-  .code-filename {
-    font-size: 12px;
-    color: oklch(55% 0.01 80);
-    margin-left: 6px;
-    font-family: ui-monospace, "Cascadia Code", monospace;
+  .code-caption {
+    display: block;
+    margin-bottom: 10px;
   }
 
   .code-body {
-    padding: 24px;
-    font-family: ui-monospace, "Cascadia Code", "Fira Code", monospace;
-    font-size: 13px;
-    line-height: 1.8;
+    background: var(--paper-2);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    font: 400 13px/1.8 var(--f-mono);
+    color: var(--ink);
     overflow-x: auto;
   }
 
   .code-body code {
     display: block;
+    font: inherit;
   }
 
-  .c-key {
-    color: oklch(72% 0.08 230);
-  }
-  .c-punc {
-    color: oklch(55% 0.01 80);
-  }
-  .c-str {
-    color: oklch(72% 0.1 155);
-  }
-  .c-comment {
-    color: oklch(48% 0.01 80);
+  .c-key { color: var(--ink); }
+  .c-punc { color: var(--mute); }
+  .c-str { color: var(--amber-text); }
+
+  :lang(zh-TW) .privacy-title {
+    letter-spacing: 0;
   }
 
-  @media (max-width: 900px) {
-    .privacy-grid {
+  @media (max-width: 860px) {
+    .privacy-body {
       grid-template-columns: 1fr;
-    }
-
-    .code-block {
-      display: none;
     }
   }
 </style>

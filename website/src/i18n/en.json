@@ -8,7 +8,7 @@
     "logo": "Keni",
     "features": "Features",
     "privacy": "Privacy",
-    "cta": "Get started",
+    "cta": "Open app",
     "themeLight": "Theme: Light",
     "themeDark": "Theme: Dark",
     "themeSystem": "Theme: System"
@@ -20,146 +20,417 @@
     "support": "Support"
   },
   "hero": {
-    "eyebrow": "Personal finance tracker",
-    "headline": "Money tracked",
-    "headlineEm": "without the friction.",
-    "sub": "Type \"coffee 4.50\", snap a receipt, or just ask - Keni understands. Record any transaction in seconds.",
-    "ctaPrimary": "Try Keni free",
-    "ctaGhost": "See features ↓",
+    "headline": "Money tracked without the friction.",
+    "sub": "Write it the way you'd say it, snap a receipt, or speak it. Keni works out the amount, category, tags and date, so your records stay detailed without the busywork.",
+    "ctaPrimary": "Start tracking free",
+    "filledLabel": "Filled in for you:",
+    "filledSeparator": ", ",
+    "exampleLabel": "Animated example: plain-language entries such as \"lunch with the team 38\" get labelled with amount, category, tags and date.",
+    "examples": [
+      {
+        "text": "lunch with the team 38",
+        "notes": [
+          {
+            "match": "lunch",
+            "label": "Category",
+            "value": "Dining"
+          },
+          {
+            "match": "team",
+            "label": "Tag",
+            "value": "team"
+          },
+          {
+            "match": "38",
+            "label": "Amount",
+            "value": "$38.00",
+            "count": true
+          }
+        ],
+        "filled": [
+          [
+            "date",
+            "today"
+          ],
+          [
+            "wallet",
+            "Personal"
+          ]
+        ]
+      },
+      {
+        "text": "uber to the airport 640 twd yesterday",
+        "notes": [
+          {
+            "match": "uber",
+            "label": "Merchant · Category",
+            "value": "Uber · Transport"
+          },
+          {
+            "match": "640 twd",
+            "label": "Amount",
+            "value": "NT$640",
+            "count": true
+          },
+          {
+            "match": "yesterday",
+            "label": "Date",
+            "value": "Yesterday"
+          }
+        ],
+        "filled": [
+          [
+            "wallet",
+            "Personal"
+          ]
+        ]
+      },
+      {
+        "text": "netflix 15.49 every month",
+        "notes": [
+          {
+            "match": "netflix",
+            "label": "Merchant · Category",
+            "value": "Netflix · Subscriptions"
+          },
+          {
+            "match": "15.49",
+            "label": "Amount",
+            "value": "$15.49",
+            "count": true
+          },
+          {
+            "match": "every month",
+            "label": "Repeats",
+            "value": "Monthly"
+          }
+        ],
+        "filled": [
+          [
+            "date",
+            "today"
+          ],
+          [
+            "wallet",
+            "Personal"
+          ]
+        ]
+      },
+      {
+        "text": "2 lattes at blue bottle 11.50 for work",
+        "notes": [
+          {
+            "match": "lattes",
+            "label": "Category",
+            "value": "Coffee"
+          },
+          {
+            "match": "blue bottle",
+            "label": "Merchant",
+            "value": "Blue Bottle"
+          },
+          {
+            "match": "11.50",
+            "label": "Amount",
+            "value": "$11.50",
+            "count": true
+          },
+          {
+            "match": "work",
+            "label": "Tag",
+            "value": "work"
+          }
+        ],
+        "filled": [
+          [
+            "date",
+            "today"
+          ],
+          [
+            "wallet",
+            "Personal"
+          ]
+        ]
+      },
+      {
+        "text": "got paid 4200 for the logo",
+        "notes": [
+          {
+            "match": "got paid",
+            "label": "Category",
+            "value": "Income"
+          },
+          {
+            "match": "4200",
+            "label": "Amount",
+            "value": "+$4,200.00",
+            "count": true
+          },
+          {
+            "match": "logo",
+            "label": "Tag",
+            "value": "logo"
+          }
+        ],
+        "filled": [
+          [
+            "date",
+            "today"
+          ],
+          [
+            "wallet",
+            "Personal"
+          ]
+        ]
+      }
+    ],
     "watchDemo": "Watch demo",
-    "mockup": {
-      "cmdText": "lunch with team 38",
-      "cmdHint": "⌘ K",
-      "labelAmount": "Amount",
-      "labelCategory": "Category",
-      "labelTags": "Tags",
-      "amount": "$38.00",
-      "category": "🍽 Dining",
-      "tagWork": "work",
-      "tagTeam": "✦ team",
-      "aiNote": "AI understood: team lunch, grouped expense",
-      "btnEdit": "Edit",
-      "btnSave": "Save expense"
-    },
-    "statMonth": {
-      "label": "This month",
-      "value": "$1,240",
-      "sub": "42 expenses"
-    },
-    "statBudget": {
-      "label": "Dining budget",
-      "sub": "68% used · $64 left"
-    }
+    "demoLabel": "Demo video",
+    "demoClose": "Close"
   },
   "features": {
-    "sectionTitle": "Everything you need to",
-    "sectionTitleEm": "remove the hassle.",
-    "sectionSub": "A privacy-first finance tracker built for people who want clarity without complexity.",
-    "commandBar": {
-      "tag": "AI-powered",
-      "title": "⌘ K to log anything",
-      "body": "One command bar to record income, spending, recurring bills, grouped expenses, or multiple transactions at once.",
-      "list": [
-        "AI infers context and categorizes automatically",
-        "High-detail categorization with tags",
-        "Review & edit before saving"
+    "label": "Features",
+    "title": "Everything you need to remove the hassle.",
+    "sub": "A privacy-first finance tracker built for people who want clarity without complexity.",
+    "capture": {
+      "label": "Capture",
+      "title": "Log it the way it happens.",
+      "items": [
+        {
+          "title": "⌘ K to log anything",
+          "body": "One command bar for income, spending, recurring bills, grouped expenses, or several transactions at once. Review and edit before saving.",
+          "source": "Typed into ⌘ K",
+          "example": {
+            "text": "dinner 64, taxi home 18 last night",
+            "notes": [
+              {
+                "match": "dinner",
+                "label": "Category",
+                "value": "Dining"
+              },
+              {
+                "match": "64",
+                "label": "Amount",
+                "value": "$64.00",
+                "count": true
+              },
+              {
+                "match": "taxi",
+                "label": "Category",
+                "value": "Transport"
+              },
+              {
+                "match": "18",
+                "label": "Amount",
+                "value": "$18.00",
+                "count": true
+              },
+              {
+                "match": "last night",
+                "label": "Date",
+                "value": "Yesterday"
+              }
+            ]
+          },
+          "kind": "command"
+        },
+        {
+          "title": "Receipt & invoice scanning",
+          "body": "Upload a photo of a paper receipt or a PDF e-invoice. The AI reads the total, line items, merchant, and date, then records it for you.",
+          "source": "Read from a receipt photo",
+          "kind": "receipt",
+          "receipt": {
+            "merchant": "HOLLOW OAK BAKERY",
+            "address": "214 Grand St, Brooklyn",
+            "date": "09/14/2026",
+            "time": "08:42",
+            "items": [
+              [
+                "Sourdough loaf",
+                "9.00"
+              ],
+              [
+                "Cardamom bun x2",
+                "9.50"
+              ],
+              [
+                "Oat flat white",
+                "5.25"
+              ]
+            ],
+            "subtotal": [
+              "Subtotal",
+              "23.75"
+            ],
+            "tax": [
+              "Tax",
+              "2.11"
+            ],
+            "total": [
+              "TOTAL",
+              "25.86"
+            ],
+            "notes": {
+              "merchant": {
+                "label": "Category",
+                "value": "Bakery"
+              },
+              "date": {
+                "label": "Date",
+                "value": "Sep 14, 8:42 AM"
+              },
+              "items": {
+                "label": "Line items",
+                "value": "3 saved"
+              },
+              "total": {
+                "label": "Total",
+                "value": "$25.86",
+                "count": true
+              }
+            }
+          }
+        },
+        {
+          "title": "Voice input",
+          "body": "Tap the mic and speak your expense. Audio is processed locally, nothing leaves your server.",
+          "source": "Spoken into the mic",
+          "example": {
+            "text": "parking downtown, twelve fifty",
+            "notes": [
+              {
+                "match": "parking",
+                "label": "Category",
+                "value": "Transport"
+              },
+              {
+                "match": "downtown",
+                "label": "Tag",
+                "value": "downtown"
+              },
+              {
+                "match": "twelve fifty",
+                "label": "Amount",
+                "value": "$12.50",
+                "count": true
+              }
+            ]
+          },
+          "kind": "voice",
+          "duration": "0:03"
+        }
+      ]
+    },
+    "organize": {
+      "label": "Organize",
+      "title": "Find it again in seconds.",
+      "items": [
+        {
+          "title": "Categories & tags",
+          "body": "Organize expenses with categories and tags. The AI suggests both automatically based on context, reducing your input to near zero. Filter by either when reviewing your history."
+        },
+        {
+          "title": "Multiple wallets",
+          "body": "Separate personal, business, travel, or shared expenses across wallets. Each wallet has its own currency, history, and analytics, which suits people living across borders."
+        },
+        {
+          "title": "Budgets",
+          "body": "Set budgets by period, category, or wallet. Get a visual warning right on the dashboard when you are close to or exceeding your limit."
+        },
+        {
+          "title": "Dashboard at a glance",
+          "body": "Monthly total, weekly pace, daily average, recent transactions, and a category breakdown chart."
+        }
       ],
-      "demoInput": "lunch with team 38",
-      "demoLabelAmount": "Amount",
-      "demoLabelCategory": "Category",
-      "demoLabelTags": "Tags",
-      "demoAmount": "$38.00",
-      "demoCategory": "🍽 Dining",
-      "demoTagDinner": "work",
-      "demoTagSarah": "✦ team"
+      "ledgerCaption": "Recent transactions",
+      "ledgerHead": [
+        "Date",
+        "Description",
+        "Category",
+        "Tags",
+        "Wallet",
+        "Amount"
+      ],
+      "ledger": [
+        [
+          "Oct 6",
+          "Lunch with the team",
+          "Dining",
+          "team",
+          "Work",
+          "$38.00"
+        ],
+        [
+          "Oct 5",
+          "Uber to the airport",
+          "Transport",
+          "travel",
+          "Taiwan",
+          "NT$640"
+        ],
+        [
+          "Oct 4",
+          "Groceries at Costco",
+          "Groceries",
+          "home",
+          "Shared",
+          "$84.12"
+        ],
+        [
+          "Oct 1",
+          "Netflix",
+          "Subscriptions",
+          "",
+          "Personal",
+          "$15.49"
+        ]
+      ],
+      "budget": {
+        "label": "Dining budget",
+        "text": "$412 of $500",
+        "percent": 82
+      }
     },
-    "receipt": {
-      "title": "Receipt & invoice scanning",
-      "body": "Upload a photo of a paper receipt or a PDF e-invoice. The AI reads the total, line items, merchant, and date, then records it for you."
-    },
-    "chat": {
-      "title": "Chat with your data",
-      "body": "Ask anything in plain language, like chatting with a personal finance advisor. Get real answers from your actual numbers.",
-      "bubbleUser": "How much have I earned in total this month?",
-      "bubbleAi": "You've earned $4,320 this month across 3 income sources. Your biggest expense category is Dining at $496."
-    },
-    "models": {
-      "title": "Model agnostic",
-      "body": "Bring your own API key. Keni works with OpenAI, OpenRouter, Anthropic, and Google Gemini."
-    },
-    "voice": {
-      "title": "Voice input",
-      "body": "Tap the mic and speak your expense. Audio is processed locally, nothing leaves your server."
-    },
-    "wallets": {
-      "title": "Multiple wallets",
-      "body": "Separate personal, business, travel, or shared expenses across wallets. Each wallet has its own currency, history, and analytics - perfect for people living across borders."
-    },
-    "categories": {
-      "title": "Categories & tags",
-      "body": "Organize expenses with categories and tags. The AI suggests both automatically based on context, reducing your input to near zero. Filter by either when reviewing your history.",
-      "pillDining": "🍽 Dining",
-      "pillTravel": "✈️ Travel",
-      "pillGroceries": "🛒 Groceries",
-      "pillWork": "#work"
-    },
-    "mcp": {
-      "title": "MCP & API",
-      "body": "Connect Keni to your favorite AI agents via MCP, or integrate with third-party tools using your personal API key."
-    },
-    "budgets": {
-      "title": "Budgets",
-      "body": "Set budgets by period, category, or wallet. Get a visual warning right on the dashboard when you are close to or exceeding your limit.",
-      "barDining": "Dining",
-      "barTransport": "Transport",
-      "barShopping": "Shopping"
-    },
-    "dashboard": {
-      "tag": "Analytics",
-      "title": "Dashboard at a glance",
-      "body": "Monthly total, weekly pace, daily average, recent transactions, and a category breakdown chart.",
-      "cardMonth": {
-        "label": "This month",
-        "value": "$1,240",
-        "sub": "42 expenses"
-      },
-      "cardWeek": {
-        "label": "This week",
-        "value": "$318",
-        "sub": "11 expenses"
-      },
-      "cardDaily": {
-        "label": "Daily avg",
-        "value": "$41",
-        "sub": "this month"
-      },
-      "legendDining": "Dining",
-      "legendDiningValue": "$496",
-      "legendTransport": "Transport",
-      "legendTransportValue": "$248",
-      "legendShopping": "Shopping",
-      "legendShoppingValue": "$89"
+    "connect": {
+      "label": "Connect",
+      "title": "Plug in the tools you already use.",
+      "items": [
+        {
+          "title": "Chat with your data",
+          "body": "Ask anything in plain language, like chatting with a personal finance advisor. Get real answers from your actual numbers."
+        },
+        {
+          "title": "Model agnostic",
+          "body": "Bring your own API key. Keni works with OpenAI, OpenRouter, Anthropic, and Google Gemini."
+        },
+        {
+          "title": "MCP & API",
+          "body": "Connect Keni to your favorite AI agents via MCP, or integrate with third-party tools using your personal API key."
+        }
+      ],
+      "chat": {
+        "question": "How much have I earned in total this month?",
+        "answer": "You've earned $4,320 this month across 3 income sources. Your biggest expense category is Dining at $496."
+      }
     }
   },
   "privacy": {
-    "tag": "Open source · Self-hosted",
-    "title": "Your data stays",
-    "titleEm": "yours.",
-    "sub": "Self-host Keni so all your personal finance data lives on your own disk. There are no ads, tracking, and subscription fees.",
+    "label": "Open source · Self-hosted",
+    "title": "Your data stays yours.",
+    "sub": "Self-host Keni so your personal finance data lives on your own disk. No ads, no tracking, no subscription fees.",
     "checklist": [
       "All data stored locally on your own server",
-      "Bring your own AI provider - OpenAI, Anthropic, Gemini, OpenRouter",
+      "Bring your own AI provider: OpenAI, Anthropic, Gemini or OpenRouter",
       "Local audio processing",
       "Export your data anytime"
     ],
     "codeFilename": "docker-compose.yml"
   },
   "cta": {
-    "title": "Start tracking",
-    "titleEm": "without the hassle.",
+    "title": "Start tracking without the hassle.",
     "sub": "Self-host with Docker Compose for full control, or use the hosted instance free.",
     "btnPrimary": "Try hosted free",
-    "btnSecondary": "Self-host with Docker ↗"
+    "btnSecondary": "Self-host with Docker"
   },
   "privacyPolicy": {
     "pageTitle": "Privacy Policy | Keni",
