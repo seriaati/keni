@@ -1,7 +1,8 @@
 /*
   Keni website design language ("Gloss").
   Warm parchment canvas, warm near-black ink, burnished amber as the single accent; Espresso for dark.
-  Host Grotesk for everything, IBM Plex Mono for small uppercase labels. Left-aligned single columns.
+  Instrument Serif for the gloss line, headlines and logo, Host Grotesk for everything else, IBM Plex Mono
+  for small uppercase labels. Left-aligned single columns.
   The signature motif is the gloss: an amber bracket under a phrase with a mono label hanging below it.
 */
 
@@ -27,6 +28,7 @@
   --btn-text: oklch(97% 0.012 85);
 
   --f-sans: "Host Grotesk", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Helvetica Neue", Arial, sans-serif;
+  --f-serif: "Instrument Serif", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", Georgia, serif;
   --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, "PingFang TC", "Noto Sans TC", monospace;
 
   --wrap: 1180px;
@@ -143,24 +145,23 @@ img, svg { display: block; }
 
 /* ── Gloss (shared by the hero and feature examples; nodes are created by src/scripts/gloss.ts) ── */
 
-.gloss { position: relative; --gs: clamp(38px, 7.6vw, 108px); --row: 52px; }
-.gloss--sm { --gs: clamp(24px, 3vw, 38px); --row: 48px; }
+.gloss { position: relative; --gs: clamp(44px, 8.8vw, 125px); --row: 52px; }
+.gloss--sm { --gs: clamp(28px, 3.5vw, 44px); --row: 48px; }
 .gloss-line {
-  font: 500 var(--gs)/1.12 var(--f-sans);
-  letter-spacing: -0.04em;
+  font: 400 var(--gs)/1.12 var(--f-serif);
+  letter-spacing: -0.01em;
   white-space: pre;
   min-height: 1.12em;
   color: var(--ink);
 }
-.gloss--sm .gloss-line { letter-spacing: -0.03em; }
 :lang(zh-TW) .gloss-line { letter-spacing: 0; }
 .gloss-caret {
   display: inline-block;
-  width: 0.055em;
+  width: 0.035em;
   height: 0.86em;
   background: var(--amber);
   vertical-align: -0.06em;
-  margin-left: 0.03em;
+  margin-left: 0.06em;
   animation: gloss-blink 1s steps(1) infinite;
 }
 @keyframes gloss-blink { 50% { opacity: 0; } }
