@@ -41,7 +41,7 @@ const connectIcons: IconName[] = ["chat", "key", "plug"];
               <p class="item-body"><ShortcutText text={item.body} /></p>
             </div>
             <figure class="cap-example">
-              <figcaption class="cap-source"><ShortcutText text={item.source} /></figcaption>
+              {item.source && <figcaption class="cap-source"><ShortcutText text={item.source} /></figcaption>}
               {item.kind === "receipt" && <ReceiptDemo item={item} />}
               {item.kind === "voice" && <VoiceDemo item={item} />}
               {item.kind === "command" && item.example && (

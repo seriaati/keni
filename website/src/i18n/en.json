@@ -237,7 +237,6 @@
         {
           "title": "Receipt & invoice scanning",
           "body": "Upload a photo of a paper receipt or a PDF invoice. Keni extracts the merchant, date, and individual line items into itemized records, processed in memory without storing raw files.",
-          "source": "Read from a receipt photo",
           "kind": "receipt",
           "receipt": {
             "merchant": "HOLLOW OAK BAKERY",
@@ -294,7 +293,6 @@
         {
           "title": "Voice input",
           "body": "Tap the mic and say what you spent. An embedded Whisper model transcribes your voice in memory on your own server, so no audio ever leaves your machine.",
-          "source": "Spoken into the mic",
           "example": {
             "text": "parking downtown, twelve fifty",
             "notes": [
