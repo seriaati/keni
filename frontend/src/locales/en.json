@@ -382,7 +382,7 @@
     "title": "Settings",
     "subtitle": "Manage your profile, AI provider, and API access",
     "tabProfile": "Profile",
-    "tabAi": "AI Provider",
+    "tabAi": "AI",
     "tabTokens": "API Tokens",
     "profileUsername": "Username",
     "profileUsernameHint": "Username cannot be changed",

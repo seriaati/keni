@@ -382,7 +382,7 @@
     "title": "設定",
     "subtitle": "管理您的個人資料、AI 供應商與 API 存取",
     "tabProfile": "個人資料",
-    "tabAi": "AI 供應商",
+    "tabAi": "AI",
     "tabTokens": "API Token",
     "profileUsername": "使用者名稱",
     "profileUsernameHint": "使用者名稱無法更改",
