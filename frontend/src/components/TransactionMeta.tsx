@@ -73,7 +73,7 @@ export function TransactionMeta({ category, categoryName, itemCount, tags = [], 
   const current = LEVELS[level];
   const shownTags = current ? tags.slice(0, Math.min(current.tags, MAX_TAGS)) : [];
   const chip = (tag: TagBrief, k?: string) => (
-    <span key={tag.id} data-k={k} className="chip" style={{ fontSize: 11, padding: '1px 6px', flexShrink: 0 }}>{tag.name}</span>
+    <span key={tag.id} data-k={k} className="chip" style={{ fontSize: 10, lineHeight: '14px', padding: '0 6px', flexShrink: 0 }}>{tag.name}</span>
   );
   const items = (label: ReactNode, k?: string) => (
     <span data-k={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
@@ -86,7 +86,7 @@ export function TransactionMeta({ category, categoryName, itemCount, tags = [], 
   return (
     <div
       ref={rowRef}
-      style={{ position: 'relative', fontSize: 12, color: 'var(--ink-faint)', display: 'flex', gap: GAP, alignItems: 'center', whiteSpace: 'nowrap', overflow: 'hidden' }}
+      style={{ position: 'relative', marginTop: 2, fontSize: 12, color: 'var(--ink-faint)', display: 'flex', gap: GAP, alignItems: 'center', whiteSpace: 'nowrap', overflow: 'hidden' }}
     >
       <div
         ref={measureRef}
