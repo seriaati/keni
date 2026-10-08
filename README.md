@@ -1,4 +1,4 @@
-![Keni: Money tracked without the friction](./assets/readme-banner.png)
+![Keni: Money tracked without the friction](./frontend/public/og-image.png)
 
 # Keni
 
