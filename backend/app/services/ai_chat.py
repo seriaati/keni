@@ -15,7 +15,6 @@ from app.models.category import Category
 from app.models.tag import Tag
 from app.models.transaction import Transaction, TransactionTag
 from app.models.wallet import Wallet
-from app.providers import get_provider
 from app.providers.base import ChatContext, ChatTool
 from app.providers.errors import (
     ProviderAPIError,
@@ -23,7 +22,7 @@ from app.providers.errors import (
     ProviderPermissionError,
     ProviderRateLimitError,
 )
-from app.services.ai_transaction import _decrypt_key, get_ai_provider_record
+from app.services.ai_connections import get_ai_provider_record, resolve_provider
 from app.services.category_tag import find_or_create_category, find_or_create_tag
 from app.services.transaction_group import counted_filter
 
@@ -897,11 +896,7 @@ async def chat_about_expenses(  # ruff: ignore[too-many-arguments, too-many-posi
     )
 
     tool_executor = _make_executor(wallet_ids, wallets, user_id, session, count_sub_transactions)
-    provider = get_provider(
-        record.provider,
-        api_key=_decrypt_key(record.api_key_encrypted),
-        model=record.chat_model or record.model,
-    )
+    provider, _ = await resolve_provider(record, "chat", session)
 
     try:
         return await provider.chat_with_data(

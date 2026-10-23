@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import time
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import openai
 from openai.types.chat import (
@@ -33,6 +33,7 @@ from app.providers.errors import (
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
+    from openai.types import CompletionUsage
     from openai.types.chat import ChatCompletionMessageParam
 
     from app.providers.base import ChatContext, ChatTool
@@ -40,6 +41,37 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _MAX_TOOL_ROUNDS = 10
+
+_ParseMode = Literal["schema", "json_object", "prompt"]
+_PARSE_MODES: tuple[_ParseMode, ...] = ("schema", "json_object", "prompt")
+# First parse mode that worked per (base_url, model), so later requests skip known failures.
+_parse_mode_cache: dict[tuple[str, str], _ParseMode] = {}
+# Errors a server returns when it doesn't understand a response_format.
+_UNSUPPORTED_FORMAT_ERRORS = (
+    openai.BadRequestError,
+    openai.UnprocessableEntityError,
+    openai.NotFoundError,
+)
+
+
+def _extract_json(raw: str) -> Any:
+    """Parse JSON from a model reply that may be wrapped in code fences or prose."""
+    text = raw.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1] if "\n" in text else ""
+        text = text.rsplit("```", 1)[0]
+    first, last = text.find("{"), text.rfind("}")
+    if first != -1 and last > first:
+        text = text[first : last + 1]
+    return json.loads(text)
+
+
+def _validate_output(raw: str | None) -> ParsedTransactionOutput:
+    try:
+        return ParsedTransactionOutput.model_validate(_extract_json(raw or ""))
+    except Exception as exc:
+        msg = "Failed to parse expense from input"
+        raise ValueError(msg) from exc
 
 
 def _wrap_openai_error(exc: Exception) -> Exception:
@@ -97,8 +129,57 @@ class OpenAICompatibleProvider(LLMProvider):
         )
         parts.append(ChatCompletionContentPartTextParam(type="text", text=prompt_text))
 
+        cache_key = (str(self._client.base_url), self._model)
+        cached_mode = _parse_mode_cache.get(cache_key)
+        modes = _PARSE_MODES[_PARSE_MODES.index(cached_mode) :] if cached_mode else _PARSE_MODES
+
         start = time.perf_counter()
-        try:
+        for i, mode in enumerate(modes):
+            try:
+                output, usage = await self._parse_with_mode(mode, parts)
+            except _UNSUPPORTED_FORMAT_ERRORS as exc:
+                if i == len(modes) - 1:
+                    raise _wrap_openai_error(exc) from exc
+                logger.info(
+                    "OpenAI parse: mode=%s rejected by %s model=%s (%s); falling back",
+                    mode,
+                    cache_key[0],
+                    self._model,
+                    exc.message,
+                )
+                continue
+            except ValueError:
+                raise
+            except Exception as exc:
+                raise _wrap_openai_error(exc) from exc
+
+            _parse_mode_cache[cache_key] = mode
+            logger.info(
+                "OpenAI parse: model=%s mode=%s elapsed_ms=%.0f input=%s output=%s reasoning=%s "
+                "cached=%s",
+                self._model,
+                mode,
+                (time.perf_counter() - start) * 1000,
+                usage and usage.prompt_tokens,
+                usage and usage.completion_tokens,
+                usage
+                and usage.completion_tokens_details
+                and usage.completion_tokens_details.reasoning_tokens,
+                usage
+                and usage.prompt_tokens_details
+                and usage.prompt_tokens_details.cached_tokens,
+            )
+            return output
+
+        msg = "Failed to parse expense from input"
+        raise ValueError(msg)
+
+    async def _parse_with_mode(
+        self,
+        mode: _ParseMode,
+        parts: list[ChatCompletionContentPartTextParam | ChatCompletionContentPartImageParam],
+    ) -> tuple[ParsedTransactionOutput, CompletionUsage | None]:
+        if mode == "schema":
             response = await self._client.beta.chat.completions.parse(
                 model=self._model,
                 max_tokens=4096,
@@ -108,31 +189,36 @@ class OpenAICompatibleProvider(LLMProvider):
                 ],
                 response_format=ParsedTransactionOutput,
             )
-        except Exception as exc:
-            raise _wrap_openai_error(exc) from exc
+            message = response.choices[0].message
+            if message.parsed is not None:
+                return message.parsed, response.usage
+            return _validate_output(message.content), response.usage
 
-        usage = response.usage
-        logger.info(
-            "OpenAI parse: model=%s elapsed_ms=%.0f input=%s output=%s reasoning=%s cached=%s",
-            self._model,
-            (time.perf_counter() - start) * 1000,
-            usage and usage.prompt_tokens,
-            usage and usage.completion_tokens,
-            usage
-            and usage.completion_tokens_details
-            and usage.completion_tokens_details.reasoning_tokens,
-            usage and usage.prompt_tokens_details and usage.prompt_tokens_details.cached_tokens,
+        # Servers without json_schema support: describe the schema in the prompt instead.
+        schema_part = ChatCompletionContentPartTextParam(
+            type="text",
+            text=(
+                "Respond with a single JSON object only, no prose or code fences, "
+                "matching this JSON schema:\n"
+                + json.dumps(ParsedTransactionOutput.model_json_schema())
+            ),
         )
-
-        parsed = response.choices[0].message.parsed
-        if parsed is None:
-            raw = response.choices[0].message.content or ""
-            try:
-                return ParsedTransactionOutput.model_validate(json.loads(raw))
-            except Exception as exc:
-                msg = "Failed to parse expense from input"
-                raise ValueError(msg) from exc
-        return parsed
+        messages: list[ChatCompletionMessageParam] = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": [*parts, schema_part]},
+        ]
+        if mode == "json_object":
+            completion = await self._client.chat.completions.create(
+                model=self._model,
+                max_tokens=4096,
+                messages=messages,
+                response_format={"type": "json_object"},
+            )
+        else:
+            completion = await self._client.chat.completions.create(
+                model=self._model, max_tokens=4096, messages=messages
+            )
+        return _validate_output(completion.choices[0].message.content), completion.usage
 
     async def chat_with_data(
         self,

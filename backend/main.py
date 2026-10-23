@@ -15,6 +15,7 @@ from fastapi.responses import Response
 from app.config import settings
 from app.mcp_server import mcp
 from app.routers import (
+    ai_connections,
     ai_provider,
     auth,
     budgets,
@@ -82,6 +83,8 @@ app.include_router(tags.router)
 app.include_router(transactions.router)
 app.include_router(transaction_links.router)
 app.include_router(ai_provider.router)
+app.include_router(ai_connections.router)
+app.include_router(ai_connections.admin_router)
 app.include_router(chat.router)
 app.include_router(recurring.router)
 app.include_router(budgets.router)

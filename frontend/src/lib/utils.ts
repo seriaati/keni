@@ -1,4 +1,5 @@
 import i18n from './i18n';
+import type { AIConnectionKind } from './types';
 
 // Command palette shortcut label: ⌘ on Apple platforms, Ctrl elsewhere
 export const CMD_K = /Mac|iPhone|iPad|iPod/.test(navigator.platform) ? '⌘ K' : 'Ctrl+K';
@@ -174,12 +175,28 @@ export function getFrequencies(): { value: string; label: string }[] {
   ];
 }
 
-export const AI_PROVIDERS = [
+export const AI_PROVIDERS: { value: AIConnectionKind; label: string }[] = [
   { value: 'anthropic', label: 'Anthropic' },
   { value: 'gemini', label: 'Google Gemini' },
   { value: 'openai', label: 'OpenAI' },
   { value: 'openrouter', label: 'OpenRouter' },
+  { value: 'openai_compatible', label: 'Custom (OpenAI-compatible)' },
 ];
+
+export function aiProviderLabel(kind: string): string {
+  return AI_PROVIDERS.find((p) => p.value === kind)?.label ?? kind;
+}
+
+/** Kinds that accept a base URL override; required for `openai_compatible`. */
+export const AI_BASE_URL_KINDS: AIConnectionKind[] = ['openai', 'openrouter', 'openai_compatible'];
+
+export const AI_KEY_PLACEHOLDERS: Record<AIConnectionKind, string> = {
+  anthropic: 'sk-ant-...',
+  gemini: 'AIza...',
+  openai: 'sk-...',
+  openrouter: 'sk-or-...',
+  openai_compatible: 'Optional',
+};
 
 export function isEmoji(str: string): boolean {
   if (!str || str.length > 8) return false;
