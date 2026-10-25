@@ -18,6 +18,9 @@ class OAuthClient(SQLModel, table=True):
     )
     client_id: str = Field(unique=True, index=True)
     client_secret_hash: str | None = Field(default=None, nullable=True)
+    # Plaintext: the MCP SDK compares it with hmac.compare_digest. None for public clients and for
+    # clients registered before secrets were stored.
+    client_secret: str | None = Field(default=None, nullable=True)
     client_id_issued_at: datetime = Field(
         default=None,
         sa_column=sa.Column(

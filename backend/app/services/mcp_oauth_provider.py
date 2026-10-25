@@ -75,7 +75,8 @@ def _client_to_sdk(db_client: OAuthClient) -> OAuthClientInformationFull:
     redirect_uris = [AnyUrl(uri) for uri in (db_client.redirect_uris or [])]
     return OAuthClientInformationFull(
         client_id=db_client.client_id,
-        client_secret=None,
+        # None for clients registered before secrets were stored, so the SDK skips the check.
+        client_secret=db_client.client_secret,
         client_id_issued_at=int(db_client.client_id_issued_at.timestamp()),
         redirect_uris=redirect_uris,
         client_name=db_client.client_name,
@@ -118,7 +119,7 @@ class KeniOAuthProvider(OAuthAuthorizationServerProvider):
         async for session in get_session():
             db_client = OAuthClient(
                 client_id=client_info.client_id or secrets.token_urlsafe(16),
-                client_secret_hash=None,
+                client_secret=client_info.client_secret,
                 redirect_uris=[str(uri) for uri in (client_info.redirect_uris or [])],
                 client_name=client_info.client_name,
                 grant_types=client_info.grant_types or ["authorization_code", "refresh_token"],
