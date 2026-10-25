@@ -16,7 +16,7 @@ from app.schemas.auth import (
     UpdateProfileRequest,
     UserResponse,
 )
-from app.services.account import delete_user_account
+from app.services.account import delete_user_account, revoke_oauth_grants
 from app.services.auth import hash_password, verify_password
 
 router = APIRouter(prefix="/api", tags=["users"])
@@ -51,6 +51,7 @@ async def update_me(
         current_user.display_name = body.display_name
     if body.password is not None:
         current_user.password_hash = hash_password(body.password)
+        await revoke_oauth_grants(current_user.id, session)
     if body.timezone is not None:
         current_user.timezone = body.timezone
     if "custom_ai_prompt" in body.model_fields_set:

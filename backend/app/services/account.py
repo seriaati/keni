@@ -33,3 +33,15 @@ async def delete_user_account(user_id: uuid.UUID, session: AsyncSession) -> None
     )
     await session.exec(delete(User).where(col(User.id) == user_id))
     await session.commit()
+
+
+async def revoke_oauth_grants(user_id: uuid.UUID, session: AsyncSession) -> None:
+    """Delete a user's MCP OAuth codes and tokens, so connected clients must authorize again.
+
+    Codes go first: deleting one waits for an in-flight code exchange to commit, so the tokens
+    that exchange issues are visible to the token delete.
+    """
+    await session.exec(
+        delete(OAuthAuthorizationCode).where(col(OAuthAuthorizationCode.user_id) == user_id)
+    )
+    await session.exec(delete(OAuthToken).where(col(OAuthToken.user_id) == user_id))
