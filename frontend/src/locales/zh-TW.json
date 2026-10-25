@@ -514,6 +514,7 @@
     "errorDesc": "此授權連結無效或已過期。",
     "deniedTitle": "存取被拒",
     "permissionsRequested": "請求的權限",
+    "accessGoesTo": "授權將傳送至 <b>{{host}}</b>",
     "scopeUser": "存取您的錢包、交易紀錄與類別",
     "authorize": "授權",
     "deny": "拒絕",

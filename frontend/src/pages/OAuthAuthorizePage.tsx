@@ -14,14 +14,27 @@ function getAccessToken(): string | null {
 
 type Mode = 'loading' | 'logged-in' | 'login-required' | 'denied' | 'error';
 
+interface AuthorizationRequest {
+  client_name: string | null;
+  redirect_uri: string;
+  scopes: string[];
+}
+
+function hostOf(uri: string): string {
+  try {
+    return new URL(uri).host;
+  } catch {
+    return uri;
+  }
+}
+
 export function OAuthAuthorizePage() {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
-  const state = searchParams.get('state') ?? '';
-  const clientName = searchParams.get('client_name') ?? t('oauth.unknownClient');
-  const scopesRaw = searchParams.get('scopes') ?? 'user';
+  const requestId = searchParams.get('request') ?? '';
 
   const [mode, setMode] = useState<Mode>('loading');
+  const [authRequest, setAuthRequest] = useState<AuthorizationRequest | null>(null);
   const [currentUser, setCurrentUser] = useState<UserResponse | null>(null);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -29,24 +42,54 @@ export function OAuthAuthorizePage() {
   const toast = useToast();
 
   useEffect(() => {
-    if (!state) {
+    if (!requestId) {
       setMode('error');
       return;
     }
-    const token = getAccessToken();
-    if (!token) {
-      setMode('login-required');
-      return;
-    }
-    users.me()
-      .then((u) => {
-        setCurrentUser(u);
-        setMode('logged-in');
+    // Client name and redirect URI come from the server, never from the link, so a crafted link
+    // can't show one app's name while sending access somewhere else.
+    fetch(`${BASE}/oauth/requests/${encodeURIComponent(requestId)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error();
+        return res.json() as Promise<AuthorizationRequest>;
       })
-      .catch(() => {
-        setMode('login-required');
+      .then(async (req) => {
+        setAuthRequest(req);
+        if (!getAccessToken()) {
+          setMode('login-required');
+          return;
+        }
+        try {
+          setCurrentUser(await users.me());
+          setMode('logged-in');
+        } catch {
+          setMode('login-required');
+        }
+      })
+      .catch(() => setMode('error'));
+  }, [requestId]);
+
+  const handleDeny = async () => {
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${BASE}/oauth/deny`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request_id: requestId }),
       });
-  }, [state]);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail ?? t('oauth.authFailed'));
+      }
+      const { redirect_uri } = await res.json();
+      setMode('denied');
+      window.location.href = redirect_uri;
+    } catch (err) {
+      toast(err instanceof Error ? err.message : t('oauth.authFailed'), 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleApproveWithSession = async () => {
     setSubmitting(true);
@@ -58,7 +101,7 @@ export function OAuthAuthorizePage() {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ state }),
+        body: JSON.stringify({ request_id: requestId }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -80,7 +123,7 @@ export function OAuthAuthorizePage() {
       const res = await fetch(`${BASE}/oauth/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ state, username, password }),
+        body: JSON.stringify({ request_id: requestId, username, password }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -98,7 +141,8 @@ export function OAuthAuthorizePage() {
   const scopeLabels: Record<string, string> = {
     user: t('oauth.scopeUser'),
   };
-  const scopes = scopesRaw.split(' ').filter(Boolean);
+  const clientName = authRequest?.client_name || t('oauth.unknownClient');
+  const scopes = authRequest?.scopes ?? [];
 
   const clientStrong = <strong style={{ color: 'var(--ink)', fontWeight: 600 }} />;
 
@@ -127,6 +171,15 @@ export function OAuthAuthorizePage() {
           </span>
         </div>
       ))}
+      {authRequest && (
+        <p style={{ fontSize: 12, color: 'var(--ink-light)', borderTop: '1px solid var(--cream-darker)', paddingTop: 8, marginTop: 2 }}>
+          <Trans
+            i18nKey="oauth.accessGoesTo"
+            values={{ host: hostOf(authRequest.redirect_uri) }}
+            components={{ b: <strong title={authRequest.redirect_uri} style={{ color: 'var(--ink-mid)', fontWeight: 600, wordBreak: 'break-all' }} /> }}
+          />
+        </p>
+      )}
     </div>
   );
 
@@ -170,7 +223,7 @@ export function OAuthAuthorizePage() {
             </button>
             <button
               className="btn btn-secondary btn-lg"
-              onClick={() => setMode('denied')}
+              onClick={handleDeny}
               disabled={submitting}
               style={{ width: '100%' }}
             >
@@ -236,7 +289,7 @@ export function OAuthAuthorizePage() {
               <button
                 type="button"
                 className="btn btn-secondary btn-lg"
-                onClick={() => setMode('denied')}
+                onClick={handleDeny}
                 disabled={submitting}
                 style={{ width: '100%' }}
               >

@@ -514,6 +514,7 @@
     "errorDesc": "This authorization link is invalid or has expired.",
     "deniedTitle": "Access denied",
     "permissionsRequested": "Permissions requested",
+    "accessGoesTo": "Access goes to <b>{{host}}</b>",
     "scopeUser": "Access your wallets, transactions, and categories",
     "authorize": "Authorize",
     "deny": "Deny",

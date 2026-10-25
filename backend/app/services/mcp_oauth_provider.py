@@ -4,6 +4,7 @@ import hashlib
 import logging
 import secrets
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Literal, cast
 from urllib.parse import urlencode
@@ -14,6 +15,7 @@ from mcp.server.auth.provider import (
     OAuthAuthorizationServerProvider,
     RefreshToken,
     TokenError,
+    construct_redirect_uri,
 )
 from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 from pydantic import AnyUrl
@@ -30,6 +32,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_PENDING_AUTHORIZATION_TTL_SECONDS = 600
 _AUTH_CODE_TTL_SECONDS = 300
 _ACCESS_TOKEN_TTL_SECONDS = 3600
 _REFRESH_TOKEN_TTL_DAYS = 30
@@ -52,6 +55,15 @@ class KeniRefreshToken(RefreshToken):
 
 class KeniAccessToken(AccessToken):
     user_id: str
+
+
+@dataclass(frozen=True)
+class PendingAuthorization:
+    """A client's authorization request, waiting for the user to approve or deny it."""
+
+    client: OAuthClientInformationFull
+    params: AuthorizationParams
+    expires_at: datetime
 
 
 def _hash_token(token: str) -> str:
@@ -100,19 +112,64 @@ async def _prune_expired(session: AsyncSession, now: datetime) -> None:
 class KeniOAuthProvider(OAuthAuthorizationServerProvider):
     def __init__(self, frontend_url: str) -> None:
         self._frontend_url = frontend_url
-        self._pending_authorizations: dict[
-            str, tuple[OAuthClientInformationFull, AuthorizationParams]
-        ] = {}
+        self._pending_authorizations: dict[str, PendingAuthorization] = {}
 
-    def store_pending_authorization(
-        self, state: str, client: OAuthClientInformationFull, params: AuthorizationParams
-    ) -> None:
-        self._pending_authorizations[state] = (client, params)
+    def add_pending_authorization(
+        self, client: OAuthClientInformationFull, params: AuthorizationParams
+    ) -> str:
+        now = datetime.now(UTC)
+        for request_id, pending in list(self._pending_authorizations.items()):
+            if pending.expires_at <= now:
+                self._pending_authorizations.pop(request_id, None)
+        request_id = secrets.token_urlsafe(16)
+        self._pending_authorizations[request_id] = PendingAuthorization(
+            client=client,
+            params=params,
+            expires_at=now + timedelta(seconds=_PENDING_AUTHORIZATION_TTL_SECONDS),
+        )
+        return request_id
 
-    def pop_pending_authorization(
-        self, state: str
-    ) -> tuple[OAuthClientInformationFull, AuthorizationParams] | None:
-        return self._pending_authorizations.pop(state, None)
+    def get_pending_authorization(self, request_id: str) -> PendingAuthorization | None:
+        pending = self._pending_authorizations.get(request_id)
+        if pending is None or pending.expires_at <= datetime.now(UTC):
+            return None
+        return pending
+
+    def pop_pending_authorization(self, request_id: str) -> PendingAuthorization | None:
+        # Popping first means only one of two simultaneous answers gets the request.
+        pending = self._pending_authorizations.pop(request_id, None)
+        if pending is None or pending.expires_at <= datetime.now(UTC):
+            return None
+        return pending
+
+    async def approve_authorization(
+        self, session: AsyncSession, pending: PendingAuthorization, user_id: uuid.UUID
+    ) -> str:
+        """Issues an authorization code and returns the client redirect URI carrying it."""
+        params = pending.params
+        code = _generate_token()
+        session.add(
+            OAuthAuthorizationCode(
+                code=code,
+                client_id=pending.client.client_id or "",
+                user_id=user_id,
+                redirect_uri=str(params.redirect_uri),
+                redirect_uri_provided_explicitly=params.redirect_uri_provided_explicitly,
+                code_challenge=params.code_challenge,
+                scopes=params.scopes or [],
+                resource=params.resource,
+                expires_at=datetime.now(UTC) + timedelta(seconds=_AUTH_CODE_TTL_SECONDS),
+            )
+        )
+        await session.commit()
+        return construct_redirect_uri(str(params.redirect_uri), code=code, state=params.state)
+
+    @staticmethod
+    def deny_authorization(pending: PendingAuthorization) -> str:
+        params = pending.params
+        return construct_redirect_uri(
+            str(params.redirect_uri), error="access_denied", state=params.state
+        )
 
     async def get_client(self, client_id: str) -> OAuthClientInformationFull | None:
         async for session in get_session():
@@ -143,15 +200,8 @@ class KeniOAuthProvider(OAuthAuthorizationServerProvider):
     async def authorize(
         self, client: OAuthClientInformationFull, params: AuthorizationParams
     ) -> str:
-        state = params.state or secrets.token_urlsafe(16)
-        self.store_pending_authorization(state, client, params)
-
-        query = {
-            "state": state,
-            "client_name": client.client_name or client.client_id or "",
-            "scopes": " ".join(params.scopes or []),
-        }
-        return f"{self._frontend_url}/oauth/authorize?{urlencode(query)}"
+        request_id = self.add_pending_authorization(client, params)
+        return f"{self._frontend_url}/oauth/authorize?{urlencode({'request': request_id})}"
 
     async def load_authorization_code(
         self, client: OAuthClientInformationFull, authorization_code: str
