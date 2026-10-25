@@ -16,7 +16,7 @@ class OAuthAuthorizationCode(SQLModel, table=True):
         primary_key=True,
         sa_column_kwargs={"server_default": text("gen_random_uuid()")},
     )
-    code: str = Field(unique=True, index=True)
+    code: str = Field(unique=True, index=True)  # SHA-256 of the code, like OAuthToken.token_hash
     client_id: str = Field(foreign_key="oauth_clients.client_id", index=True)
     user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
     redirect_uri: str

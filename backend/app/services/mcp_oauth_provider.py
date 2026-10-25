@@ -150,7 +150,7 @@ class KeniOAuthProvider(OAuthAuthorizationServerProvider):
         code = _generate_token()
         session.add(
             OAuthAuthorizationCode(
-                code=code,
+                code=_hash_token(code),
                 client_id=pending.client.client_id or "",
                 user_id=user_id,
                 redirect_uri=str(params.redirect_uri),
@@ -209,7 +209,7 @@ class KeniOAuthProvider(OAuthAuthorizationServerProvider):
         async for session in get_session():
             result = await session.exec(
                 select(OAuthAuthorizationCode).where(
-                    OAuthAuthorizationCode.code == authorization_code,
+                    OAuthAuthorizationCode.code == _hash_token(authorization_code),
                     OAuthAuthorizationCode.client_id == client.client_id,
                 )
             )
@@ -219,7 +219,7 @@ class KeniOAuthProvider(OAuthAuthorizationServerProvider):
             return KeniAuthorizationCode(
                 db_id=row.id,
                 user_id=row.user_id,
-                code=row.code,
+                code=authorization_code,
                 client_id=row.client_id,
                 scopes=row.scopes or [],
                 expires_at=row.expires_at.replace(tzinfo=UTC).timestamp(),
