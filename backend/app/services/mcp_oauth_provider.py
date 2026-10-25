@@ -13,10 +13,11 @@ from mcp.server.auth.provider import (
     AuthorizationCode,
     OAuthAuthorizationServerProvider,
     RefreshToken,
+    TokenError,
 )
 from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 from pydantic import AnyUrl
-from sqlmodel import select
+from sqlmodel import col, delete, select, update
 
 from app.database import get_session
 from app.models.oauth_authorization_code import OAuthAuthorizationCode
@@ -25,6 +26,7 @@ from app.models.oauth_token import OAuthToken as OAuthTokenModel
 
 if TYPE_CHECKING:
     from mcp.server.auth.provider import AuthorizationParams
+    from sqlmodel.ext.asyncio.session import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +41,7 @@ _TOKEN_TYPE_BEARER = "Bearer"  # ruff: ignore[hardcoded-password-string]
 
 class KeniAuthorizationCode(AuthorizationCode):
     db_id: uuid.UUID
+    user_id: uuid.UUID
 
 
 class KeniRefreshToken(RefreshToken):
@@ -85,6 +88,13 @@ def _client_to_sdk(db_client: OAuthClient) -> OAuthClientInformationFull:
         scope=db_client.scope,
         token_endpoint_auth_method=_coerce_auth_method(db_client.token_endpoint_auth_method),
     )
+
+
+async def _prune_expired(session: AsyncSession, now: datetime) -> None:
+    await session.exec(
+        delete(OAuthAuthorizationCode).where(col(OAuthAuthorizationCode.expires_at) <= now)
+    )
+    await session.exec(delete(OAuthTokenModel).where(col(OAuthTokenModel.expires_at) <= now))
 
 
 class KeniOAuthProvider(OAuthAuthorizationServerProvider):
@@ -158,6 +168,7 @@ class KeniOAuthProvider(OAuthAuthorizationServerProvider):
                 return None
             return KeniAuthorizationCode(
                 db_id=row.id,
+                user_id=row.user_id,
                 code=row.code,
                 client_id=row.client_id,
                 scopes=row.scopes or [],
@@ -183,18 +194,19 @@ class KeniOAuthProvider(OAuthAuthorizationServerProvider):
         access_expires = now + timedelta(seconds=_ACCESS_TOKEN_TTL_SECONDS)
         refresh_expires = now + timedelta(days=_REFRESH_TOKEN_TTL_DAYS)
 
+        user_id = authorization_code.user_id
+
         async for session in get_session():
+            # Deleting decides which of two simultaneous exchanges of one code wins.
             result = await session.exec(
-                select(OAuthAuthorizationCode).where(
-                    OAuthAuthorizationCode.code == authorization_code.code
+                delete(OAuthAuthorizationCode).where(
+                    col(OAuthAuthorizationCode.id) == authorization_code.db_id
                 )
             )
-            code_row = result.first()
-            if code_row is None:
-                msg = "Authorization code not found"
-                raise ValueError(msg)
-
-            user_id = code_row.user_id
+            if result.rowcount == 0:
+                msg = "Authorization code already used"
+                raise TokenError(error="invalid_grant", error_description=msg)
+            await _prune_expired(session, now)
 
             access_token = OAuthTokenModel(
                 token_hash=_hash_token(access_token_str),
@@ -220,7 +232,6 @@ class KeniOAuthProvider(OAuthAuthorizationServerProvider):
             )
             session.add(access_token)
             session.add(refresh_token)
-            await session.delete(code_row)
             await session.commit()
 
         return OAuthToken(
@@ -266,7 +277,7 @@ class KeniOAuthProvider(OAuthAuthorizationServerProvider):
         now = datetime.now(UTC)
         if refresh_token.expires_at is not None and refresh_token.expires_at < now.timestamp():
             msg = "Refresh token expired"
-            raise ValueError(msg)
+            raise TokenError(error="invalid_grant", error_description=msg)
 
         effective_scopes = scopes or refresh_token.scopes
 
@@ -278,13 +289,24 @@ class KeniOAuthProvider(OAuthAuthorizationServerProvider):
         refresh_expires = now + timedelta(days=_REFRESH_TOKEN_TTL_DAYS)
 
         async for session in get_session():
+            # Revoking decides which of two simultaneous refreshes of one token wins.
             result = await session.exec(
-                select(OAuthTokenModel).where(OAuthTokenModel.pair_id == refresh_token.pair_id)
+                update(OAuthTokenModel)
+                .where(
+                    col(OAuthTokenModel.token_hash) == _hash_token(refresh_token.token),
+                    col(OAuthTokenModel.revoked).is_(False),
+                )
+                .values(revoked=True)
             )
-            old_tokens = result.all()
-            for t in old_tokens:
-                t.revoked = True
-                session.add(t)
+            if result.rowcount == 0:
+                msg = "Refresh token already used"
+                raise TokenError(error="invalid_grant", error_description=msg)
+            await session.exec(
+                update(OAuthTokenModel)
+                .where(col(OAuthTokenModel.pair_id) == refresh_token.pair_id)
+                .values(revoked=True)
+            )
+            await _prune_expired(session, now)
 
             new_access = OAuthTokenModel(
                 token_hash=_hash_token(new_access_str),
