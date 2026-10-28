@@ -12,7 +12,6 @@ dependencies = [
     "openai>=1.0.0",
     "fastapi>=0.135.2",
     "mcp>=1.0.0,<2",
-    "passlib[bcrypt]>=1.7",
     "pydantic-settings>=2.0",
     "pyjwt[crypto]>=2.8",
     "python-multipart>=0.0.9",
@@ -23,6 +22,7 @@ dependencies = [
     "uvicorn>=0.42.0",
     "apscheduler>=3.11.2",
     "pillow>=12.2.0",
+    "bcrypt>=5.0.0",
 ]
 
 [tool.pyright]
