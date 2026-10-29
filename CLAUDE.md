@@ -59,7 +59,7 @@ main.py → routers/ → services/ → providers/ (LLM)
 - DB: `AsyncSession` via `session.exec(select(...))` — no raw SQL
 - Standard deps: `get_db`, `get_current_user`, `require_admin` in `app/dependencies.py`
 - Auth: JWT (`type: "access"`) and hashed API tokens both accepted in `Authorization: Bearer`
-- LLM providers: Anthropic, Gemini, OpenAI-compat, OpenRouter — factory in `app/providers/_factory.py`
+- LLM providers: Anthropic, Gemini, OpenAI, OpenRouter, custom OpenAI-compatible (`openai_compatible`, needs base URL) — factory in `app/providers/_factory.py`
 - STT: local Whisper or external, singleton via `app/services/voice.py`
 - MCP server: `app/mcp_server.py` — OAuth-authenticated, mounted at `/mcp` and well-known paths
 - Background jobs: APScheduler (recurring transactions, data retention) started in lifespan
@@ -106,7 +106,8 @@ main.py → routers/ → services/ → providers/ (LLM)
 - Raise errors: `msg = "..."; raise ValueError(msg)` (EM rule)
 - No `print()` — use `logging.getLogger(__name__)`
 - Migrations: forward-only; run automatically via `entrypoint.sh` on container start
-- AI key storage: base64 obfuscation via `_encrypt_key`/`_decrypt_key` in `app/services/ai_transaction.py`
+- AI key storage: base64 obfuscation via `_encrypt_key`/`_decrypt_key` in `app/services/ai_connections.py`
+- AI config: `ai_connections` rows (per-user, or `user_id` NULL = admin-shared) hold kind/base_url/key; `ai_providers` holds each user's per-role (parse/chat/attachment) connection + model. Build providers via `resolve_provider()` — never call `get_provider()` with raw records
 
 ### Frontend
 

@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
     signups_enabled: bool = True
 
+    # Let non-admin users point AI connections at arbitrary URLs (e.g. a local Ollama).
+    allow_user_custom_base_urls: bool = True
+
     stt_provider: Literal["local", "external"] = "local"
     whisper_model_size: Literal["tiny", "base", "small", "medium", "large"] = "base"
     whisper_device: Literal["cpu", "cuda", "auto"] = "auto"

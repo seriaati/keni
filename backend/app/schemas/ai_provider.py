@@ -1,33 +1,70 @@
 from __future__ import annotations
 
+import uuid
+
 from pydantic import BaseModel, Field
 
 
+_KIND_PATTERN = "^(anthropic|gemini|openai|openrouter|openai_compatible)$"
+
+
+class AIConnectionCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    kind: str = Field(pattern=_KIND_PATTERN)
+    base_url: str | None = Field(default=None, max_length=500)
+    api_key: str | None = None
+
+
+class AIConnectionUpdate(BaseModel):
+    """Omitted fields are left unchanged; ``api_key: ""`` clears the stored key."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    kind: str | None = Field(default=None, pattern=_KIND_PATTERN)
+    base_url: str | None = Field(default=None, max_length=500)
+    api_key: str | None = None
+
+
+class AIConnectionTest(BaseModel):
+    kind: str = Field(pattern=_KIND_PATTERN)
+    base_url: str | None = Field(default=None, max_length=500)
+    api_key: str | None = None
+    # When editing a saved connection without retyping the key, use its stored key.
+    connection_id: uuid.UUID | None = None
+
+
+class AIConnectionResponse(BaseModel):
+    id: uuid.UUID
+    name: str
+    kind: str
+    base_url: str | None
+    # None for shared connections viewed by non-admins, or when no key is stored.
+    api_key_masked: str | None
+    has_api_key: bool
+    shared: bool
+
+
 class AIProviderUpsert(BaseModel):
-    provider: str = Field(default="anthropic", pattern="^(anthropic|gemini|openai|openrouter)$")
-    api_key: str | None = Field(default=None, min_length=1)
-    model: str = Field(default="claude-opus-4-5", min_length=1)
-    chat_model: str | None = Field(default=None)
-    attachment_model: str | None = Field(default=None)
+    connection_id: uuid.UUID
+    model: str = Field(min_length=1, max_length=100)
+    chat_connection_id: uuid.UUID | None = None
+    chat_model: str | None = Field(default=None, max_length=100)
+    attachment_connection_id: uuid.UUID | None = None
+    attachment_model: str | None = Field(default=None, max_length=100)
     ocr_enabled: bool = True
 
 
 class AIProviderResponse(BaseModel):
-    provider: str
+    connection_id: uuid.UUID | None
     model: str
+    chat_connection_id: uuid.UUID | None
     chat_model: str | None
+    attachment_connection_id: uuid.UUID | None
     attachment_model: str | None
-    api_key_masked: str
     ocr_enabled: bool
 
 
 class AIProviderModelsResponse(BaseModel):
     models: list[str]
-
-
-class AIProviderValidateResponse(BaseModel):
-    valid: bool
-    detail: str
 
 
 class AIExpenseRequest(BaseModel):
