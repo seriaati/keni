@@ -96,6 +96,8 @@ export function WalletViewPage() {
   useEffect(() => {
     if (!isComposingRef.current) setSearchInput(search);
   }, [search]);
+  // State mirror of isComposingRef so the debounce below re-runs when composition ends
+  const [isComposing, setIsComposing] = useState(false);
   const selectedTagIds = useMemo(() => searchParams.getAll('tag_ids'), [searchParams]);
   const sortBy = searchParams.get('sort_by') ?? 'date';
   const sortOrder = (searchParams.get('sort_order') ?? 'desc') as 'asc' | 'desc';
@@ -127,6 +129,13 @@ export function WalletViewPage() {
       return next;
     }, { replace: true });
   };
+
+  // Auto-apply search after the user stops typing
+  useEffect(() => {
+    if (isComposing || searchInput === search) return;
+    const id = window.setTimeout(() => setParam({ q: searchInput, page: null }), 400);
+    return () => window.clearTimeout(id);
+  }, [searchInput, isComposing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = useCallback(async () => {
     if (!walletId) return;
@@ -823,9 +832,10 @@ export function WalletViewPage() {
             enterKeyHint="search"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            onCompositionStart={() => { isComposingRef.current = true; }}
+            onCompositionStart={() => { isComposingRef.current = true; setIsComposing(true); }}
             onCompositionEnd={(e) => {
               isComposingRef.current = false;
+              setIsComposing(false);
               setSearchInput((e.target as HTMLInputElement).value);
             }}
           />
