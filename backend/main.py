@@ -91,7 +91,8 @@ app.include_router(oauth.router)
 
 @app.get("/api/health")
 async def health() -> dict[str, str]:
-    return {"status": "ok"}
+    # "app" lets the Android app tell a Keni server from any other site.
+    return {"status": "ok", "app": "keni"}
 
 
 # MCP clients: /mcp, and the OAuth endpoints and metadata they sign in with, which the spec puts
