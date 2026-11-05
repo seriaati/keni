@@ -1,8 +1,6 @@
-import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Download, RefreshCw } from 'lucide-react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
-import { useToast } from './ui/Toast';
 import { applyAppUpdate, useAppUpdate } from '../lib/native';
 
 const BUTTON_STYLE = {
@@ -18,12 +16,10 @@ const BUTTON_STYLE = {
 
 export function ReloadPrompt() {
   const { t } = useTranslation();
-  const toast = useToast();
   const appUpdate = useAppUpdate();
 
   const {
     needRefresh: [needRefresh],
-    offlineReady: [offlineReady, setOfflineReady],
     updateServiceWorker,
   } = useRegisterSW({
     onRegisteredSW(_swUrl, r) {
@@ -32,13 +28,6 @@ export function ReloadPrompt() {
       }
     },
   });
-
-  useEffect(() => {
-    if (offlineReady) {
-      toast('App installed', 'success');
-      setOfflineReady(false);
-    }
-  }, [offlineReady, setOfflineReady, toast]);
 
   // One at a time, the app first: installing it restarts the app, which also loads the new Keni.
   if (appUpdate) {
