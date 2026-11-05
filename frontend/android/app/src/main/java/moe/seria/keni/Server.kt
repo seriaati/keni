@@ -17,10 +17,10 @@ object Server {
     private const val PREFS = "keni"
     private const val SERVER = "server"
 
-    /** The hosted Keni, which the server screen offers first. */
-    const val HOSTED = "https://app.keni.seria.moe"
+    /** The hosted Keni's API, which the server screen offers first. */
+    const val HOSTED = "https://keni-api.seria.moe"
 
-    /** The server's origin (https://keni.example.com), or null before one was entered. */
+    /** The web app's origin the app loads (https://keni.example.com), or null before one was found. */
     fun url(context: Context): String? = prefs(context).getString(SERVER, null)
 
     fun remember(context: Context, url: String) = prefs(context).edit().putString(SERVER, url).apply()
@@ -38,23 +38,32 @@ object Server {
         return "$scheme://$authority"
     }
 
-    /** Whether Keni answers at [url]: its /api/health says so, without a login. Call it from a
-     * background thread. */
-    fun isKeni(url: String): Boolean = try {
-        val connection = URL("$url/api/health").openConnection() as HttpURLConnection
+    /** The Keni web app to load for an address as entered, or null when there's none. The address
+     * may serve the web app itself (Docker: one host for both, or the web app's own host), or only
+     * the API, whose /api/health then names the web app (`web`), as the hosted Keni's does. Call
+     * it from a background thread. */
+    fun find(url: String): String? {
+        if (isWebApp(url)) return url
+        val web = json("$url/api/health")?.takeIf { it.optString("app") == "keni" }?.optString("web") ?: return null
+        return normalize(web)?.takeIf { it.startsWith("https://") && isWebApp(it) }
+    }
+
+    // The web app's manifest names it (vite.config.ts).
+    private fun isWebApp(url: String) = json("$url/manifest.webmanifest")?.optString("name") == "Keni"
+
+    private fun json(url: String): JSONObject? = try {
+        val connection = URL(url).openConnection() as HttpURLConnection
         try {
             connection.connectTimeout = 8000
             connection.readTimeout = 8000
-            val body = (if (connection.responseCode < 400) connection.inputStream else connection.errorStream)
-                ?.use { String(it.readBytes()) }
-            body != null && JSONObject(body).optString("app") == "keni"
+            if (connection.responseCode == 200) JSONObject(connection.inputStream.use { String(it.readBytes()) }) else null
         } finally {
             connection.disconnect()
         }
     } catch (error: IOException) {
-        false
+        null
     } catch (error: JSONException) {
-        false
+        null
     }
 
     /** Leaves this server, for another or to ask again: the WebView's cookies and storage (the

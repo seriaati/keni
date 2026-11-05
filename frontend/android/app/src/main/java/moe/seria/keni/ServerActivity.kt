@@ -81,15 +81,15 @@ class ServerActivity : AppCompatActivity() {
         }
     }
 
-    /** Opens [server] once Keni answers there; else says [failed]. */
+    /** Opens the Keni web app found at [server] (Server.find); else says [failed]. */
     private fun check(server: String, failed: String) {
         busy(true)
         say(getString(R.string.server_checking))
         thread {
-            val keni = Server.isKeni(server)
+            val web = Server.find(server)
             runOnUiThread {
                 if (isDestroyed) return@runOnUiThread
-                if (keni) return@runOnUiThread open(server)
+                if (web != null) return@runOnUiThread open(web)
                 busy(false)
                 say(failed)
             }
