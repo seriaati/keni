@@ -46,6 +46,12 @@ pyright                                          # type check
 docker compose up -d   # postgres + backend + frontend (from repo root)
 ```
 
+### Android app (`frontend/android/`)
+
+```bash
+scripts/build-android.sh   # signed APK in Docker → frontend/android/keni.apk (VERSION_NAME / VERSION_CODE env, default dev / 1)
+```
+
 ## Architecture
 
 ### Backend
@@ -76,6 +82,8 @@ main.py → routers/ → services/ → providers/ (LLM)
 - Route guards in `App.tsx`: `RequireAuth` (redirect to `/login`), `RequireAdmin` (checks `user.is_admin`)
 - No third-party UI lib — use primitives in `src/components/ui/` (Button, Modal, Toast, DatePicker, Select, SearchableSelect, ColorPicker) before creating new ones
 - Build uses rolldown with vendor code-splitting groups defined in `vite.config.ts`
+- Android app: `frontend/android/` is a Capacitor 8 shell (`moe.seria.keni`) that loads the user's server as runtime `server.url` (asked on first start by `ServerActivity`); native bits in `KeniPlugin.kt`. Released as `keni.apk` by `.github/workflows/android.yml`, called from `bump-version.yml`
+- `src/lib/native.ts` — everything app-only: `inApp`, Keni plugin, share/back/shortcut hooks, `saveFile`, GitHub update check (`useAppUpdate`). Capacitor plugins load only in the app
 
 ### Key utilities (`frontend/src/lib/utils.ts`)
 

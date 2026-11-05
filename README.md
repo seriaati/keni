@@ -61,3 +61,21 @@ Edit the `backend` service environment variables in [`docker-compose.yml`](docke
 ### Custom domain
 
 Update `CORS_ORIGINS` to include your domain and expose port `443` via a reverse proxy (e.g. Caddy, Traefik, or nginx) in front of the `frontend` container.
+
+## Android app
+
+Keni has an Android app: the same Keni, from the hosted instance or your own server, with Android's share sheet (send a receipt or text from any app to Keni), Back button, launcher shortcuts (long-press the icon for "Add transaction" and "Voice entry") and exports saved to Downloads.
+
+1. On your phone, download `keni.apk` from the [latest release](https://github.com/seriaati/keni/releases/latest) (Android browsers also get a "Get the Android app" button in Keni's menu) and open it. Android asks you to allow installing apps from your browser.
+2. The app asks for your server, prefilled with the hosted instance (`app.keni.seria.moe`). To use your own server, enter its HTTPS address instead. The server must run a Keni version that includes the Android app: the app checks that `/api/health` answers as Keni.
+3. To switch servers later, open **Settings → Profile → Android app → Change server**. This logs you out of the current server; your data on it stays as it is.
+
+**Updates.** When a newer release is out, the app says "A new version of the app is out." Tap **Update**: your browser downloads the new `keni.apk`; open it and Android installs it over the old app, keeping your login. The app asks GitHub for the latest release when it starts and every few hours. Apps like [Obtainium](https://github.com/ImranR98/Obtainium) can also track the Releases page.
+
+**Building it yourself** (optional). You need Docker; no Android tools are needed:
+
+```sh
+scripts/build-android.sh
+```
+
+The first build takes several minutes, mostly downloading the Android build tools (kept in `~/.cache/keni-android`), and writes `frontend/android/keni.apk`. It also creates the key your build is signed with: `frontend/android/keni.keystore` and its password in `frontend/android/keystore.properties`. Back both up: Android installs an app over another only when both are signed with the same key, so your build and the release app can't update each other (uninstall one before installing the other). A build of your own doesn't look for updates.
