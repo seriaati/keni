@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      tag: v${{ steps.new-version.outputs.version }}
 
     steps:
       - name: Checkout
@@ -100,3 +102,14 @@ jobs:
         with:
           tag_name: v${{ steps.new-version.outputs.version }}
           body: ${{ steps.git-cliff.outputs.content }}
+
+  # The Android app, attached to the release as keni.apk. Called rather than run on the tag's push:
+  # a tag pushed with GITHUB_TOKEN starts no workflows.
+  android:
+    needs: bump
+    uses: ./.github/workflows/android.yml
+    with:
+      tag: ${{ needs.bump.outputs.tag }}
+    secrets: inherit
+    permissions:
+      contents: write

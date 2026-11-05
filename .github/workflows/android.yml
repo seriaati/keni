@@ -1,0 +1,93 @@
+# The Android app. Bump Version (bump-version.yml) calls this with the new tag (v0.11.0): it builds
+# the app signed, with that version, and attaches it to the tag's GitHub Release as keni.apk. Run
+# it by hand (Actions → Android → Run workflow) to build one as a workflow artifact without a release.
+#
+# Signing uses the project's key, kept in two repository secrets. Android installs an update only
+# when it's signed with the same key, so make it once, back it up and never change it:
+#   password=$(openssl rand -hex 16)
+#   keytool -genkeypair -keystore keni.keystore -storepass "$password" -keypass "$password" \
+#     -alias keni -keyalg RSA -keysize 4096 -validity 36500 -dname CN=keni
+#   base64 -w0 keni.keystore | gh secret set ANDROID_KEYSTORE_BASE64
+#   printf %s "$password" | gh secret set ANDROID_KEYSTORE_PASSWORD
+# (keytool comes with any JDK; without one, run it in Docker:
+#  docker run --rm -v "$PWD:/k" -w /k eclipse-temurin:21-jdk keytool …)
+# A key that scripts/build-android.sh made (frontend/android/keni.keystore, its password in
+# keystore.properties) works too: then the app built locally and the released one update each other.
+name: Android
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: "The release's tag, e.g. v0.11.0"
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version, e.g. 0.11.0 (empty: dev, as a local build)"
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - name: Version
+        id: version
+        env:
+          TAG: ${{ inputs.tag || inputs.version }}
+        run: |
+          [[ -n $TAG ]] || exit 0 # versionName dev, versionCode 1
+          TAG=v${TAG#v}
+          [[ $TAG =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]?)\.(0|[1-9][0-9]?)$ ]] \
+            || { echo "::error::$TAG isn't vX.Y.Z with minor and patch below 100."; exit 1; }
+          code=$(( BASH_REMATCH[1] * 10000 + BASH_REMATCH[2] * 100 + BASH_REMATCH[3] ))
+          (( code > 0 )) || { echo "::error::The version must be above 0.0.0."; exit 1; }
+          echo "name=${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}" >> "$GITHUB_OUTPUT"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+      # Only the project's key: an app signed with any other couldn't update to a release.
+      - name: Signing key
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          [[ -n $KEYSTORE && -n $PASSWORD ]] \
+            || { echo "::error::Set the ANDROID_KEYSTORE_BASE64 and ANDROID_KEYSTORE_PASSWORD secrets (see the top of android.yml)."; exit 1; }
+          umask 077
+          printf %s "$KEYSTORE" | base64 -d > frontend/android/keni.keystore
+          printf 'password=%s\n' "$PASSWORD" > frontend/android/keystore.properties
+      # The same pinned toolchain (scripts/android.Dockerfile) and steps as a local build.
+      - name: Build
+        env:
+          VERSION_NAME: ${{ steps.version.outputs.name }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+        run: scripts/build-android.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: keni-apk
+          path: frontend/android/keni.apk
+          if-no-files-found: error
+
+  # Apart from the build, so the code that builds (bun install, Gradle) never has a token that can write.
+  release:
+    if: inputs.tag
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: keni-apk
+      # The release exists: Bump Version created it before calling this.
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
+        run: gh release upload "$TAG" keni.apk --clobber

@@ -6,11 +6,13 @@ on:
     tags: [ "v*.*.*" ]
     paths:
       - "frontend/**"
+      - "!frontend/android/**"
       - ".github/workflows/docker-frontend.yml"
   pull_request:
     branches: [ "main" ]
     paths:
       - "frontend/**"
+      - "!frontend/android/**"
       - ".github/workflows/docker-frontend.yml"
 
 env:
