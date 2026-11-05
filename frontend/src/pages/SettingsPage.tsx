@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Copy, Download, Eye, EyeOff, Info, Key, Plus, Trash2, User, Bot, Check } from 'lucide-react';
-import { users as usersApi, aiProvider as aiProviderApi, tokens as tokensApi, wallets as walletsApi, expenses as expensesApi } from '../lib/api';
+import { Copy, Download, Info, Key, Plus, Trash2, User, Bot, Check } from 'lucide-react';
+import { users as usersApi, aiProvider as aiProviderApi, aiConnections as aiConnectionsApi, tokens as tokensApi, wallets as walletsApi, expenses as expensesApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/Toast';
 import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
 import { SearchableSelect } from '../components/ui/SearchableSelect';
 import { DatePicker } from '../components/ui/DatePicker';
-import type { AIProviderResponse, APITokenCreateResponse, APITokenResponse, UserResponse, WalletResponse } from '../lib/types';
-import { AI_PROVIDERS, fmtDate } from '../lib/utils';
+import { AIConnectionList, AIConnectionModal } from '../components/AIConnectionModal';
+import type { AIConnection, AIConnectionInput, AIProviderResponse, APITokenCreateResponse, APITokenResponse, UserResponse, WalletResponse } from '../lib/types';
+import { fmtDate } from '../lib/utils';
 import { getSupportedCurrencies } from '../lib/fx';
 import { SUPPORTED_LOCALES } from '../lib/i18n';
 
@@ -245,86 +246,147 @@ function ProfileTab({ user, refreshUser, toast }: { user: UserResponse; refreshU
   );
 }
 
+type ModelList = string[] | 'loading' | 'error';
+
+function ModelField({ label, hint, value, onChange, models }: { label: string; hint?: string; value: string; onChange: (v: string) => void; models: ModelList | undefined }) {
+  const { t } = useTranslation();
+  const list = Array.isArray(models) ? models : [];
+  // Servers that don't implement /models (or return nothing) get a free-text input instead.
+  const freeText = models === 'error' || (Array.isArray(models) && models.length === 0);
+  const options = (value && !list.includes(value) ? [value, ...list] : list).map((m) => ({ value: m, label: m }));
+  return (
+    <div className="input-group" style={{ marginBottom: 0 }}>
+      <label className="input-label">{label}</label>
+      {freeText ? (
+        <input className="input" value={value} placeholder={t('settings.aiModelManualPlaceholder')} onChange={(e) => onChange(e.target.value)} />
+      ) : (
+        <SearchableSelect
+          value={value}
+          onChange={onChange}
+          options={options}
+          placeholder={models === 'loading' || models === undefined ? t('settings.aiModelLoading') : t('settings.aiModelPlaceholder')}
+          disabled={models === 'loading' || models === undefined}
+        />
+      )}
+      {models === 'error' && <span className="input-hint" style={{ color: 'var(--rose)' }}>{t('settings.aiKeyFetchFailed')}</span>}
+      {hint && <span className="input-hint">{hint}</span>}
+    </div>
+  );
+}
+
+const EMPTY_AI_FORM = { connection_id: '', model: '', chat_connection_id: '', chat_model: '', attachment_connection_id: '', attachment_model: '', ocr_enabled: false };
+
 function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refreshUser: () => Promise<void>; toast: (msg: string, type?: 'success' | 'error' | 'info') => void }) {
   const { t } = useTranslation();
+  const [connections, setConnections] = useState<AIConnection[]>([]);
   const [provider, setProvider] = useState<AIProviderResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [showKey, setShowKey] = useState(false);
-  const [form, setForm] = useState({ provider: 'anthropic', model: '', chat_model: '', attachment_model: '', api_key: '', ocr_enabled: false });
+  const [form, setForm] = useState(EMPTY_AI_FORM);
   const [useSeparateChatModel, setUseSeparateChatModel] = useState(false);
   const [useSeparateAttachmentModel, setUseSeparateAttachmentModel] = useState(false);
   const [customPrompt, setCustomPrompt] = useState<string>(user?.custom_ai_prompt ?? '');
   const [savingPrompt, setSavingPrompt] = useState(false);
-  const [models, setModels] = useState<string[]>([]);
-  const [fetchingModels, setFetchingModels] = useState(false);
+  const [models, setModels] = useState<Record<string, ModelList>>({});
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<AIConnection | null>(null);
+
+  const applyProvider = (p: AIProviderResponse | null) => {
+    setProvider(p);
+    if (!p) {
+      setForm(EMPTY_AI_FORM);
+      setUseSeparateChatModel(false);
+      setUseSeparateAttachmentModel(false);
+      return;
+    }
+    setUseSeparateChatModel(!!(p.chat_connection_id || p.chat_model));
+    setUseSeparateAttachmentModel(!!(p.attachment_connection_id || p.attachment_model));
+    setForm({
+      connection_id: p.connection_id ?? '',
+      model: p.model,
+      chat_connection_id: p.chat_connection_id ?? p.connection_id ?? '',
+      chat_model: p.chat_model ?? '',
+      attachment_connection_id: p.attachment_connection_id ?? p.connection_id ?? '',
+      attachment_model: p.attachment_model ?? '',
+      ocr_enabled: p.ocr_enabled,
+    });
+  };
+
+  const load = async () => {
+    const [conns, p] = await Promise.all([
+      aiConnectionsApi.list().catch(() => [] as AIConnection[]),
+      aiProviderApi.get().catch(() => null),
+    ]);
+    setConnections(conns);
+    applyProvider(p);
+    if (!p?.connection_id && conns.length > 0) {
+      setForm((f) => ({ ...f, connection_id: conns[0].id, chat_connection_id: conns[0].id, attachment_connection_id: conns[0].id }));
+    }
+  };
 
   useEffect(() => {
-    aiProviderApi.get()
-      .then(async (p) => {
-        setProvider(p);
-        setUseSeparateChatModel(!!p.chat_model);
-        setUseSeparateAttachmentModel(!!p.attachment_model);
-        setForm({ provider: p.provider, model: p.model, chat_model: p.chat_model ?? '', attachment_model: p.attachment_model ?? '', api_key: '', ocr_enabled: p.ocr_enabled });
-        // Fetch available models using the stored key so the user can change model
-        setFetchingModels(true);
-        try {
-          const { models: fetched } = await aiProviderApi.listModels();
-          setModels(fetched);
-        } catch {
-          setModels([]);
-        } finally {
-          setFetchingModels(false);
-        }
-      })
-      .catch(() => { })
-      .finally(() => setLoading(false));
-  }, []);
+    load().finally(() => setLoading(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchModels = async (id: string, force = false) => {
+    if (!id || (!force && models[id] !== undefined)) return;
+    setModels((m) => ({ ...m, [id]: 'loading' }));
+    try {
+      const { models: fetched } = await aiConnectionsApi.models(id);
+      setModels((m) => ({ ...m, [id]: fetched }));
+    } catch {
+      setModels((m) => ({ ...m, [id]: 'error' }));
+    }
+  };
 
   useEffect(() => {
-    if (!form.api_key) return;
-    const timer = setTimeout(async () => {
-      setFetchingModels(true);
-      try {
-        const { models: fetched } = await aiProviderApi.listModels(form.api_key, form.provider);
-        setModels(fetched);
-        setForm((f) => ({ ...f, model: fetched.includes(f.model) ? f.model : (fetched[0] ?? '') }));
-      } catch {
-        setModels([]);
-      } finally {
-        setFetchingModels(false);
+    fetchModels(form.connection_id);
+    if (useSeparateChatModel) fetchModels(form.chat_connection_id);
+    if (useSeparateAttachmentModel) fetchModels(form.attachment_connection_id);
+  }, [form.connection_id, form.chat_connection_id, form.attachment_connection_id, useSeparateChatModel, useSeparateAttachmentModel]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSaveConnection = async (data: Partial<AIConnectionInput>) => {
+    if (editing) {
+      await aiConnectionsApi.update(editing.id, data);
+      fetchModels(editing.id, true);
+      toast(t('settings.aiConnToastSaved'), 'success');
+    } else {
+      const created = await aiConnectionsApi.create(data as AIConnectionInput);
+      if (!form.connection_id) {
+        setForm((f) => ({ ...f, connection_id: created.id, chat_connection_id: created.id, attachment_connection_id: created.id, model: '' }));
       }
-    }, 600);
-    return () => clearTimeout(timer);
-  }, [form.api_key, form.provider]);
+      toast(t('settings.aiConnToastAdded'), 'success');
+    }
+    setConnections(await aiConnectionsApi.list());
+  };
+
+  const handleDeleteConnection = async (c: AIConnection) => {
+    try {
+      await aiConnectionsApi.delete(c.id);
+      toast(t('settings.aiConnToastDeleted'), 'success');
+      await load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Failed', 'error');
+    }
+  };
 
   const handleSave = async () => {
-    if (!form.api_key && !provider) { toast(t('settings.aiToastKeyRequired'), 'error'); return; }
+    if (!form.connection_id) { toast(t('settings.aiToastConnectionRequired'), 'error'); return; }
     if (!form.model) { toast(t('settings.aiToastModelRequired'), 'error'); return; }
+    if (useSeparateChatModel && !form.chat_model) { toast(t('settings.aiToastModelRequired'), 'error'); return; }
+    if (useSeparateAttachmentModel && !form.attachment_model) { toast(t('settings.aiToastModelRequired'), 'error'); return; }
     setSaving(true);
     try {
       const updated = await aiProviderApi.upsert({
-        provider: form.provider,
+        connection_id: form.connection_id,
         model: form.model,
-        chat_model: useSeparateChatModel ? (form.chat_model || null) : null,
-        attachment_model: useSeparateAttachmentModel ? (form.attachment_model || null) : null,
-        api_key: form.api_key || undefined,
+        chat_connection_id: useSeparateChatModel ? form.chat_connection_id || null : null,
+        chat_model: useSeparateChatModel ? form.chat_model || null : null,
+        attachment_connection_id: useSeparateAttachmentModel ? form.attachment_connection_id || null : null,
+        attachment_model: useSeparateAttachmentModel ? form.attachment_model || null : null,
         ocr_enabled: form.ocr_enabled,
       });
-      setProvider(updated);
-      setUseSeparateChatModel(!!updated.chat_model);
-      setUseSeparateAttachmentModel(!!updated.attachment_model);
-      setForm((f) => ({ ...f, api_key: '', chat_model: updated.chat_model ?? '', attachment_model: updated.attachment_model ?? '' }));
-      // Re-fetch models using the (possibly new) stored key
-      setFetchingModels(true);
-      try {
-        const { models: fetched } = await aiProviderApi.listModels();
-        setModels(fetched);
-      } catch {
-        setModels([]);
-      } finally {
-        setFetchingModels(false);
-      }
+      applyProvider(updated);
       toast(t('settings.aiToastSaved'), 'success');
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed', 'error');
@@ -337,11 +399,7 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
     setSaving(true);
     try {
       await aiProviderApi.delete();
-      setProvider(null);
-      setModels([]);
-      setUseSeparateChatModel(false);
-      setUseSeparateAttachmentModel(false);
-      setForm({ provider: 'anthropic', model: '', chat_model: '', attachment_model: '', api_key: '', ocr_enabled: true });
+      applyProvider(null);
       toast(t('settings.aiToastRemoved'), 'success');
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed', 'error');
@@ -352,166 +410,178 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
 
   if (loading) return <div className="skeleton" style={{ height: 200, borderRadius: 14 }} />;
 
-  const modelOptions = models.length > 0 ? models : (provider && !form.api_key ? [provider.model] : []);
-  const chatModelOptions = models.length > 0 ? models : (provider?.chat_model && !form.api_key ? [provider.chat_model] : modelOptions);
-  const attachmentModelOptions = models.length > 0 ? models : (provider?.attachment_model && !form.api_key ? [provider.attachment_model] : modelOptions);
+  const connectionOptions = connections.map((c) => ({
+    value: c.id,
+    label: c.shared ? `${c.name} (${t('settings.aiConnShared')})` : c.name,
+  }));
+  const activeConnection = connections.find((c) => c.id === provider?.connection_id);
+  const cardStyle = { background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px', display: 'flex', flexDirection: 'column' as const, gap: 16 };
 
   return (
     <>
-      <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {provider && (
-          <div style={{ background: 'var(--green-tint-soft)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Check size={16} style={{ color: 'var(--forest)' }} />
-            <div>
-              <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--forest)' }}>
-                {t('settings.aiConfigured', { provider: AI_PROVIDERS.find((p) => p.value === provider.provider)?.label ?? provider.provider })}
-              </span>
-              <span style={{ fontSize: 12, color: 'var(--forest-light)', display: 'block' }}>
-                {t('settings.aiConfiguredDetails', {
-                  model: provider.model,
-                  key: provider.api_key_masked,
-                  ocr: provider.ocr_enabled ? t('settings.aiOcrOn') : t('settings.aiOcrOff'),
-                })}
-              </span>
-            </div>
-            <button className="btn btn-ghost btn-sm" onClick={handleDelete} disabled={saving} style={{ marginLeft: 'auto', color: 'var(--rose)' }}>
-              {t('settings.aiRemove')}
-            </button>
+      <div style={cardStyle}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>{t('settings.aiConnectionsTitle')}</div>
+            <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{t('settings.aiConnectionsDesc')}</div>
           </div>
-        )}
-
-        <div className="input-group">
-          <label className="input-label">{t('settings.aiProviderLabel')}</label>
-          <Select
-            value={form.provider}
-            onChange={(v) => setForm({ ...form, provider: v, model: '' })}
-            options={AI_PROVIDERS}
-          />
+          <button className="btn btn-secondary btn-sm" onClick={() => { setEditing(null); setModalOpen(true); }}>
+            <Plus size={14} /> {t('settings.aiConnAdd')}
+          </button>
         </div>
-
-        <div className="input-group">
-          <label className="input-label">{t('settings.aiKeyLabel')} {provider && t('settings.aiKeyKeepCurrent')}</label>
-          <div style={{ position: 'relative' }}>
-            <input
-              className="input"
-              type={showKey ? 'text' : 'password'}
-              placeholder={provider ? '••••••••••••' : { anthropic: 'sk-ant-...', gemini: 'AIza...', openai: 'sk-...', openrouter: 'sk-or-...' }[form.provider] ?? 'API key...'}
-              value={form.api_key}
-              onChange={(e) => setForm({ ...form, api_key: e.target.value })}
-              style={{ paddingRight: 40 }}
-            />
-            <button
-              className="icon-btn"
-              onClick={() => setShowKey(!showKey)}
-              style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)' }}
-            >
-              {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
-            </button>
-          </div>
-          {fetchingModels && (
-            <span className="input-hint">{t('settings.aiKeyFetching')}</span>
-          )}
-          {!fetchingModels && models.length === 0 && form.api_key && (
-            <span className="input-hint" style={{ color: 'var(--rose)' }}>{t('settings.aiKeyFetchFailed')}</span>
-          )}
+        {connections.length === 0 ? (
           <span className="input-hint">
             {t('settings.aiKeyHintText')}{' '}
             <a href="https://www.seria.moe/posts/share/free-llm" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--forest)' }}>
               {t('settings.aiKeyHintLink')}
             </a>
           </span>
-        </div>
-
-        <div className="input-group">
-          <label className="input-label">{t('settings.aiModelLabel')}</label>
-          <SearchableSelect
-            value={form.model}
-            onChange={(v) => setForm({ ...form, model: v })}
-            options={modelOptions.map((m) => ({ value: m, label: m }))}
-            placeholder={fetchingModels ? t('settings.aiModelLoading') : t('settings.aiModelPlaceholder')}
-            disabled={modelOptions.length === 0}
+        ) : (
+          <AIConnectionList
+            connections={connections}
+            onEdit={(c) => { setEditing(c); setModalOpen(true); }}
+            onDelete={handleDeleteConnection}
           />
-        </div>
+        )}
+      </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
-            <input
-              type="checkbox"
-              checked={useSeparateChatModel}
-              onChange={(e) => {
-                setUseSeparateChatModel(e.target.checked);
-                if (!e.target.checked) setForm((f) => ({ ...f, chat_model: '' }));
-              }}
-              style={{ width: 16, height: 16, accentColor: 'var(--forest)', cursor: 'pointer' }}
-            />
-            <span style={{ fontSize: 14, color: 'var(--ink)' }}>{t('settings.aiChatModelToggle')}</span>
-          </label>
-
-          {useSeparateChatModel && (
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">{t('settings.aiChatModelLabel')}</label>
-              <SearchableSelect
-                value={form.chat_model}
-                onChange={(v) => setForm((f) => ({ ...f, chat_model: v }))}
-                options={chatModelOptions.map((m) => ({ value: m, label: m }))}
-                placeholder={fetchingModels ? t('settings.aiModelLoading') : t('settings.aiModelPlaceholder')}
-                disabled={chatModelOptions.length === 0}
-              />
-              <span className="input-hint">{t('settings.aiChatModelHint')}</span>
+      {connections.length > 0 && (
+        <div style={{ ...cardStyle, marginTop: 16 }}>
+          {provider && activeConnection && (
+            <div style={{ background: 'var(--green-tint-soft)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Check size={16} style={{ color: 'var(--forest)' }} />
+              <div>
+                <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--forest)' }}>
+                  {t('settings.aiConfigured', { provider: activeConnection.name })}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--forest-light)', display: 'block' }}>
+                  {t('settings.aiConfiguredDetails', {
+                    model: provider.model,
+                    ocr: provider.ocr_enabled ? t('settings.aiOcrOn') : t('settings.aiOcrOff'),
+                  })}
+                </span>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={handleDelete} disabled={saving} style={{ marginLeft: 'auto', color: 'var(--rose)' }}>
+                {t('settings.aiRemove')}
+              </button>
             </div>
           )}
 
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
-            <input
-              type="checkbox"
-              checked={useSeparateAttachmentModel}
-              onChange={(e) => {
-                setUseSeparateAttachmentModel(e.target.checked);
-                if (!e.target.checked) setForm((f) => ({ ...f, attachment_model: '' }));
-              }}
-              style={{ width: 16, height: 16, accentColor: 'var(--forest)', cursor: 'pointer' }}
+          <div className="input-group" style={{ marginBottom: 0 }}>
+            <label className="input-label">{t('settings.aiConnectionLabel')}</label>
+            <Select
+              value={form.connection_id}
+              onChange={(v) => setForm((f) => ({ ...f, connection_id: v, model: '' }))}
+              options={connectionOptions}
             />
-            <span style={{ fontSize: 14, color: 'var(--ink)' }}>{t('settings.aiAttachmentModelToggle')}</span>
-          </label>
+          </div>
+          <ModelField
+            label={t('settings.aiModelLabel')}
+            value={form.model}
+            onChange={(v) => setForm((f) => ({ ...f, model: v }))}
+            models={models[form.connection_id]}
+          />
 
-          {useSeparateAttachmentModel && (
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">{t('settings.aiAttachmentModelLabel')}</label>
-              <SearchableSelect
-                value={form.attachment_model}
-                onChange={(v) => setForm((f) => ({ ...f, attachment_model: v }))}
-                options={attachmentModelOptions.map((m) => ({ value: m, label: m }))}
-                placeholder={fetchingModels ? t('settings.aiModelLoading') : t('settings.aiModelPlaceholder')}
-                disabled={attachmentModelOptions.length === 0}
-              />
-              <span className="input-hint">{t('settings.aiAttachmentModelHint')}</span>
-            </div>
-          )}
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
               <input
                 type="checkbox"
-                checked={form.ocr_enabled}
-                onChange={(e) => setForm({ ...form, ocr_enabled: e.target.checked })}
+                checked={useSeparateChatModel}
+                onChange={(e) => {
+                  setUseSeparateChatModel(e.target.checked);
+                  setForm((f) => ({ ...f, chat_connection_id: f.chat_connection_id || f.connection_id, chat_model: '' }));
+                }}
                 style={{ width: 16, height: 16, accentColor: 'var(--forest)', cursor: 'pointer' }}
               />
-              <span style={{ fontSize: 14, color: 'var(--ink)' }}>
-                {t('settings.aiOcrLabel')}
-              </span>
+              <span style={{ fontSize: 14, color: 'var(--ink)' }}>{t('settings.aiChatModelToggle')}</span>
             </label>
-            <InfoTooltip>
-              {t('settings.aiOcrTooltip')}
-            </InfoTooltip>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button className="btn btn-primary btn-md" onClick={handleSave} disabled={saving}>
-              {saving && <span className="btn-spinner" />}
-              {provider ? t('settings.aiUpdate') : t('settings.aiSave')}
-            </button>
+
+            {useSeparateChatModel && (
+              <>
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                  <label className="input-label">{t('settings.aiChatConnectionLabel')}</label>
+                  <Select
+                    value={form.chat_connection_id}
+                    onChange={(v) => setForm((f) => ({ ...f, chat_connection_id: v, chat_model: '' }))}
+                    options={connectionOptions}
+                  />
+                </div>
+                <ModelField
+                  label={t('settings.aiChatModelLabel')}
+                  hint={t('settings.aiChatModelHint')}
+                  value={form.chat_model}
+                  onChange={(v) => setForm((f) => ({ ...f, chat_model: v }))}
+                  models={models[form.chat_connection_id]}
+                />
+              </>
+            )}
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                checked={useSeparateAttachmentModel}
+                onChange={(e) => {
+                  setUseSeparateAttachmentModel(e.target.checked);
+                  setForm((f) => ({ ...f, attachment_connection_id: f.attachment_connection_id || f.connection_id, attachment_model: '' }));
+                }}
+                style={{ width: 16, height: 16, accentColor: 'var(--forest)', cursor: 'pointer' }}
+              />
+              <span style={{ fontSize: 14, color: 'var(--ink)' }}>{t('settings.aiAttachmentModelToggle')}</span>
+            </label>
+
+            {useSeparateAttachmentModel && (
+              <>
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                  <label className="input-label">{t('settings.aiAttachmentConnectionLabel')}</label>
+                  <Select
+                    value={form.attachment_connection_id}
+                    onChange={(v) => setForm((f) => ({ ...f, attachment_connection_id: v, attachment_model: '' }))}
+                    options={connectionOptions}
+                  />
+                </div>
+                <ModelField
+                  label={t('settings.aiAttachmentModelLabel')}
+                  hint={t('settings.aiAttachmentModelHint')}
+                  value={form.attachment_model}
+                  onChange={(v) => setForm((f) => ({ ...f, attachment_model: v }))}
+                  models={models[form.attachment_connection_id]}
+                />
+              </>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
+                <input
+                  type="checkbox"
+                  checked={form.ocr_enabled}
+                  onChange={(e) => setForm((f) => ({ ...f, ocr_enabled: e.target.checked }))}
+                  style={{ width: 16, height: 16, accentColor: 'var(--forest)', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: 14, color: 'var(--ink)' }}>
+                  {t('settings.aiOcrLabel')}
+                </span>
+              </label>
+              <InfoTooltip>
+                {t('settings.aiOcrTooltip')}
+              </InfoTooltip>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn btn-primary btn-md" onClick={handleSave} disabled={saving}>
+                {saving && <span className="btn-spinner" />}
+                {provider ? t('settings.aiUpdate') : t('settings.aiSave')}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {modalOpen && (
+        <AIConnectionModal
+          onClose={() => setModalOpen(false)}
+          connection={editing}
+          onSave={handleSaveConnection}
+        />
+      )}
 
       <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
         <div>

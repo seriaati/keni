@@ -1,3 +1,4 @@
+from app.models.ai_connection import AIConnection
 from app.models.ai_provider import AIProvider
 from app.models.api_token import APIToken
 from app.models.budget import Budget

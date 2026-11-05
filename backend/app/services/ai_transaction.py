@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import base64
 import logging
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
@@ -9,13 +8,11 @@ from typing import TYPE_CHECKING
 from fastapi import HTTPException, status
 from sqlmodel import col, select
 
-from app.models.ai_provider import AIProvider
 from app.models.category import Category
 from app.models.tag import Tag
 from app.models.transaction import Transaction
 from app.models.user import User
 from app.models.wallet import Wallet
-from app.providers import get_provider
 from app.providers.base import LUCIDE_ICONS
 from app.providers.errors import (
     ProviderAPIError,
@@ -24,6 +21,7 @@ from app.providers.errors import (
     ProviderPermissionError,
     ProviderRateLimitError,
 )
+from app.services.ai_connections import get_ai_provider_record, resolve_provider
 from app.services.ocr import extract_text_from_base64
 
 logger = logging.getLogger(__name__)
@@ -91,20 +89,6 @@ class ParsedTransactionsResult:
     suggested_wallet_id: str | None = None
 
 
-def _mask_key(key: str) -> str:
-    if len(key) <= 8:
-        return "****"
-    return key[:4] + "****" + key[-4:]
-
-
-def _encrypt_key(key: str) -> str:
-    return base64.b64encode(key.encode()).decode()
-
-
-def _decrypt_key(encrypted: str) -> str:
-    return base64.b64decode(encrypted.encode()).decode()
-
-
 _MAX_EXAMPLES = 15
 
 
@@ -139,50 +123,6 @@ async def _recent_description_examples(
     return examples
 
 
-async def get_ai_provider_record(user_id: uuid.UUID, session: AsyncSession) -> AIProvider | None:
-    result = await session.exec(select(AIProvider).where(AIProvider.user_id == user_id))
-    return result.first()
-
-
-async def upsert_ai_provider(  # ruff: ignore[too-many-arguments, too-many-positional-arguments]
-    user_id: uuid.UUID,
-    provider: str,
-    api_key: str | None,
-    model: str,
-    session: AsyncSession,
-    ocr_enabled: bool = True,
-    chat_model: str | None = None,
-    attachment_model: str | None = None,
-) -> AIProvider:
-    record = await get_ai_provider_record(user_id, session)
-    if record is None:
-        if not api_key:
-            msg = "API key is required when creating a new AI provider"
-            raise ValueError(msg)
-        record = AIProvider(
-            user_id=user_id,
-            provider=provider,
-            api_key_encrypted=_encrypt_key(api_key),
-            model=model,
-            ocr_enabled=ocr_enabled,
-            chat_model=chat_model,
-            attachment_model=attachment_model,
-        )
-    else:
-        record.provider = provider
-        if api_key:
-            record.api_key_encrypted = _encrypt_key(api_key)
-        record.model = model
-        record.ocr_enabled = ocr_enabled
-        record.chat_model = chat_model
-        record.attachment_model = attachment_model
-
-    session.add(record)
-    await session.commit()
-    await session.refresh(record)
-    return record
-
-
 async def parse_transactions_with_ai(  # ruff: ignore[too-many-locals, too-many-statements, complex-structure]
     user_id: uuid.UUID,
     text: str | None,
@@ -196,8 +136,6 @@ async def parse_transactions_with_ai(  # ruff: ignore[too-many-locals, too-many-
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="No AI provider configured. Set up your API key at /api/users/me/ai-provider.",
         )
-
-    api_key = _decrypt_key(record.api_key_encrypted)
 
     async def _run_ocr() -> tuple[list[str], list[tuple[str, str]]]:
         """OCR each image in a worker thread; return extracted texts and unrecognized images."""
@@ -236,8 +174,9 @@ async def parse_transactions_with_ai(  # ruff: ignore[too-many-locals, too-many-
     wallet_context = [(w.name, w.currency) for w in user_wallets]
     wallet_by_name = {w.name.lower(): str(w.id) for w in user_wallets}
 
-    model = record.attachment_model if images and record.attachment_model else record.model
-    provider = get_provider(record.provider, api_key=api_key, model=model)
+    provider, model = await resolve_provider(
+        record, "attachment" if images else "parse", session
+    )
 
     try:
         output = await provider.parse_transactions(

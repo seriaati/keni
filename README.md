@@ -19,7 +19,7 @@ For AI, Keni uses BYOK (bring your own key) and does not come with any cloud AI 
 - **⌘ K to log anything**: Use the command bar to record income, spending, recurring bills, grouped expenses, or multiple transactions at once. Using AI, Keni infers context, categorizes with high detail, and fills in the blanks.
 - **Receipt & invoice scanning**: Upload a photo of a paper receipt or a PDF e-invoice. The AI reads the total, line items, merchant, and date, then records it for you.
 - **Chat with your data**: Ask anything in plain language, like chatting with a personal finance advisor. Get real answers from your actual numbers.
-- **Model agnostic**: Bring your own API key. Keni works with OpenAI, OpenRouter, Anthropic, and Google Gemini.
+- **Model agnostic**: Bring your own API key. Keni works with OpenAI, OpenRouter, Anthropic, Google Gemini, and any OpenAI-compatible server (Ollama, LM Studio, vLLM, LiteLLM). Save multiple connections and pick a different one for parsing, chat, and attachments; admins can share connections with every user.
 - **Voice input**: Tap the mic and speak your expense. Audio is processed locally, nothing leaves your server.
 - **Multiple wallets**: Separate personal, business, travel, or shared expenses across wallets. Each wallet has its own currency, history, and analytics - perfect for people living across borders.
 - **Categories & tags**: Organize expenses with categories and tags. The AI suggests both automatically based on context, reducing your input to near zero. Filter by either when reviewing your history.
@@ -53,6 +53,7 @@ Edit the `backend` service environment variables in [`docker-compose.yml`](docke
 | `DATA_RETENTION_EXEMPT_USERNAMES` | `[]` | JSON array of usernames exempt from data retention. |
 | `RECURRING_INTERVAL_MINUTES` | `60` | Interval in minutes for processing recurring transactions. |
 | `DATA_RETENTION_INTERVAL_HOURS` | `24` | Interval in hours for running data retention cleanup. |
+| `ALLOW_USER_CUSTOM_BASE_URLS` | `true` | Let non-admin users point AI connections at custom base URLs. Set to `false` to restrict custom endpoints to admin-shared connections. |
 | `STT_PROVIDER` | `local` | Speech-to-text provider: `local` (Whisper, runs on your server) or `external`. |
 | `WHISPER_MODEL_SIZE` | `base` | Whisper model size: `tiny`, `base`, `small`, `medium`, `large`. |
 | `MCP_ALLOWED_HOSTS` | `["127.0.0.1:*","localhost:*","[::1]:*"]` | JSON array of allowed `Host` header values for the MCP endpoint. Add your domain (e.g. `"api.example.com"`) when hosting behind a reverse proxy. |

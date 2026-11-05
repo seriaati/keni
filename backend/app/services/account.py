@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from sqlmodel import col, delete
 
+from app.models.ai_connection import AIConnection
 from app.models.ai_provider import AIProvider
 from app.models.api_token import APIToken
 from app.models.budget import Budget
@@ -25,8 +26,9 @@ async def delete_user_account(user_id: uuid.UUID, session: AsyncSession) -> None
 
     Order matters: budgets reference categories, transactions and recurring rules
     reference categories and cascade from wallets, so wallets go before categories.
+    AI preferences reference AI connections, so they go first.
     """
-    for model in (Budget, Wallet, Category, Tag, APIToken, AIProvider, OAuthToken):
+    for model in (Budget, Wallet, Category, Tag, APIToken, AIProvider, AIConnection, OAuthToken):
         await session.exec(delete(model).where(col(model.user_id) == user_id))
     await session.exec(
         delete(OAuthAuthorizationCode).where(col(OAuthAuthorizationCode.user_id) == user_id)

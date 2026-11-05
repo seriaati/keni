@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Shield, Users } from 'lucide-react';
-import { admin as adminApi } from '../lib/api';
+import { Plus, Shield, Users } from 'lucide-react';
+import { admin as adminApi, adminAiConnections as adminAiConnectionsApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
+import { AIConnectionList, AIConnectionModal } from '../components/AIConnectionModal';
+import type { AIConnection, AIConnectionInput } from '../lib/types';
 
 export function AdminPage() {
   const { t } = useTranslation();
@@ -102,6 +104,69 @@ export function AdminPage() {
           </div>
         </div>
       )}
+
+      <SharedAIConnections />
+    </div>
+  );
+}
+
+function SharedAIConnections() {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const [connections, setConnections] = useState<AIConnection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<AIConnection | null>(null);
+
+  const load = () => adminAiConnectionsApi.list()
+    .then(setConnections)
+    .catch(() => toast(t('admin.toastLoadFailed'), 'error'));
+
+  useEffect(() => {
+    load().finally(() => setLoading(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSave = async (data: Partial<AIConnectionInput>) => {
+    if (editing) await adminAiConnectionsApi.update(editing.id, data);
+    else await adminAiConnectionsApi.create(data as AIConnectionInput);
+    toast(t('settings.aiConnToastSaved'), 'success');
+    await load();
+  };
+
+  const handleDelete = async (c: AIConnection) => {
+    try {
+      await adminAiConnectionsApi.delete(c.id);
+      toast(t('settings.aiConnToastDeleted'), 'success');
+      await load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Failed', 'error');
+    }
+  };
+
+  return (
+    <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px', marginTop: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 2 }}>{t('admin.aiConnectionsTitle')}</div>
+          <div style={{ fontSize: 13, color: 'var(--ink-light)' }}>{t('admin.aiConnectionsDesc')}</div>
+        </div>
+        <button className="btn btn-secondary btn-sm" onClick={() => { setEditing(null); setModalOpen(true); }}>
+          <Plus size={14} /> {t('settings.aiConnAdd')}
+        </button>
+      </div>
+      {loading ? (
+        <div className="skeleton" style={{ height: 60, borderRadius: 10 }} />
+      ) : connections.length === 0 ? (
+        <span className="input-hint">{t('admin.aiConnectionsEmpty')}</span>
+      ) : (
+        <AIConnectionList
+          connections={connections}
+          manageShared
+          onEdit={(c) => { setEditing(c); setModalOpen(true); }}
+          onDelete={handleDelete}
+        />
+      )}
+      {modalOpen && <AIConnectionModal onClose={() => setModalOpen(false)} connection={editing} onSave={handleSave} />}
     </div>
   );
 }

@@ -239,13 +239,46 @@ export interface APITokenCreateResponse extends APITokenResponse {
   token: string;
 }
 
+export type AIConnectionKind = 'anthropic' | 'gemini' | 'openai' | 'openrouter' | 'openai_compatible';
+
+export interface AIConnection {
+  id: string;
+  name: string;
+  kind: AIConnectionKind;
+  base_url: string | null;
+  /** Null for shared connections (non-admin view) or when no key is stored. */
+  api_key_masked: string | null;
+  has_api_key: boolean;
+  shared: boolean;
+}
+
+export interface AIConnectionInput {
+  name: string;
+  kind: AIConnectionKind;
+  base_url: string | null;
+  /** Omit to keep the stored key; empty string clears it. */
+  api_key?: string;
+}
+
+export interface AIConnectionTestRequest {
+  kind: AIConnectionKind;
+  base_url: string | null;
+  api_key?: string;
+  connection_id?: string;
+}
+
 export interface AIProviderResponse {
-  provider: string;
+  connection_id: string | null;
   model: string;
+  chat_connection_id: string | null;
   chat_model: string | null;
+  attachment_connection_id: string | null;
   attachment_model: string | null;
-  api_key_masked: string;
   ocr_enabled: boolean;
+}
+
+export interface AIProviderUpsert extends Omit<AIProviderResponse, 'connection_id'> {
+  connection_id: string;
 }
 
 export interface AIProviderModelsResponse {

@@ -1,8 +1,12 @@
 import type {
   AdminSettingsResponse,
+  AIConnection,
+  AIConnectionInput,
+  AIConnectionTestRequest,
   AIParseResponse,
   AIProviderModelsResponse,
   AIProviderResponse,
+  AIProviderUpsert,
   APITokenCreateResponse,
   APITokenResponse,
   BudgetResponse,
@@ -374,18 +378,38 @@ export const tokens = {
 
 export const aiProvider = {
   get: () => request<AIProviderResponse>('/users/me/ai-provider'),
-  upsert: (data: { provider: string; api_key?: string; model: string; chat_model?: string | null; attachment_model?: string | null; ocr_enabled?: boolean }) =>
+  upsert: (data: AIProviderUpsert) =>
     request<AIProviderResponse>('/users/me/ai-provider', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
   delete: () => request<void>('/users/me/ai-provider', { method: 'DELETE' }),
-  listModels: (api_key?: string, provider?: string) =>
-    request<AIProviderModelsResponse>('/users/me/ai-provider/models', {
+};
+
+function aiConnectionsAt(base: string) {
+  return {
+    list: () => request<AIConnection[]>(base),
+    create: (data: AIConnectionInput) =>
+      request<AIConnection>(base, { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<AIConnectionInput>) =>
+      request<AIConnection>(`${base}/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    delete: (id: string) => request<void>(`${base}/${id}`, { method: 'DELETE' }),
+  };
+}
+
+export const aiConnections = {
+  ...aiConnectionsAt('/users/me/ai-connections'),
+  /** Works for the user's own and shared connections. */
+  models: (id: string) =>
+    request<AIProviderModelsResponse>(`/users/me/ai-connections/${id}/models`, { method: 'POST' }),
+  testModels: (data: AIConnectionTestRequest) =>
+    request<AIProviderModelsResponse>('/users/me/ai-connections/models', {
       method: 'POST',
-      body: JSON.stringify({ api_key: api_key || null, provider: provider || null }),
+      body: JSON.stringify(data),
     }),
 };
+
+export const adminAiConnections = aiConnectionsAt('/admin/ai-connections');
 
 export const chat = {
   send: (message: string, wallet_id?: string) =>
