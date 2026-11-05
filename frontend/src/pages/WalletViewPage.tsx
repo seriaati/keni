@@ -291,15 +291,17 @@ export function WalletViewPage() {
         if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement).isContentEditable) return;
         e.preventDefault();
         handleSelectAll();
-      } else if (e.key === 'Escape') {
+      } else if (e.key === 'Escape' && isSelecting && !e.defaultPrevented) {
+        e.preventDefault();
         setSelectedIds(new Set());
         setIsSelecting(false);
         lastClickedIndexRef.current = -1;
       }
     };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [handleSelectAll]);
+    // On window, so it runs after the overlays' document listeners: Escape closes those first
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [handleSelectAll, isSelecting]);
 
   // --- Bulk delete ---
   const handleBulkDelete = async () => {
@@ -1448,7 +1450,7 @@ function BulkActionsBar({
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key === 'Escape') { e.preventDefault(); onClose(); return; }
       if (e.key === 'ArrowDown') { e.preventDefault(); setHighlightedIndex((i) => Math.min(i + 1, actions.length - 1)); return; }
       if (e.key === 'ArrowUp') { e.preventDefault(); setHighlightedIndex((i) => Math.max(i - 1, 0)); return; }
       if (e.key === 'Enter' && actions[highlightedIndex]) { actions[highlightedIndex].execute(); onClose(); }

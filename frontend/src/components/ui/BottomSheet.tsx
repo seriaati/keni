@@ -35,7 +35,7 @@ export function BottomSheet({ open, onClose, children }: BottomSheetProps) {
   useEffect(() => {
     if (!open) return;
     openedAt.current = performance.now();
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); onClose(); } };
     document.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden';
     return () => {

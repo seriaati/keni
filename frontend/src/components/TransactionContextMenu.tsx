@@ -166,7 +166,7 @@ export function TransactionContextMenu({
       if (menuRef.current?.contains(target) || submenuRef.current?.contains(target)) return;
       onClose();
     };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); onClose(); } };
     const onScroll = (e: Event) => {
       const target = e.target as Node;
       if (menuRef.current?.contains(target) || submenuRef.current?.contains(target)) return;

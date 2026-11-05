@@ -131,6 +131,9 @@ export function SearchableSelect({
         }
         break;
       case 'Escape':
+        if (open) { e.preventDefault(); e.stopPropagation(); } // a Modal around it stays open
+        setOpen(false);
+        break;
       case 'Tab':
         setOpen(false);
         break;
@@ -150,6 +153,9 @@ export function SearchableSelect({
         setOpen(true);
         break;
       case 'Escape':
+        if (open) { e.preventDefault(); e.stopPropagation(); } // a Modal around it stays open
+        setOpen(false);
+        break;
       case 'Tab':
         setOpen(false);
         break;

@@ -67,7 +67,10 @@ export function TagMultiSelect({
       if (showCreate) { addTag(trimmed); }
       else if (filtered[0]) { addTag(filtered[0].name); }
     }
-    if (e.key === 'Escape') setOpen(false);
+    if (e.key === 'Escape') {
+      if (open) { e.preventDefault(); e.stopPropagation(); } // the CommandBar stays open
+      setOpen(false);
+    }
   };
 
   return (

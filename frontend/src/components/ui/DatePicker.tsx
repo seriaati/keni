@@ -199,7 +199,13 @@ export function DatePicker({ value, onChange, disabled = false, id }: DatePicker
   ) : null;
 
   return (
-    <div className={`dp-root${open ? ' dp-open' : ''}${disabled ? ' dp-disabled' : ''}`}>
+    <div
+      className={`dp-root${open ? ' dp-open' : ''}${disabled ? ' dp-disabled' : ''}`}
+      onKeyDown={(e) => {
+        // the popup is portaled, but its keys still bubble here through React
+        if (e.key === 'Escape' && open) { e.preventDefault(); e.stopPropagation(); setOpen(false); }
+      }}
+    >
       <button
         ref={triggerRef}
         id={id}

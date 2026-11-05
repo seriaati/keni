@@ -58,7 +58,7 @@ export function EditContextMenu({
       if (menuRef.current?.contains(e.target as Node)) return;
       onClose();
     };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); onClose(); } };
     const onDismiss = () => onClose();
     document.addEventListener('mousedown', onMouseDown);
     document.addEventListener('keydown', onKey);

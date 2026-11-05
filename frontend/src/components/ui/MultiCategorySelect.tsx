@@ -117,6 +117,7 @@ export function MultiCategorySelect({
         break;
       }
       case 'Escape':
+        if (open) { e.preventDefault(); e.stopPropagation(); } // a Modal around it stays open
         setOpen(false);
         break;
     }

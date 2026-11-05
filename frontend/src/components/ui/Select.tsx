@@ -108,6 +108,9 @@ export function Select({ value, onChange, options, placeholder = 'Select…', di
         setFocusedIndex((i) => Math.max(i - 1, 0));
         break;
       case 'Escape':
+        if (open) { e.preventDefault(); e.stopPropagation(); } // a Modal around it stays open
+        setOpen(false);
+        break;
       case 'Tab':
         setOpen(false);
         break;
