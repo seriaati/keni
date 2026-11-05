@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- lucide's mic (24 by 24, stroke 2), scaled 1.75 and centred in the 108dp of an adaptive icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="1.75"
+        android:scaleY="1.75"
+        android:translateX="33"
+        android:translateY="33">
+        <path
+            android:pathData="M12 19v3M19 10v2a7 7 0 0 1 -14 0v-2M12 2a3 3 0 0 0 -3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0 -3 -3z"
+            android:strokeColor="@color/ink"
+            android:strokeWidth="2"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
+</vector>

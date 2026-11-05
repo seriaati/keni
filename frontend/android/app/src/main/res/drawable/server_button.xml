@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The server screen's button: .btn-primary, forest with cream text. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="@color/muted">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/forest" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+</ripple>

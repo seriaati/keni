@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Copy, Download, Eye, EyeOff, Info, Key, Plus, Trash2, User, Bot, Check } from 'lucide-react';
+import { Copy, Download, Eye, EyeOff, Info, Key, Plus, Trash2, User, Bot, Check, Server } from 'lucide-react';
 import { users as usersApi, aiProvider as aiProviderApi, tokens as tokensApi, wallets as walletsApi, expenses as expensesApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/Toast';
@@ -13,6 +13,7 @@ import type { AIProviderResponse, APITokenCreateResponse, APITokenResponse, User
 import { AI_PROVIDERS, fmtDate } from '../lib/utils';
 import { getSupportedCurrencies } from '../lib/fx';
 import { SUPPORTED_LOCALES } from '../lib/i18n';
+import { appInfo, inApp, keni, saveFile } from '../lib/native';
 
 export function SettingsPage() {
   const { t } = useTranslation();
@@ -241,6 +242,64 @@ function ProfileTab({ user, refreshUser, toast }: { user: UserResponse; refreshU
           </button>
         </div>
       </div>
+      {inApp && <AndroidAppCard toast={toast} />}
+    </div>
+  );
+}
+
+/** The Android app's version, and the Keni server it asked for at its first start. */
+function AndroidAppCard({ toast }: { toast: (msg: string, type?: 'success' | 'error' | 'info') => void }) {
+  const { t } = useTranslation();
+  const [version, setVersion] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [changing, setChanging] = useState(false);
+
+  useEffect(() => {
+    void appInfo?.then((info) => setVersion(info.version));
+  }, []);
+
+  const handleChangeServer = async () => {
+    setChanging(true);
+    try {
+      // On success the app leaves this page for its server screen.
+      const { plugin } = await keni!;
+      await plugin.changeServer();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : t('common.failed'), 'error');
+      setChanging(false);
+    }
+  };
+
+  return (
+    <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>{t('settings.appTitle')}</div>
+        <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{t('settings.appVersion', { version })}</div>
+        <div style={{ fontSize: 12, color: 'var(--ink-faint)', overflowWrap: 'anywhere' }}>{t('settings.appServer', { host: location.host })}</div>
+      </div>
+      <button className="btn btn-secondary btn-sm" onClick={() => setConfirmOpen(true)}>
+        <Server size={14} /> {t('settings.changeServer')}
+      </button>
+
+      <Modal
+        open={confirmOpen}
+        onClose={() => { if (!changing) setConfirmOpen(false); }}
+        title={t('settings.changeServerModalTitle')}
+        size="sm"
+        footer={
+          <>
+            <button className="btn btn-ghost btn-md" onClick={() => setConfirmOpen(false)} disabled={changing}>
+              {t('common.cancel')}
+            </button>
+            <button className="btn btn-primary btn-md" onClick={handleChangeServer} disabled={changing}>
+              {changing && <span className="btn-spinner" />}
+              {t('settings.changeServer')}
+            </button>
+          </>
+        }
+      >
+        <p style={{ fontSize: 13, color: 'var(--ink-mid)', margin: 0, lineHeight: 1.6 }}>{t('settings.changeServerModalBody', { host: location.host })}</p>
+      </Modal>
     </div>
   );
 }
@@ -747,10 +806,15 @@ function DataExportTab({ toast }: { toast: (msg: string, type?: 'success' | 'err
           const res = await expensesApi.export(wallet.id, format);
           if (!res.ok) throw new Error('export failed');
           const blob = await res.blob();
+          const name = `${safeFileName(wallet.name)}-${wallet.id}.${format}`;
+          if (inApp) {
+            await saveFile(blob, name);
+            continue;
+          }
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `${safeFileName(wallet.name)}-${wallet.id}.${format}`;
+          a.download = name;
           a.click();
           URL.revokeObjectURL(url);
         } catch {
@@ -760,7 +824,7 @@ function DataExportTab({ toast }: { toast: (msg: string, type?: 'success' | 'err
       if (failCount > 0) {
         toast(t('settings.exportToastFailed', { count: failCount }), 'error');
       } else {
-        toast(t('settings.exportToastSuccess', { count: selectedIds.size }), 'success');
+        toast(t(inApp ? 'settings.exportToastSaved' : 'settings.exportToastSuccess', { count: selectedIds.size }), 'success');
       }
     } finally {
       setExporting(false);

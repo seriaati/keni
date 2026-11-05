@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Keni</string>
+    <string name="title_activity_main">Keni</string>
+    <string name="package_name">moe.seria.keni</string>
+    <string name="custom_url_scheme">moe.seria.keni</string>
+    <string name="server_title">Your Keni server</string>
+    <string name="server_text">Use the hosted Keni below, or enter the address of your own server.</string>
+    <string name="server_hint">keni.example.com</string>
+    <string name="server_continue">Continue</string>
+    <string name="server_checking">Looking for Keni there…</string>
+    <string name="server_not_address">That isn’t a web address.</string>
+    <string name="server_https">Keni needs an https:// address: Android doesn’t let apps use plain http, and your password would cross the network unencrypted.</string>
+    <string name="server_not_keni">No Keni answers at %1$s. Check the address, and that the server is up and runs a recent Keni.</string>
+    <string name="server_unreachable">Can’t reach Keni</string>
+    <string name="server_unreachable_text">%1$s isn’t answering. Check your connection, or whether the server is up.</string>
+    <string name="server_still_unreachable">Still no answer from %1$s.</string>
+    <string name="server_retry">Retry</string>
+    <string name="server_change">Change server</string>
+    <string name="share_too_large">Keni takes files up to %1$d MB: larger ones were left out.</string>
+    <string name="shortcut_add">Add</string>
+    <string name="shortcut_add_long">Add transaction</string>
+    <string name="shortcut_voice">Voice</string>
+    <string name="shortcut_voice_long">Voice entry</string>
+</resources>

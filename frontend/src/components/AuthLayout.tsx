@@ -5,9 +5,12 @@ import { ChevronDown, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LOCALES, setGuestLocale } from '../lib/i18n';
 import { useTheme } from '../lib/theme';
+import { useBackButton } from '../lib/native';
 import { cn } from '../lib/utils';
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
+  // The Android app's Back leaves the app here: the history behind the login is the signed-in app.
+  useBackButton(() => false);
   return (
     <div style={{
       position: 'relative',

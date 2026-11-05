@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="server_title">您的 Keni 伺服器</string>
+    <string name="server_text">使用下方的官方 Keni，或輸入您自架伺服器的網址。</string>
+    <string name="server_continue">繼續</string>
+    <string name="server_checking">正在確認 Keni…</string>
+    <string name="server_not_address">這不是有效的網址。</string>
+    <string name="server_https">Keni 需要 https:// 網址：Android 不允許應用程式使用未加密的 http，否則您的密碼會以明文在網路上傳送。</string>
+    <string name="server_not_keni">在 %1$s 找不到 Keni。請確認網址正確，且伺服器正在運作並使用較新版本的 Keni。</string>
+    <string name="server_unreachable">無法連線到 Keni</string>
+    <string name="server_unreachable_text">%1$s 沒有回應。請檢查網路連線，或確認伺服器是否正常運作。</string>
+    <string name="server_still_unreachable">%1$s 仍然沒有回應。</string>
+    <string name="server_retry">重試</string>
+    <string name="server_change">更換伺服器</string>
+    <string name="share_too_large">Keni 只接受 %1$d MB 以內的檔案，較大的檔案已略過。</string>
+    <string name="shortcut_add">新增交易</string>
+    <string name="shortcut_add_long">新增交易</string>
+    <string name="shortcut_voice">語音記帳</string>
+    <string name="shortcut_voice_long">語音記帳</string>
+</resources>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 7.1, without adaptive icons: the glyph on a circle the size of an adaptive icon's. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:bottom="18dp" android:left="18dp" android:right="18dp" android:top="18dp">
+        <shape android:shape="oval">
+            <solid android:color="@color/cream" />
+        </shape>
+    </item>
+    <item android:drawable="@drawable/shortcut_add_glyph" />
+</layer-list>

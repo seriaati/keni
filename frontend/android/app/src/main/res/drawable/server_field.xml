@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The server screen's address field: .input's sand border on cream. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <stroke android:width="1.5dp" android:color="@color/line" />
+    <corners android:radius="10dp" />
+</shape>

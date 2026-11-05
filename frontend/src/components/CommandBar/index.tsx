@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
@@ -149,19 +149,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
       tagsApi.list().then(setAllTags).catch(() => {});
       walletsApi.list().then(setWallets).catch(() => {});
     }
-  }, [open, reset, addFiles]);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (mode === 'review') { setMode('input'); return; }
-        onClose();
-      }
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [open, onClose, mode]);
+  }, [open, initialPayload, reset, addFiles]); // a new payload while open replaces what it had
 
   const applyParseResult = (result: AIParseResponse) => {
     setParseResult(result);
@@ -430,6 +418,16 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     setRecording(false);
   };
 
+  // The app's Voice entry shortcut (Layout): records as it opens.
+  const recordOnOpen = useEffectEvent(() => {
+    if (!recording) void startRecording();
+  });
+  useEffect(() => {
+    if (!open || !initialPayload?.voice) return;
+    const id = setTimeout(() => recordOnOpen());
+    return () => clearTimeout(id);
+  }, [open, initialPayload]);
+
   const openManualEntry = () => {
     setSelectedWalletId(activeWallet?.id ?? null);
     const today = localDateStr();
@@ -467,6 +465,24 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     setCropMode(false);
     setCropRect({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 });
   };
+
+  const onEscape = useEffectEvent(() => {
+    if (enlargedPreviewIndex !== null) closeLightbox();
+    else if (mode === 'review') setMode('input');
+    else onClose();
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onEscape();
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open]);
 
   const flushRotation = (): Promise<void> => {
     const idx = enlargedPreviewIndex;

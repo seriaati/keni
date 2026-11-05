@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-pressing Keni's icon. Each opens MainActivity by name with a keni:// address, which
+     Capacitor's App plugin hands the web app as appUrlOpen (useAppShortcut in src/lib/native.ts).
+     Being explicit, they need no intent filter, so no website can open these addresses. Android
+     starts a static shortcut in a new task, closing the app's activities: the page loads again. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:icon="@drawable/shortcut_add"
+        android:shortcutId="add"
+        android:shortcutLongLabel="@string/shortcut_add_long"
+        android:shortcutShortLabel="@string/shortcut_add">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="keni://add"
+            android:targetClass="moe.seria.keni.MainActivity"
+            android:targetPackage="moe.seria.keni" />
+    </shortcut>
+    <shortcut
+        android:icon="@drawable/shortcut_voice"
+        android:shortcutId="voice"
+        android:shortcutLongLabel="@string/shortcut_voice_long"
+        android:shortcutShortLabel="@string/shortcut_voice">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="keni://voice"
+            android:targetClass="moe.seria.keni.MainActivity"
+            android:targetPackage="moe.seria.keni" />
+    </shortcut>
+</shortcuts>

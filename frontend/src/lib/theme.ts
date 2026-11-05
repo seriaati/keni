@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { keni } from './native';
 
 export type Theme = 'light' | 'dark';
 export type ThemePreference = Theme | 'system';
@@ -32,6 +33,8 @@ function apply() {
   current = resolve();
   document.documentElement.dataset.theme = current;
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLORS[current]);
+  // The Android app's WebView ignores the meta tag: its bars are native (KeniPlugin).
+  void keni?.then(({ plugin }) => plugin.setSystemBars({ color: THEME_COLORS[current], dark: current === 'dark' }));
   listeners.forEach((l) => l());
 }
 

@@ -4,7 +4,7 @@ export interface CommandBarProps {
   open: boolean;
   onClose: () => void;
   onExpenseAdded?: () => void;
-  initialPayload?: { text?: string; files?: File[] };
+  initialPayload?: { text?: string; files?: File[]; voice?: boolean }; // voice: starts recording
 }
 
 export type Mode = 'input' | 'processing' | 'review';

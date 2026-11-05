@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The cream of src/index.css, until the page paints. -->
+    <color name="cream">#F9F5EC</color>
+    <!-- Its ink, ink-light and sand for the server screen's text and field, and forest for its
+         button (.btn-primary). -->
+    <color name="ink">#161107</color>
+    <color name="muted">#777166</color>
+    <color name="line">#CFC2B1</color>
+    <color name="forest">#14110D</color>
+</resources>

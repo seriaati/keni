@@ -38,6 +38,7 @@ import { Modal } from './ui/Modal';
 import { getSharedPayload, clearSharedPayload } from '../lib/shareTarget';
 import { CMD_K, getInitials } from '../lib/utils';
 import { setThemePreference, useTheme, useThemePreference } from '../lib/theme';
+import { inApp, useAppShortcut, useBackButton, useShare } from '../lib/native';
 import type { ThemePreference } from '../lib/theme';
 import './layout.css';
 
@@ -59,6 +60,13 @@ export interface LayoutOutletContext {
 }
 
 const REPO_URL = 'https://github.com/seriaati/keni';
+
+// Android browsers get the Android app (its latest release) instead of the PWA; the app offers neither.
+const android = /Android/.test(navigator.userAgent);
+const ANDROID_APP_URL =
+  android && !inApp && !window.matchMedia('(display-mode: standalone)').matches
+    ? `${REPO_URL}/releases/latest/download/keni.apk`
+    : null;
 
 async function forceUpdate() {
   const reg = await navigator.serviceWorker?.getRegistration();
@@ -124,7 +132,7 @@ export function Layout() {
   const logoSrc = useTheme() === 'dark' ? logoDarkSrc : logoLightSrc;
   const { wallets, activeWallet, setActiveWallet } = useWallet();
   const [cmdOpen, setCmdOpen] = useState(false);
-  const [cmdInitialPayload, setCmdInitialPayload] = useState<{ text?: string; files?: File[] } | undefined>();
+  const [cmdInitialPayload, setCmdInitialPayload] = useState<{ text?: string; files?: File[]; voice?: boolean } | undefined>();
   const [walletMenuOpen, setWalletMenuOpen] = useState(false);
   const [mobileWalletMenuOpen, setMobileWalletMenuOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -182,19 +190,35 @@ export function Layout() {
     return () => document.removeEventListener('paste', handler);
   }, [cmdOpen]);
 
+  // Something shared to Keni opens the command bar with it (replacing what it had, if open).
+  const openShare = (data: { title?: string | null; text?: string | null; files: File[] }) => {
+    const files = data.files.length ? data.files : undefined;
+    const text = [data.title, data.text].filter(Boolean).join('\n') || undefined;
+    setCmdInitialPayload({ text, files });
+    setCmdOpen(true);
+  };
+
+  // The installed web app's share target (the service worker keeps the share for /share).
   useEffect(() => {
     if (location.pathname !== '/share') return;
     navigate('/', { replace: true });
     getSharedPayload().then((data) => {
       if (data) {
-        const files = data.files.length ? data.files : undefined;
-        const text = [data.title, data.text].filter(Boolean).join('\n') || undefined;
-        setCmdInitialPayload({ text, files });
+        openShare(data);
         clearSharedPayload();
-      }
-      setCmdOpen(true);
+      } else setCmdOpen(true);
     }).catch(() => setCmdOpen(true));
   }, [location.pathname]);
+
+  // The Android app's share target (MainActivity)
+  useShare(openShare);
+
+  // The app's launcher shortcuts: Add transaction opens the command bar (as it is, if open),
+  // Voice entry opens it recording.
+  useAppShortcut((kind) => {
+    if (kind === 'voice') setCmdInitialPayload({ voice: true });
+    setCmdOpen(true);
+  });
 
   useEffect(() => {
     if (!walletMenuOpen) return;
@@ -221,6 +245,33 @@ export function Layout() {
   useEffect(() => {
     if (moreOpen) closeMore();
   }, [location.pathname]);
+
+  useEffect(() => {
+    const more = moreOpen && !moreClosing;
+    if (!more && !walletMenuOpen && !mobileWalletMenuOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      if (more) closeMore();
+      setWalletMenuOpen(false);
+      setMobileWalletMenuOpen(false);
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [moreOpen, moreClosing, walletMenuOpen, mobileWalletMenuOpen, closeMore]);
+
+  // The Android app's Back: closes what's open over the page (as Escape does), then follows the
+  // history; with none it goes to the dashboard, and from there leaves the app.
+  useBackButton((canGoBack) => {
+    const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    // From the focused element, so a focused dropdown's own Escape handling runs too
+    (document.activeElement ?? document.body).dispatchEvent(escape);
+    if (escape.defaultPrevented) return true;
+    if (canGoBack) navigate(-1);
+    else if (location.pathname !== '/') navigate('/', { replace: true });
+    else return false;
+    return true;
+  });
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -344,7 +395,12 @@ export function Layout() {
 
         {/* Bottom section */}
         <div className="sidebar-bottom">
-          {installPrompt && (
+          {ANDROID_APP_URL ? (
+            <a href={ANDROID_APP_URL} className="nav-item pwa-install-btn">
+              <Download size={16} />
+              {t('nav.getAndroidApp')}
+            </a>
+          ) : installPrompt && !android && (
             <button className="nav-item pwa-install-btn" onClick={() => void handleInstall()}>
               <Download size={16} />
               {t('nav.installApp')}
@@ -547,7 +603,12 @@ export function Layout() {
                 </svg>
                 GitHub
               </a>
-              {installPrompt && (
+              {ANDROID_APP_URL ? (
+                <a href={ANDROID_APP_URL} className="nav-item pwa-install-btn" onClick={closeMore}>
+                  <Download size={16} />
+                  {t('nav.getAndroidApp')}
+                </a>
+              ) : installPrompt && !android && (
                 <button
                   className="nav-item pwa-install-btn"
                   onClick={() => { void handleInstall(); closeMore(); }}

@@ -39,7 +39,9 @@
     "mcp": "MCP",
     "more": "More",
     "userRole": "Admin",
-    "update": "Update"
+    "update": "Update",
+    "appUpdateAvailable": "A new version of the app is out.",
+    "getAndroidApp": "Get the Android app"
   },
   "login": {
     "titleLogin": "Welcome back",
@@ -463,6 +465,7 @@
     "exportNoWallets": "You don't have any wallets yet.",
     "exportToastLoadFailed": "Failed to load wallets",
     "exportToastSuccess": "Exported {{count}} wallet(s)",
+    "exportToastSaved": "Saved {{count}} wallet(s) to Downloads",
     "exportToastFailed": "Failed to export {{count}} wallet(s)",
     "deleteAccountTitle": "Delete account",
     "deleteAccountDesc": "Permanently delete your account and all of its data: wallets, transactions, categories, tags, budgets, recurring rules, API tokens, MCP connections, and AI provider settings. This cannot be undone.",
@@ -470,7 +473,13 @@
     "deleteAccountModalTitle": "Delete account?",
     "deleteAccountModalBody": "Everything in your account will be erased immediately. Export your wallets first if you want to keep a copy. Enter your password to confirm.",
     "deleteAccountPassword": "Password",
-    "deleteAccountConfirm": "Delete everything"
+    "deleteAccountConfirm": "Delete everything",
+    "appTitle": "Android app",
+    "appVersion": "Version {{version}}",
+    "appServer": "Connected to {{host}}",
+    "changeServer": "Change server",
+    "changeServerModalTitle": "Change server?",
+    "changeServerModalBody": "The app forgets {{host}} and logs you out, then asks for the new server's address. Your data on {{host}} stays as it is."
   },
   "admin": {
     "title": "Admin Settings",
