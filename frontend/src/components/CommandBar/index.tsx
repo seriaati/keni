@@ -62,6 +62,7 @@ async function downscaleImage(file: File): Promise<File> {
 
 export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: CommandBarProps) {
   const [text, setText] = useState('');
+  const [parsedText, setParsedText] = useState('');
   const [mode, setMode] = useState<Mode>('input');
   const [parseResult, setParseResult] = useState<AIParseResponse | null>(null);
   const [transcript, setTranscript] = useState('');
@@ -106,6 +107,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
 
   const reset = useCallback(() => {
     setText('');
+    setParsedText('');
     setMode('input');
     setParseResult(null);
     setTranscript('');
@@ -191,6 +193,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
       if (match) { navigate(match.path); onClose(); return; }
     }
 
+    setParsedText(text);
     setMode('processing');
     setError('');
     try {
@@ -429,6 +432,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   }, [open, initialPayload]);
 
   const openManualEntry = () => {
+    setParsedText(text);
     setSelectedWalletId(activeWallet?.id ?? null);
     const today = localDateStr();
     const blank = {
@@ -472,12 +476,33 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     else onClose();
   });
 
+  const saveReview = () => {
+    if (saving) return;
+    const resultType = parseResult?.result_type;
+    if (resultType === 'single') void handleSaveSingle();
+    else if (resultType === 'multiple') void handleSaveMultiple();
+    else if (resultType === 'recurring') void handleSaveRecurring();
+    else if (resultType === 'group') void handleSaveGroup();
+  };
+
+  // Enter anywhere in the review (outside a field or a keyboard-focused button) saves it
+  const onEnter = useEffectEvent((e: KeyboardEvent) => {
+    if (mode !== 'review' || enlargedPreviewIndex !== null || e.defaultPrevented || e.isComposing) return;
+    const el = e.target as HTMLElement;
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) || el.isContentEditable) return;
+    if (el.tagName === 'BUTTON' && el.matches(':focus-visible')) return;
+    e.preventDefault();
+    saveReview();
+  });
+
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
         onEscape();
+      } else if (e.key === 'Enter') {
+        onEnter(e);
       }
     };
     document.addEventListener('keydown', handler);
@@ -875,11 +900,15 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
                     return;
                   }
                 }
-                if (e.key === 'Enter' && mode === 'review') handleSubmit();
+                if (e.key === 'Enter' && mode === 'review' && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  if (text !== parsedText) handleSubmit();
+                  else saveReview();
+                }
               }}
               placeholder={
                 mode === 'processing' ? 'Processing…' :
-                  mode === 'review' ? 'Edit text and press Enter to re-parse…' :
+                  mode === 'review' ? 'Enter to save, or edit text and Enter to re-parse…' :
                     'Type a transaction or navigate…'
               }
               disabled={mode === 'processing'}
