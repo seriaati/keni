@@ -93,6 +93,7 @@ export function WalletViewPage() {
   // Local state for search input — decoupled from URL to avoid interrupting IME composition (e.g. Zhuyin)
   const [searchInput, setSearchInput] = useState(() => search);
   const isComposingRef = useRef(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (!isComposingRef.current) setSearchInput(search);
   }, [search]);
@@ -284,13 +285,20 @@ export function WalletViewPage() {
   };
 
   // Ctrl+A / Cmd+A selects all items on the current page (works even before entering select mode)
+  // `/` or Ctrl+F / Cmd+F focuses search and opens the filter panel
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      const inField = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target as HTMLElement).isContentEditable;
       if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
-        const tag = (e.target as HTMLElement).tagName;
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement).isContentEditable) return;
+        if (inField) return;
         e.preventDefault();
         handleSelectAll();
+      } else if (((e.ctrlKey || e.metaKey) && e.key === 'f' && (!inField || e.target === searchInputRef.current)) || (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey && !inField)) {
+        if (e.defaultPrevented) return;
+        e.preventDefault();
+        setShowFilters(true);
+        searchInputRef.current?.focus();
       } else if (e.key === 'Escape' && isSelecting && !e.defaultPrevented) {
         e.preventDefault();
         setSelectedIds(new Set());
@@ -828,6 +836,7 @@ export function WalletViewPage() {
         >
           <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-faint)' }} />
           <input
+            ref={searchInputRef}
             className="input"
             style={{ paddingLeft: 32 }}
             placeholder={t('walletView.searchPlaceholder')}
