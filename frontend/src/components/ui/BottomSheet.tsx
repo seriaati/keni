@@ -12,15 +12,25 @@ const DISMISS_DISTANCE = 80;
 const DISMISS_VELOCITY = 0.5; // px/ms
 // Ignore backdrop clicks this soon after opening — they're the tail of the gesture that opened it
 const OPEN_GRACE_MS = 400;
+// Movement before deciding whether a touch is a sheet drag or a scroll/tap
+const SLOP = 8;
 
-/** Mobile drawer anchored to the bottom; drag the handle down to dismiss. */
+function scrollableAncestor(node: EventTarget | null, root: HTMLElement): HTMLElement | null {
+  for (let el = node instanceof Element ? node : null; el && el !== root; el = el.parentElement) {
+    if (el instanceof HTMLElement && el.scrollHeight > el.clientHeight && /auto|scroll/.test(getComputedStyle(el).overflowY)) return el;
+  }
+  return null;
+}
+
+/** Mobile drawer anchored to the bottom; swipe down anywhere on it to dismiss. */
 export function BottomSheet({ open, onClose, children }: BottomSheetProps) {
   const [mounted, setMounted] = useState(open);
   // Keep the last content around so it doesn't vanish during the exit animation
   const [content, setContent] = useState(children);
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);
-  const drag = useRef<{ startY: number; startT: number } | null>(null);
+  const drag = useRef<{ startX: number; startY: number; startT: number; scroller: HTMLElement | null; active: boolean } | null>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
   const openedAt = useRef(0);
 
   if (open && !mounted) setMounted(true);
@@ -44,26 +54,59 @@ export function BottomSheet({ open, onClose, children }: BottomSheetProps) {
     };
   }, [open, onClose]);
 
-  if (!mounted) return null;
+  // Native listeners: touchmove must be non-passive to stop the content scrolling while the sheet is dragged
+  useEffect(() => {
+    const el = sheetRef.current;
+    if (!el) return;
+    const onStart = (e: TouchEvent) => {
+      const t = e.touches[0];
+      drag.current = e.touches.length === 1
+        ? { startX: t.clientX, startY: t.clientY, startT: e.timeStamp, scroller: scrollableAncestor(e.target, el), active: false }
+        : null;
+    };
+    const onMove = (e: TouchEvent) => {
+      const d = drag.current;
+      if (!d) return;
+      const t = e.touches[0];
+      if (!d.active) {
+        const dx = t.clientX - d.startX;
+        const dy = t.clientY - d.startY;
+        if (Math.abs(dx) < SLOP && Math.abs(dy) < SLOP) return;
+        // Upward, sideways, or inside content that can still scroll up: leave it to the browser
+        if (dy <= 0 || Math.abs(dx) > dy || (d.scroller && d.scroller.scrollTop > 0)) {
+          drag.current = null;
+          return;
+        }
+        d.active = true;
+        d.startY = t.clientY;
+        setDragging(true);
+      }
+      e.preventDefault();
+      setDragY(Math.max(0, t.clientY - d.startY));
+    };
+    const onEnd = (e: TouchEvent) => {
+      const d = drag.current;
+      drag.current = null;
+      if (!d?.active) return;
+      setDragging(false);
+      const dy = e.type === 'touchcancel' ? 0 : Math.max(0, e.changedTouches[0].clientY - d.startY);
+      const velocity = dy / Math.max(1, e.timeStamp - d.startT);
+      if (dy > DISMISS_DISTANCE || (dy > 20 && velocity > DISMISS_VELOCITY)) onClose();
+      else setDragY(0);
+    };
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onEnd);
+    el.addEventListener('touchcancel', onEnd);
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend', onEnd);
+      el.removeEventListener('touchcancel', onEnd);
+    };
+  }, [mounted, onClose]);
 
-  const onPointerDown = (e: React.PointerEvent) => {
-    e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { startY: e.clientY, startT: e.timeStamp };
-    setDragging(true);
-  };
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!drag.current) return;
-    setDragY(Math.max(0, e.clientY - drag.current.startY));
-  };
-  const onPointerUp = (e: React.PointerEvent) => {
-    if (!drag.current) return;
-    const dy = Math.max(0, e.clientY - drag.current.startY);
-    const velocity = dy / Math.max(1, e.timeStamp - drag.current.startT);
-    drag.current = null;
-    setDragging(false);
-    if (dy > DISMISS_DISTANCE || (dy > 20 && velocity > DISMISS_VELOCITY)) onClose();
-    else setDragY(0);
-  };
+  if (!mounted) return null;
 
   return createPortal(
     <>
@@ -73,6 +116,7 @@ export function BottomSheet({ open, onClose, children }: BottomSheetProps) {
         onClick={(e) => { if (e.timeStamp - openedAt.current > OPEN_GRACE_MS) onClose(); }}
       />
       <div
+        ref={sheetRef}
         className="bottom-sheet"
         role="dialog"
         aria-modal="true"
@@ -82,13 +126,7 @@ export function BottomSheet({ open, onClose, children }: BottomSheetProps) {
         }}
         onContextMenu={(e) => e.preventDefault()}
       >
-        <div
-          className="bottom-sheet-handle"
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-        >
+        <div className="bottom-sheet-handle">
           <span />
         </div>
         {open ? children : content}

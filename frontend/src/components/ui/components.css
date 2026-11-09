@@ -482,7 +482,6 @@ textarea.input {
   justify-content: center;
   padding: 10px 0 8px;
   touch-action: none;
-  cursor: grab;
   flex-shrink: 0;
 }
 
