@@ -65,7 +65,7 @@ main.py → routers/ → services/ → providers/ (LLM)
 - DB: `AsyncSession` via `session.exec(select(...))` — no raw SQL
 - Standard deps: `get_db`, `get_current_user`, `require_admin` in `app/dependencies.py`
 - Auth: JWT (`type: "access"`) and hashed API tokens both accepted in `Authorization: Bearer`
-- LLM providers: Anthropic, Gemini, OpenAI-compat, OpenRouter — factory in `app/providers/_factory.py`
+- LLM providers: Anthropic, Gemini, OpenAI-compat, OpenRouter, custom OpenAI-compatible base URL (`openai_compatible`, gated by `AI_BASE_URL_ALLOWLIST`, checked on every use) — factory in `app/providers/_factory.py`
 - STT: local Whisper or external, singleton via `app/services/voice.py`
 - MCP server: `app/mcp_server.py` — OAuth-authenticated, mounted at `/mcp` and well-known paths
 - Background jobs: APScheduler (recurring transactions, data retention) started in lifespan
