@@ -245,7 +245,12 @@ export interface AIProviderResponse {
   chat_model: string | null;
   attachment_model: string | null;
   api_key_masked: string;
+  base_url: string | null;
   ocr_enabled: boolean;
+}
+
+export interface AIProviderOptionsResponse {
+  allowed_base_urls: string[];
 }
 
 export interface AIProviderModelsResponse {

@@ -310,7 +310,8 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showKey, setShowKey] = useState(false);
-  const [form, setForm] = useState({ provider: 'anthropic', model: '', chat_model: '', attachment_model: '', api_key: '', ocr_enabled: false });
+  const [form, setForm] = useState({ provider: 'anthropic', model: '', chat_model: '', attachment_model: '', api_key: '', base_url: '', ocr_enabled: false });
+  const [allowedBaseUrls, setAllowedBaseUrls] = useState<string[]>([]);
   const [useSeparateChatModel, setUseSeparateChatModel] = useState(false);
   const [useSeparateAttachmentModel, setUseSeparateAttachmentModel] = useState(false);
   const [customPrompt, setCustomPrompt] = useState<string>(user?.custom_ai_prompt ?? '');
@@ -319,12 +320,13 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
   const [fetchingModels, setFetchingModels] = useState(false);
 
   useEffect(() => {
+    aiProviderApi.options().then((o) => setAllowedBaseUrls(o.allowed_base_urls)).catch(() => { });
     aiProviderApi.get()
       .then(async (p) => {
         setProvider(p);
         setUseSeparateChatModel(!!p.chat_model);
         setUseSeparateAttachmentModel(!!p.attachment_model);
-        setForm({ provider: p.provider, model: p.model, chat_model: p.chat_model ?? '', attachment_model: p.attachment_model ?? '', api_key: '', ocr_enabled: p.ocr_enabled });
+        setForm({ provider: p.provider, model: p.model, chat_model: p.chat_model ?? '', attachment_model: p.attachment_model ?? '', api_key: '', base_url: p.base_url ?? '', ocr_enabled: p.ocr_enabled });
         // Fetch available models using the stored key so the user can change model
         setFetchingModels(true);
         try {
@@ -340,12 +342,14 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
       .finally(() => setLoading(false));
   }, []);
 
+  const isCustom = form.provider === 'openai_compatible';
+
   useEffect(() => {
-    if (!form.api_key) return;
+    if (!form.api_key && !(form.provider === 'openai_compatible' && form.base_url)) return;
     const timer = setTimeout(async () => {
       setFetchingModels(true);
       try {
-        const { models: fetched } = await aiProviderApi.listModels(form.api_key, form.provider);
+        const { models: fetched } = await aiProviderApi.listModels(form.api_key, form.provider, form.base_url);
         setModels(fetched);
         setForm((f) => ({ ...f, model: fetched.includes(f.model) ? f.model : (fetched[0] ?? '') }));
       } catch {
@@ -355,10 +359,11 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
       }
     }, 600);
     return () => clearTimeout(timer);
-  }, [form.api_key, form.provider]);
+  }, [form.api_key, form.provider, form.base_url]);
 
   const handleSave = async () => {
-    if (!form.api_key && !provider) { toast(t('settings.aiToastKeyRequired'), 'error'); return; }
+    if (isCustom && !form.base_url) { toast(t('settings.aiToastBaseUrlRequired'), 'error'); return; }
+    if (!isCustom && !form.api_key && !provider) { toast(t('settings.aiToastKeyRequired'), 'error'); return; }
     if (!form.model) { toast(t('settings.aiToastModelRequired'), 'error'); return; }
     setSaving(true);
     try {
@@ -368,6 +373,7 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
         chat_model: useSeparateChatModel ? (form.chat_model || null) : null,
         attachment_model: useSeparateAttachmentModel ? (form.attachment_model || null) : null,
         api_key: form.api_key || undefined,
+        base_url: isCustom ? form.base_url : null,
         ocr_enabled: form.ocr_enabled,
       });
       setProvider(updated);
@@ -400,7 +406,7 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
       setModels([]);
       setUseSeparateChatModel(false);
       setUseSeparateAttachmentModel(false);
-      setForm({ provider: 'anthropic', model: '', chat_model: '', attachment_model: '', api_key: '', ocr_enabled: true });
+      setForm({ provider: 'anthropic', model: '', chat_model: '', attachment_model: '', api_key: '', base_url: '', ocr_enabled: true });
       toast(t('settings.aiToastRemoved'), 'success');
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed', 'error');
@@ -414,6 +420,10 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
   const modelOptions = models.length > 0 ? models : (provider && !form.api_key ? [provider.model] : []);
   const chatModelOptions = models.length > 0 ? models : (provider?.chat_model && !form.api_key ? [provider.chat_model] : modelOptions);
   const attachmentModelOptions = models.length > 0 ? models : (provider?.attachment_model && !form.api_key ? [provider.attachment_model] : modelOptions);
+  const providerOptions = allowedBaseUrls.length > 0 || provider?.provider === 'openai_compatible'
+    ? [...AI_PROVIDERS, { value: 'openai_compatible', label: t('settings.aiProviderCustom') }]
+    : AI_PROVIDERS;
+  const modelPlaceholder = fetchingModels ? t('settings.aiModelLoading') : t(isCustom ? 'settings.aiModelPlaceholderCustom' : 'settings.aiModelPlaceholder');
 
   return (
     <>
@@ -423,7 +433,7 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
             <Check size={16} style={{ color: 'var(--forest)' }} />
             <div>
               <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--forest)' }}>
-                {t('settings.aiConfigured', { provider: AI_PROVIDERS.find((p) => p.value === provider.provider)?.label ?? provider.provider })}
+                {t('settings.aiConfigured', { provider: providerOptions.find((p) => p.value === provider.provider)?.label ?? provider.provider })}
               </span>
               <span style={{ fontSize: 12, color: 'var(--forest-light)', display: 'block' }}>
                 {t('settings.aiConfiguredDetails', {
@@ -444,12 +454,29 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
           <Select
             value={form.provider}
             onChange={(v) => setForm({ ...form, provider: v, model: '' })}
-            options={AI_PROVIDERS}
+            options={providerOptions}
           />
         </div>
 
+        {isCustom && (
+          <div className="input-group">
+            <label className="input-label">{t('settings.aiBaseUrlLabel')}</label>
+            <input
+              className="input"
+              type="url"
+              placeholder="http://localhost:11434/v1"
+              value={form.base_url}
+              onChange={(e) => setForm({ ...form, base_url: e.target.value })}
+            />
+            <span className="input-hint">{t('settings.aiBaseUrlHint')}</span>
+            {allowedBaseUrls.length > 0 && !allowedBaseUrls.includes('*') && (
+              <span className="input-hint">{t('settings.aiBaseUrlAllowed', { urls: allowedBaseUrls.join(', ') })}</span>
+            )}
+          </div>
+        )}
+
         <div className="input-group">
-          <label className="input-label">{t('settings.aiKeyLabel')} {provider && t('settings.aiKeyKeepCurrent')}</label>
+          <label className="input-label">{t('settings.aiKeyLabel')} {isCustom ? t('settings.aiKeyOptional') : provider && t('settings.aiKeyKeepCurrent')}</label>
           <div style={{ position: 'relative' }}>
             <input
               className="input"
@@ -470,15 +497,17 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
           {fetchingModels && (
             <span className="input-hint">{t('settings.aiKeyFetching')}</span>
           )}
-          {!fetchingModels && models.length === 0 && form.api_key && (
-            <span className="input-hint" style={{ color: 'var(--rose)' }}>{t('settings.aiKeyFetchFailed')}</span>
+          {!fetchingModels && models.length === 0 && (form.api_key || (isCustom && form.base_url)) && (
+            <span className="input-hint" style={{ color: 'var(--rose)' }}>{t(isCustom ? 'settings.aiKeyFetchFailedCustom' : 'settings.aiKeyFetchFailed')}</span>
           )}
-          <span className="input-hint">
-            {t('settings.aiKeyHintText')}{' '}
-            <a href="https://www.seria.moe/posts/share/free-llm" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--forest)' }}>
-              {t('settings.aiKeyHintLink')}
-            </a>
-          </span>
+          {!isCustom && (
+            <span className="input-hint">
+              {t('settings.aiKeyHintText')}{' '}
+              <a href="https://www.seria.moe/posts/share/free-llm" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--forest)' }}>
+                {t('settings.aiKeyHintLink')}
+              </a>
+            </span>
+          )}
         </div>
 
         <div className="input-group">
@@ -487,7 +516,7 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
             value={form.model}
             onChange={(v) => setForm({ ...form, model: v })}
             options={modelOptions.map((m) => ({ value: m, label: m }))}
-            placeholder={fetchingModels ? t('settings.aiModelLoading') : t('settings.aiModelPlaceholder')}
+            placeholder={modelPlaceholder}
             disabled={modelOptions.length === 0}
           />
         </div>
@@ -513,7 +542,7 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
                 value={form.chat_model}
                 onChange={(v) => setForm((f) => ({ ...f, chat_model: v }))}
                 options={chatModelOptions.map((m) => ({ value: m, label: m }))}
-                placeholder={fetchingModels ? t('settings.aiModelLoading') : t('settings.aiModelPlaceholder')}
+                placeholder={modelPlaceholder}
                 disabled={chatModelOptions.length === 0}
               />
               <span className="input-hint">{t('settings.aiChatModelHint')}</span>
@@ -540,7 +569,7 @@ function AIProviderTab({ user, refreshUser, toast }: { user: UserResponse; refre
                 value={form.attachment_model}
                 onChange={(v) => setForm((f) => ({ ...f, attachment_model: v }))}
                 options={attachmentModelOptions.map((m) => ({ value: m, label: m }))}
-                placeholder={fetchingModels ? t('settings.aiModelLoading') : t('settings.aiModelPlaceholder')}
+                placeholder={modelPlaceholder}
                 disabled={attachmentModelOptions.length === 0}
               />
               <span className="input-hint">{t('settings.aiAttachmentModelHint')}</span>

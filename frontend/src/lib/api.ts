@@ -2,6 +2,7 @@ import type {
   AdminSettingsResponse,
   AIParseResponse,
   AIProviderModelsResponse,
+  AIProviderOptionsResponse,
   AIProviderResponse,
   APITokenCreateResponse,
   APITokenResponse,
@@ -374,16 +375,17 @@ export const tokens = {
 
 export const aiProvider = {
   get: () => request<AIProviderResponse>('/users/me/ai-provider'),
-  upsert: (data: { provider: string; api_key?: string; model: string; chat_model?: string | null; attachment_model?: string | null; ocr_enabled?: boolean }) =>
+  options: () => request<AIProviderOptionsResponse>('/users/me/ai-provider/options'),
+  upsert: (data: { provider: string; api_key?: string; base_url?: string | null; model: string; chat_model?: string | null; attachment_model?: string | null; ocr_enabled?: boolean }) =>
     request<AIProviderResponse>('/users/me/ai-provider', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
   delete: () => request<void>('/users/me/ai-provider', { method: 'DELETE' }),
-  listModels: (api_key?: string, provider?: string) =>
+  listModels: (api_key?: string, provider?: string, base_url?: string) =>
     request<AIProviderModelsResponse>('/users/me/ai-provider/models', {
       method: 'POST',
-      body: JSON.stringify({ api_key: api_key || null, provider: provider || null }),
+      body: JSON.stringify({ api_key: api_key || null, provider: provider || null, base_url: base_url || null }),
     }),
 };
 
