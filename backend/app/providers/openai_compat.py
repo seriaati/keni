@@ -57,9 +57,16 @@ def _wrap_openai_error(exc: Exception) -> Exception:
 
 
 class OpenAICompatibleProvider(LLMProvider):
-    def __init__(self, api_key: str, model: str, base_url: str | None = None) -> None:
-        self._client = openai.AsyncOpenAI(api_key=api_key, base_url=base_url)
+    def __init__(
+        self, api_key: str, model: str, base_url: str | None = None, *, custom: bool = False
+    ) -> None:
+        # A user-supplied endpoint must not be able to redirect the server to another host.
+        http_client = openai.DefaultAsyncHttpxClient(follow_redirects=False) if custom else None
+        self._client = openai.AsyncOpenAI(
+            api_key=api_key, base_url=base_url, http_client=http_client
+        )
         self._model = model
+        self._custom = custom
 
     async def parse_transactions(  # ruff: ignore[too-many-arguments]
         self,
@@ -108,6 +115,15 @@ class OpenAICompatibleProvider(LLMProvider):
                 ],
                 response_format=ParsedTransactionOutput,
             )
+        except (openai.BadRequestError, openai.UnprocessableEntityError) as exc:
+            if not self._custom:
+                raise _wrap_openai_error(exc) from exc
+            logger.info(
+                "OpenAI parse: structured output rejected by %s (%s), retrying with schema in prompt",
+                self._client.base_url,
+                exc.message,
+            )
+            return await self._parse_with_schema_in_prompt(parts)
         except Exception as exc:
             raise _wrap_openai_error(exc) from exc
 
@@ -133,6 +149,35 @@ class OpenAICompatibleProvider(LLMProvider):
                 msg = "Failed to parse expense from input"
                 raise ValueError(msg) from exc
         return parsed
+
+    async def _parse_with_schema_in_prompt(
+        self, parts: list[ChatCompletionContentPartTextParam | ChatCompletionContentPartImageParam]
+    ) -> ParsedTransactionOutput:
+        schema_part = ChatCompletionContentPartTextParam(
+            type="text",
+            text="Respond with only a JSON object matching this JSON schema:\n"
+            + json.dumps(ParsedTransactionOutput.model_json_schema()),
+        )
+        try:
+            response = await self._client.chat.completions.create(
+                model=self._model,
+                max_tokens=4096,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": [*parts, schema_part]},
+                ],
+            )
+        except Exception as exc:
+            raise _wrap_openai_error(exc) from exc
+
+        raw = response.choices[0].message.content or ""
+        # Without structured output, models often wrap the JSON in code fences or prose.
+        start, end = raw.find("{"), raw.rfind("}")
+        try:
+            return ParsedTransactionOutput.model_validate_json(raw[start : end + 1])
+        except ValueError as exc:
+            msg = "Failed to parse expense from input"
+            raise ValueError(msg) from exc
 
     async def chat_with_data(
         self,

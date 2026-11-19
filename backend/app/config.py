@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
     signups_enabled: bool = True
 
+    ai_base_url_allowlist: list[str] = []
+
     stt_provider: Literal["local", "external"] = "local"
     whisper_model_size: Literal["tiny", "base", "small", "medium", "large"] = "base"
     whisper_device: Literal["cpu", "cuda", "auto"] = "auto"

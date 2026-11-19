@@ -18,6 +18,7 @@ class AIProvider(SQLModel, table=True):
     user_id: uuid.UUID = Field(foreign_key="users.id", unique=True, index=True)
     provider: str = Field(default="anthropic", max_length=50)
     api_key_encrypted: str
+    base_url: str | None = Field(default=None, max_length=500)
     model: str = Field(default="claude-opus-4-5", max_length=100)
     chat_model: str | None = Field(default=None, max_length=100)
     attachment_model: str | None = Field(default=None, max_length=100)

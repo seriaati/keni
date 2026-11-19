@@ -20,6 +20,7 @@ from app.providers.base import ChatContext, ChatTool
 from app.providers.errors import (
     ProviderAPIError,
     ProviderAuthError,
+    ProviderConfigError,
     ProviderPermissionError,
     ProviderRateLimitError,
 )
@@ -897,16 +898,20 @@ async def chat_about_expenses(  # ruff: ignore[too-many-arguments, too-many-posi
     )
 
     tool_executor = _make_executor(wallet_ids, wallets, user_id, session, count_sub_transactions)
-    provider = get_provider(
-        record.provider,
-        api_key=_decrypt_key(record.api_key_encrypted),
-        model=record.chat_model or record.model,
-    )
-
     try:
+        provider = get_provider(
+            record.provider,
+            api_key=_decrypt_key(record.api_key_encrypted),
+            model=record.chat_model or record.model,
+            base_url=record.base_url,
+        )
         return await provider.chat_with_data(
             message=message, context=context, tools=CHAT_TOOLS, tool_executor=tool_executor
         )
+    except ProviderConfigError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
     except ProviderAuthError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

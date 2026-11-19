@@ -4,8 +4,11 @@ from pydantic import BaseModel, Field
 
 
 class AIProviderUpsert(BaseModel):
-    provider: str = Field(default="anthropic", pattern="^(anthropic|gemini|openai|openrouter)$")
+    provider: str = Field(
+        default="anthropic", pattern="^(anthropic|gemini|openai|openrouter|openai_compatible)$"
+    )
     api_key: str | None = Field(default=None, min_length=1)
+    base_url: str | None = Field(default=None, max_length=500)
     model: str = Field(default="claude-opus-4-5", min_length=1)
     chat_model: str | None = Field(default=None)
     attachment_model: str | None = Field(default=None)
@@ -18,7 +21,12 @@ class AIProviderResponse(BaseModel):
     chat_model: str | None
     attachment_model: str | None
     api_key_masked: str
+    base_url: str | None
     ocr_enabled: bool
+
+
+class AIProviderOptionsResponse(BaseModel):
+    allowed_base_urls: list[str]
 
 
 class AIProviderModelsResponse(BaseModel):

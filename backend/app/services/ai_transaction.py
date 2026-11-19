@@ -20,6 +20,7 @@ from app.providers.base import LUCIDE_ICONS
 from app.providers.errors import (
     ProviderAPIError,
     ProviderAuthError,
+    ProviderConfigError,
     ProviderConnectionError,
     ProviderPermissionError,
     ProviderRateLimitError,
@@ -153,25 +154,31 @@ async def upsert_ai_provider(  # ruff: ignore[too-many-arguments, too-many-posit
     ocr_enabled: bool = True,
     chat_model: str | None = None,
     attachment_model: str | None = None,
+    base_url: str | None = None,
 ) -> AIProvider:
+    base_url = base_url if provider == "openai_compatible" else None
     record = await get_ai_provider_record(user_id, session)
     if record is None:
-        if not api_key:
+        if not api_key and provider != "openai_compatible":
             msg = "API key is required when creating a new AI provider"
             raise ValueError(msg)
         record = AIProvider(
             user_id=user_id,
             provider=provider,
-            api_key_encrypted=_encrypt_key(api_key),
+            api_key_encrypted=_encrypt_key(api_key or ""),
+            base_url=base_url,
             model=model,
             ocr_enabled=ocr_enabled,
             chat_model=chat_model,
             attachment_model=attachment_model,
         )
     else:
+        # Never send the key saved for one endpoint to a different custom endpoint.
+        endpoint_changed = (record.provider, record.base_url) != (provider, base_url)
+        if api_key or (provider == "openai_compatible" and endpoint_changed):
+            record.api_key_encrypted = _encrypt_key(api_key or "")
         record.provider = provider
-        if api_key:
-            record.api_key_encrypted = _encrypt_key(api_key)
+        record.base_url = base_url
         record.model = model
         record.ocr_enabled = ocr_enabled
         record.chat_model = chat_model
@@ -237,9 +244,10 @@ async def parse_transactions_with_ai(  # ruff: ignore[too-many-locals, too-many-
     wallet_by_name = {w.name.lower(): str(w.id) for w in user_wallets}
 
     model = record.attachment_model if images and record.attachment_model else record.model
-    provider = get_provider(record.provider, api_key=api_key, model=model)
-
     try:
+        provider = get_provider(
+            record.provider, api_key=api_key, model=model, base_url=record.base_url
+        )
         output = await provider.parse_transactions(
             text=text,
             images=images,
@@ -250,6 +258,10 @@ async def parse_transactions_with_ai(  # ruff: ignore[too-many-locals, too-many-
             custom_prompt=custom_ai_prompt,
             examples=examples,
         )
+    except ProviderConfigError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
     except ProviderAuthError as exc:
         logger.warning("AI transaction parse failed - auth error for user %s: %s", user_id, exc)
         raise HTTPException(
