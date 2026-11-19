@@ -16,16 +16,16 @@ For AI, Keni uses BYOK (bring your own key) and does not come with any cloud AI 
 
 ## Features
 
-- **⌘ K to log anything**: Use the command bar to record income, spending, recurring bills, grouped expenses, or multiple transactions at once. Using AI, Keni infers context, categorizes with high detail, and fills in the blanks.
-- **Receipt & invoice scanning**: Upload a photo of a paper receipt or a PDF e-invoice. The AI reads the total, line items, merchant, and date, then records it for you.
-- **Chat with your data**: Ask anything in plain language, like chatting with a personal finance advisor. Get real answers from your actual numbers.
-- **Model agnostic**: Bring your own API key. Keni works with OpenAI, OpenRouter, Anthropic, and Google Gemini. Self-hosters can also use local models through any OpenAI-compatible server (Ollama, LM Studio, vLLM).
-- **Voice input**: Tap the mic and speak your expense. Audio is processed locally, nothing leaves your server.
-- **Multiple wallets**: Separate personal, business, travel, or shared expenses across wallets. Each wallet has its own currency, history, and analytics - perfect for people living across borders.
-- **Categories & tags**: Organize expenses with categories and tags. The AI suggests both automatically based on context, reducing your input to near zero. Filter by either when reviewing your history.
-- **MCP & API**: Connect Keni to your favorite AI agents via MCP, or integrate with third-party tools using your personal API key.
-- **Budgets**: Set budgets by period, category, or wallet. Get a visual warning right on the dashboard when you are close to or exceeding your limit.
-- **Dashboard analytics**: Monthly total, weekly pace, daily average, recent transactions, and a category breakdown chart.
+- Ctrl+K to log anything: Use the command bar to record income, spending, recurring bills, grouped expenses, or multiple transactions at once. With AI, Keni infers context, categorizes with high detail, and fills in the blanks.
+- Receipt & invoice scanning: Upload a photo of a paper receipt or a PDF e-invoice. The AI reads the total, line items, merchant, and date, then records it for you.
+- Chat with your data: Ask anything in plain language, like chatting with a personal finance advisor. Get real answers from your actual numbers.
+- Model agnostic: Bring your own API key. Keni works with OpenAI, OpenRouter, Anthropic, and Google Gemini. Self-hosters can also use local models through any OpenAI-compatible server (Ollama, LM Studio, vLLM).
+- Voice input: Tap the mic and speak your expense. Audio is processed locally, nothing leaves your server.
+- Multiple wallets: Separate personal, business, travel, or shared expenses across wallets. Each wallet has its own currency, history, and analytics - perfect for people living across borders.
+- Categories & tags: Organize expenses with categories and tags. The AI suggests both automatically based on context, reducing your input to near zero. Filter by either when reviewing your history.
+- MCP & API: Connect Keni to your favorite AI agents via MCP, or integrate with third-party tools using your personal API key.
+- Budgets: Set budgets by period, category, or wallet. Get a visual warning right on the dashboard when you are close to or exceeding your limit.
+- Dashboard analytics: Monthly total, weekly pace, daily average, recent transactions, and a category breakdown chart.
 
 ## Self-Hosting
 
