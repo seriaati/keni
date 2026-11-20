@@ -30,8 +30,6 @@ interface DropdownPos {
   openUp: boolean;
 }
 
-type TagDropdownPos = DropdownPos;
-
 const DROPDOWN_MAX_H = 260;
 const DROPDOWN_MARGIN = 4;
 
@@ -49,7 +47,7 @@ function TagPicker({ selectedIds, allTags, onAdd, onRemove, onCreateAndAdd }: Ta
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [creating, setCreating] = useState(false);
-  const [pos, setPos] = useState<TagDropdownPos | null>(null);
+  const [pos, setPos] = useState<DropdownPos | null>(null);
   const [focusedIndex, setFocusedIndex] = useState(0);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
