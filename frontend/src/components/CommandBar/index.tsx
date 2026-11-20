@@ -83,6 +83,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   const [recording, setRecording] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
+  const [processingFiles, setProcessingFiles] = useState<ReadonlySet<File>>(new Set());
   const [saving, setSaving] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
@@ -119,6 +120,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     setRecurringExpense(null);
     setError('');
     setAttachedFiles([]);
+    setProcessingFiles(new Set());
     setFilePreviews((prev) => { prev.forEach((url) => { if (url) URL.revokeObjectURL(url); }); return []; });
     setPreCropSnapshot((prev) => { if (prev) URL.revokeObjectURL(prev.url); return null; });
     setEnlargedPreviewIndex(null);
@@ -129,14 +131,30 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     setFileRotations([]);
   }, []);
 
-  const addFiles = useCallback(async (incoming: File[]) => {
-    const processed = await Promise.all(incoming.map(downscaleImage));
-    setAttachedFiles((prev) => [...prev, ...processed]);
-    setFilePreviews((prev) => [
-      ...prev,
-      ...processed.map((f) => (f.type.startsWith('image/') ? URL.createObjectURL(f) : '')),
-    ]);
-    setFileRotations((prev) => [...prev, ...processed.map(() => 0)]);
+  // Files show right away from the original; downscaling swaps them in place (matched by identity) when done
+  const addFiles = useCallback((incoming: File[]) => {
+    const previews = incoming.map((f) => (f.type.startsWith('image/') ? URL.createObjectURL(f) : ''));
+    setAttachedFiles((prev) => [...prev, ...incoming]);
+    setFilePreviews((prev) => [...prev, ...previews]);
+    setFileRotations((prev) => [...prev, ...incoming.map(() => 0)]);
+    incoming.forEach((orig, i) => {
+      if (!previews[i]) return;
+      setProcessingFiles((prev) => new Set(prev).add(orig));
+      void downscaleImage(orig).then((processed) => {
+        setProcessingFiles((prev) => {
+          if (!prev.has(orig)) return prev;
+          const n = new Set(prev);
+          n.delete(orig);
+          return n;
+        });
+        if (processed === orig) return;
+        const origUrl = previews[i];
+        const newUrl = URL.createObjectURL(processed);
+        setAttachedFiles((prev) => prev.map((f) => (f === orig ? processed : f)));
+        setFilePreviews((prev) => prev.map((u) => (u === origUrl ? newUrl : u)));
+        URL.revokeObjectURL(origUrl);
+      });
+    });
   }, []);
 
   useEffect(() => {
@@ -144,7 +162,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
       reset();
       if (initialPayload?.text) setText(initialPayload.text);
       if (initialPayload?.files?.length) {
-        void addFiles(initialPayload.files);
+        addFiles(initialPayload.files);
       }
       setTimeout(() => inputRef.current?.focus(), 50);
       categoriesApi.list().then(setCategories).catch(() => {});
@@ -186,6 +204,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
 
   const handleSubmit = async () => {
     if (!text.trim() && !attachedFiles.length) return;
+    if (processingFiles.size) return;
     if (!activeWallet) { setError('No wallet selected'); return; }
 
     if (!attachedFiles.length && !looksLikeExpense(text)) {
@@ -347,7 +366,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     setDragging(false);
     const dropped = Array.from(e.dataTransfer?.files ?? []);
     if (!dropped.length) return;
-    void addFiles(dropped);
+    addFiles(dropped);
   }, [addFiles]);
 
   useEffect(() => {
@@ -372,7 +391,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
     if (!item) return;
     const file = item.getAsFile();
     if (!file) return;
-    void addFiles([file]);
+    addFiles([file]);
   }, [open, addFiles]);
 
   useEffect(() => {
@@ -383,7 +402,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files ?? []);
     if (!selected.length) return;
-    void addFiles(selected);
+    addFiles(selected);
     e.target.value = '';
   };
 
@@ -934,6 +953,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
                   className="icon-btn"
                   onClick={handleSubmit}
                   title="Send"
+                  disabled={processingFiles.size > 0}
                   style={{ color: 'var(--ink)', background: 'var(--cream)' }}
                 >
                   <ArrowRight size={16} />
@@ -960,7 +980,18 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
                   style={{ position: 'relative', flexShrink: 0 }}
                   title={file.name}
                 >
-                  {filePreviews[i] ? (
+                  {filePreviews[i] && processingFiles.has(file) ? (
+                    <div style={{ position: 'relative', height: 48, width: 48 }}>
+                      <img
+                        src={filePreviews[i]}
+                        alt={file.name}
+                        style={{ height: 48, width: 48, objectFit: 'cover', borderRadius: 6, display: 'block', opacity: 0.5 }}
+                      />
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)' }}>
+                        <span className="btn-spinner" />
+                      </div>
+                    </div>
+                  ) : filePreviews[i] ? (
                     <img
                       src={filePreviews[i]}
                       alt={file.name}
@@ -972,7 +1003,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
                       <FileText size={20} style={{ color: 'var(--ink-mid)' }} />
                     </div>
                   )}
-                  <button
+                  {!processingFiles.has(file) && <button
                     className="icon-btn"
                     onClick={() => {
                       if (filePreviews[i]) URL.revokeObjectURL(filePreviews[i]);
@@ -989,7 +1020,7 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
                     }}
                   >
                     <X size={10} />
-                  </button>
+                  </button>}
                 </div>
               ))}
             </div>
