@@ -2,6 +2,7 @@ import { TrendingDown, TrendingUp } from 'lucide-react';
 import type { CategoryResponse, TagResponse, WalletResponse } from '../../lib/types';
 import { ExpenseCard } from './ExpenseCard';
 import type { EditableExpense } from './types';
+import { useIsMobile } from '../../lib/useIsMobile';
 
 export function SingleReview({
   expense,
@@ -27,6 +28,7 @@ export function SingleReview({
   onWalletChange: (id: string) => void;
 }) {
   const isIncome = expense.type === 'income';
+  const isMobile = useIsMobile(768);
   return (
     <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
       <ExpenseCard expense={expense} onChange={onChange} currency={activeWalletCurrency} categories={categories} allTags={allTags} wallets={wallets} selectedWalletId={selectedWalletId} onWalletChange={onWalletChange} />
@@ -49,11 +51,13 @@ export function SingleReview({
           Save {isIncome ? 'income' : 'expense'}
         </button>
       </div>
-      <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--ink-faint)' }}>
-        <span><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Enter</kbd> to save</span>
-        <span><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Edit text above</kbd> + Enter to re-parse</span>
-        <span style={{ marginLeft: 'auto' }}><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Esc</kbd> to go back</span>
-      </div>
+      {!isMobile && (
+        <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--ink-faint)' }}>
+          <span><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Enter</kbd> to save</span>
+          <span><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Edit text above</kbd> + Enter to re-parse</span>
+          <span style={{ marginLeft: 'auto' }}><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Esc</kbd> to go back</span>
+        </div>
+      )}
     </div>
   );
 }

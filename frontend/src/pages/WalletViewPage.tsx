@@ -1035,7 +1035,7 @@ export function WalletViewPage() {
         <div className="empty-state">
           <p className="empty-state-title">{t('walletView.noTransactionsTitle')}</p>
           <p className="empty-state-desc">
-            {hasFilters ? t('walletView.noTransactionsDescFiltered') : t('walletView.noTransactionsDescEmpty', { shortcut: CMD_K })}
+            {hasFilters ? t('walletView.noTransactionsDescFiltered') : isMobile ? t('walletView.noTransactionsDescEmptyMobile') : t('walletView.noTransactionsDescEmpty', { shortcut: CMD_K })}
           </p>
         </div>
       ) : (

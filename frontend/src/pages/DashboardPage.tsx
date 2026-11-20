@@ -364,7 +364,7 @@ export function DashboardPage() {
           ) : recent.length === 0 ? (
             <div className="empty-state" style={{ padding: '32px 16px' }}>
               <p className="empty-state-title">{t('dashboard.recentEmptyTitle')}</p>
-              <p className="empty-state-desc">{t('dashboard.recentEmptyDesc', { shortcut: CMD_K })}</p>
+              <p className="empty-state-desc">{isMobile ? t('dashboard.recentEmptyDescMobile') : t('dashboard.recentEmptyDesc', { shortcut: CMD_K })}</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

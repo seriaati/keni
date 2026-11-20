@@ -7,6 +7,7 @@ import { CategorySelect } from '../ui/CategorySelect';
 import { TagMultiSelect } from './TagMultiSelect';
 import { makeEditableRecurring, commitEditableRecurring } from './utils';
 import type { EditableRecurring } from './types';
+import { useIsMobile } from '../../lib/useIsMobile';
 
 export function RecurringReview({
   recurring,
@@ -31,6 +32,7 @@ export function RecurringReview({
   selectedWalletId: string | null;
   onWalletChange: (id: string) => void;
 }) {
+  const isMobile = useIsMobile(768);
   const inputStyle: React.CSSProperties = {
     width: '100%',
     fontSize: 13,
@@ -231,11 +233,13 @@ export function RecurringReview({
           Save recurring {recurring.type === 'income' ? 'income' : 'expense'}
         </button>
       </div>
-      <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--ink-faint)' }}>
-        <span><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Enter</kbd> to save</span>
-        <span><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Edit text above</kbd> + Enter to re-parse</span>
-        <span style={{ marginLeft: 'auto' }}><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Esc</kbd> to go back</span>
-      </div>
+      {!isMobile && (
+        <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--ink-faint)' }}>
+          <span><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Enter</kbd> to save</span>
+          <span><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Edit text above</kbd> + Enter to re-parse</span>
+          <span style={{ marginLeft: 'auto' }}><kbd style={{ background: 'var(--cream-dark)', padding: '1px 5px', borderRadius: 4, fontFamily: 'inherit' }}>Esc</kbd> to go back</span>
+        </div>
+      )}
     </div>
   );
 }
