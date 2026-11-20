@@ -30,7 +30,6 @@ interface DropdownPos {
   openUp: boolean;
 }
 
-// Keep legacy alias for TagPicker
 type TagDropdownPos = DropdownPos;
 
 const DROPDOWN_MAX_H = 260;
@@ -680,7 +679,6 @@ export function ExpenseDetailPage() {
       />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {/* Part of group indicator */}
         {expense.group_id && (
           <Link
             to={`/wallets/${walletId}/expenses/${expense.group_id}`}
@@ -698,8 +696,6 @@ export function ExpenseDetailPage() {
             {t('expenseDetail.goBackToParent')}
           </Link>
         )}
-
-        {/* Amount */}
         <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '20px 24px' }}>
           <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('expenseDetail.sectionAmount')}</div>
           {editing ? (
@@ -752,8 +748,6 @@ export function ExpenseDetailPage() {
             </div>
           )}
         </div>
-
-        {/* Wallet (move) */}
         {editing && !expense.group_id && allWallets.length > 1 && (
           <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
             <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('expenseDetail.sectionWallet')}</div>
@@ -764,8 +758,6 @@ export function ExpenseDetailPage() {
             />
           </div>
         )}
-
-        {/* Category & Date */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
             <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('expenseDetail.sectionCategory')}</div>
@@ -816,8 +808,6 @@ export function ExpenseDetailPage() {
             )}
           </div>
         </div>
-
-        {/* Description */}
         <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
           <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('expenseDetail.sectionDescription')}</div>
           {editing ? (
@@ -834,8 +824,6 @@ export function ExpenseDetailPage() {
             </p>
           )}
         </div>
-
-        {/* Tags */}
         <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
           <div style={{ fontSize: 11, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>{t('expenseDetail.sectionTags')}</div>
           {editing ? (
@@ -866,8 +854,6 @@ export function ExpenseDetailPage() {
             <p style={{ fontSize: 13, color: 'var(--ink-faint)', fontStyle: 'italic' }}>{t('expenseDetail.noTags')}</p>
           )}
         </div>
-
-        {/* Sub-expenses */}
         {expense.children && expense.children.length > 0 && (
           <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
@@ -995,8 +981,6 @@ export function ExpenseDetailPage() {
             </div>
           </div>
         )}
-
-        {/* Linked transactions */}
         {(expense.linked_transactions.length > 0 || editing) && (
           <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--cream-darker)', padding: '16px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -1055,8 +1039,6 @@ export function ExpenseDetailPage() {
             )}
           </div>
         )}
-
-        {/* Metadata */}
         <div style={{ fontSize: 12, color: 'var(--ink-faint)', padding: '4px 2px', display: 'flex', gap: 16 }}>
           <span>{t('expenseDetail.metaCreated', { date: fmtDate(expense.created_at) })}</span>
           {expense.updated_at !== expense.created_at && <span>{t('expenseDetail.metaUpdated', { date: fmtDate(expense.updated_at) })}</span>}

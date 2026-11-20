@@ -247,7 +247,6 @@ function ProfileTab({ user, refreshUser, toast }: { user: UserResponse; refreshU
   );
 }
 
-/** The Android app's version, and the Keni server it asked for at its first start. */
 function AndroidAppCard({ toast }: { toast: (msg: string, type?: 'success' | 'error' | 'info') => void }) {
   const { t } = useTranslation();
   const [version, setVersion] = useState('');
@@ -786,7 +785,6 @@ function TokensTab({ toast }: { toast: (msg: string, type?: 'success' | 'error' 
   );
 }
 
-// Make a wallet name safe to use as a filename component
 function safeFileName(name: string): string {
   return name.trim().replace(/[/\\?%*:|"<>]/g, '-').replace(/\s+/g, '_') || 'wallet';
 }

@@ -22,7 +22,6 @@ function scrollableAncestor(node: EventTarget | null, root: HTMLElement): HTMLEl
   return null;
 }
 
-/** Mobile drawer anchored to the bottom; swipe down anywhere on it to dismiss. */
 export function BottomSheet({ open, onClose, children }: BottomSheetProps) {
   const [mounted, setMounted] = useState(open);
   // Keep the last content around so it doesn't vanish during the exit animation

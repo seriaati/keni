@@ -25,7 +25,6 @@ const connectIcons: IconName[] = ["chat", "key", "plug"];
       <p class="sub">{f.sub}</p>
     </header>
 
-    <!-- Capture: text beside a glossed example of the input -->
     <div class="group">
       <header class="group-head reveal">
         <p class="label">{capture.label}</p>
@@ -56,7 +55,6 @@ const connectIcons: IconName[] = ["chat", "key", "plug"];
       </div>
     </div>
 
-    <!-- Organize: a small ledger, a budget line, then a two-column text grid -->
     <div class="group">
       <header class="group-head reveal">
         <p class="label">{organize.label}</p>
@@ -117,7 +115,6 @@ const connectIcons: IconName[] = ["chat", "key", "plug"];
       </div>
     </div>
 
-    <!-- Connect: a question and its answer, then a three-column text grid -->
     <div class="group">
       <header class="group-head reveal">
         <p class="label">{connect.label}</p>
@@ -204,8 +201,6 @@ const connectIcons: IconName[] = ["chat", "key", "plug"];
     padding-top: clamp(96px, 12vw, 160px);
   }
 
-  /* ── Section header ── */
-
   .head {
     max-width: 760px;
   }
@@ -223,8 +218,6 @@ const connectIcons: IconName[] = ["chat", "key", "plug"];
     line-height: 1.6;
     color: var(--mute);
   }
-
-  /* ── Groups ── */
 
   .group {
     margin-top: clamp(72px, 10vw, 128px);
@@ -260,8 +253,6 @@ const connectIcons: IconName[] = ["chat", "key", "plug"];
     color: var(--mute);
   }
 
-  /* ── Capture ── */
-
   .cap-row {
     display: grid;
     grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
@@ -296,8 +287,6 @@ const connectIcons: IconName[] = ["chat", "key", "plug"];
   :global(html:not(.js)) .cap-example .gloss-notes {
     display: none;
   }
-
-  /* ── Organize ── */
 
   .ledger-block {
     max-width: 880px;
@@ -391,8 +380,6 @@ const connectIcons: IconName[] = ["chat", "key", "plug"];
     transform: none;
   }
 
-  /* ── Text grids (organize and connect) ── */
-
   .text-grid {
     display: grid;
     gap: 44px clamp(32px, 5vw, 72px);
@@ -405,8 +392,6 @@ const connectIcons: IconName[] = ["chat", "key", "plug"];
   .text-grid--3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-
-  /* ── Connect ── */
 
   .chat {
     max-width: 760px;
@@ -430,8 +415,6 @@ const connectIcons: IconName[] = ["chat", "key", "plug"];
     text-wrap: pretty;
   }
 
-  /* ── CJK: no negative tracking ── */
-
   .title:lang(zh-TW),
   .group-title:lang(zh-TW),
   .item-title:lang(zh-TW),
@@ -445,8 +428,6 @@ const connectIcons: IconName[] = ["chat", "key", "plug"];
   .chat-a:lang(zh-TW) {
     max-width: 28em;
   }
-
-  /* ── Responsive ── */
 
   @media (max-width: 760px) {
     .cap-row {

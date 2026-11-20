@@ -313,7 +313,6 @@ export function Layout() {
 
   return (
     <div className="layout">
-      {/* Sidebar — desktop only */}
       <aside className="sidebar">
         <div className="sidebar-header">
           <Link to="/" className="sidebar-logo">
@@ -321,8 +320,6 @@ export function Layout() {
             <span className="sidebar-logo-name">Keni</span>
           </Link>
         </div>
-
-        {/* Wallet selector */}
         {wallets.length > 0 && (
           <div className="wallet-selector" ref={walletSelectorRef} onClick={() => setWalletMenuOpen(!walletMenuOpen)}>
             <div className="wallet-selector-inner">
@@ -357,14 +354,10 @@ export function Layout() {
             )}
           </div>
         )}
-
-        {/* Quick add button */}
         <button className="quick-add-btn" onClick={() => setCmdOpen(true)}>
           <span>{t('nav.addTransaction')}</span>
           <kbd className="kbd-hint">{CMD_K}</kbd>
         </button>
-
-        {/* Navigation */}
         <nav className="sidebar-nav">
           <NavLink
             to="/"
@@ -392,8 +385,6 @@ export function Layout() {
             </NavLink>
           ))}
         </nav>
-
-        {/* Bottom section */}
         <div className="sidebar-bottom">
           {ANDROID_APP_URL ? (
             <a href={ANDROID_APP_URL} className="nav-item pwa-install-btn">
@@ -455,10 +446,7 @@ export function Layout() {
           <VersionInfo />
         </div>
       </aside>
-
-      {/* Main content */}
       <main className="main-content">
-        {/* Mobile header */}
         <header className="mobile-header">
           <Link to="/" className="sidebar-logo">
             <img src={logoSrc} alt="" className="sidebar-logo-img" />
@@ -503,8 +491,6 @@ export function Layout() {
           <Outlet context={{ expenseAddedKey, onExpenseAdded: handleExpenseAdded } satisfies LayoutOutletContext} />
         </div>
       </main>
-
-      {/* Bottom tab bar — mobile only */}
       {createPortal(
         <nav className="bottom-tab-bar">
           <NavLink
@@ -548,8 +534,6 @@ export function Layout() {
         </nav>,
         document.body
       )}
-
-      {/* More bottom sheet — mobile only */}
       {(moreOpen || moreClosing) && createPortal(
         <>
           <div className={`more-backdrop${moreClosing ? ' more-backdrop--closing' : ''}`} onClick={() => closeMore()} />

@@ -171,7 +171,6 @@ h6 {
   line-height: 1.2;
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -190,14 +189,12 @@ h6 {
   background: var(--sand-dark);
 }
 
-/* Focus */
 :focus-visible {
   outline: 2px solid var(--forest-mid);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
 
-/* Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -268,7 +265,6 @@ h6 {
   animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* Skeleton loading */
 .skeleton {
   background: linear-gradient(90deg,
       var(--cream-dark) 25%,
@@ -279,7 +275,6 @@ h6 {
   border-radius: var(--radius-sm);
 }
 
-/* Markdown rendered content */
 .markdown-body {
   font-size: 14px;
   line-height: 1.6;
@@ -386,7 +381,6 @@ h6 {
   background: var(--cream-dark);
   font-weight: 600;
 }
-/* Info tooltip */
 .info-tooltip-content {
   position: absolute;
   left: 50%;

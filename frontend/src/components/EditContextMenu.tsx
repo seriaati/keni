@@ -24,7 +24,6 @@ export function useEditContextMenu<T>() {
 const MENU_WIDTH = 180;
 const MARGIN = 8;
 
-/** Right-click menu with a single "edit" entry. */
 export function EditContextMenu({
   state,
   label,

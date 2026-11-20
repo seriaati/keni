@@ -128,7 +128,6 @@ export function TransactionContextMenu({
 
   const expense = state?.expense ?? null;
 
-  // Load pickable lists when the menu opens
   useEffect(() => {
     if (!state) return;
     setSubmenu(null);
@@ -185,7 +184,6 @@ export function TransactionContextMenu({
     };
   }, [state, onClose]);
 
-  // Focus the submenu search when it opens
   useEffect(() => {
     if (!submenu) { setQuery(''); return; }
     setQuery('');

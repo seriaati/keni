@@ -153,7 +153,6 @@ export function isPaletteColor(value: string | null | undefined): boolean {
   return !!value && PALETTE_BY_ID.has(value);
 }
 
-/** Resolve a stored color (palette id or custom hex) to a hex for the given theme. */
 export function resolveColor(value: string | null | undefined, theme: Theme): string | null {
   if (!value) return null;
   if (value.startsWith('#')) return value;
@@ -216,7 +215,6 @@ export function pickDistinctColors(used: (string | null)[], count: number): stri
   return picks;
 }
 
-/** Hook returning a resolver bound to the active theme. */
 export function useColor() {
   const theme = useTheme();
   return (value: string | null | undefined) => resolveColor(value, theme);

@@ -105,7 +105,6 @@ function cumulativeByOffset(byDay: { day: string; total: number }[], start: Date
   return out;
 }
 
-// Daily totals, optionally narrowed to selected categories (uses by_day_category pivot)
 function dailyTotals(
   byDay: TransactionAnalytics['by_day'],
   byDayCategory: TransactionAnalytics['by_day_category'],
@@ -228,7 +227,6 @@ export function InsightsPage() {
       .finally(() => setLoading(false));
   }, [activeWallet, type, start, end, preset]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Headline stats
   const stats = useMemo(() => {
     const byDay = analytics?.by_day ?? [];
     const total = byDay.reduce((s, d) => s + d.total, 0);
@@ -271,7 +269,6 @@ export function InsightsPage() {
     return rows;
   }, [analytics, prevAnalytics, start, end, preset, lineCategoryIds]);
 
-  // Category stacked area: pivot by_day_category, keep top N + Other
   const { areaData, areaCategories } = useMemo(() => {
     const rows = analytics?.by_day_category ?? [];
     const totals = new Map<string, { id: string; name: string; color: string | null; total: number }>();
@@ -298,7 +295,6 @@ export function InsightsPage() {
     return { areaData: data, areaCategories: cats };
   }, [analytics, t, theme]);
 
-  // Calendar heatmap: GitHub-style week columns over the range
   const heatmap = useMemo(() => {
     const map = new Map((analytics?.by_day ?? []).map((d) => [d.day, d.total]));
     const max = Math.max(0, ...map.values());
@@ -335,7 +331,6 @@ export function InsightsPage() {
     return { weeks, monthCols, max };
   }, [analytics, start, end]);
 
-  // Responsive heatmap cell size — grow blocks to fill width on small ranges
   const [heatWidth, setHeatWidth] = useState(0);
   const roRef = useRef<ResizeObserver | null>(null);
   // Callback ref: the heatmap node only mounts once activeWallet resolves, so a
@@ -348,7 +343,6 @@ export function InsightsPage() {
     roRef.current = ro;
   }, []);
 
-  // Heatmap tooltip (hover on desktop, tap on mobile)
   const [tip, setTip] = useState<HeatTip | null>(null);
   const pinnedRef = useRef(false);
   useEffect(() => {
@@ -363,7 +357,6 @@ export function InsightsPage() {
     return () => document.removeEventListener('pointerdown', onDown);
   }, [tip]);
 
-  // Day drawer (desktop): fetch the clicked day's transactions, scoped to type + selected categories
   useEffect(() => {
     if (!activeWallet || !selectedDay) return;
     setDayLoading(true);
@@ -402,7 +395,6 @@ export function InsightsPage() {
     return `color-mix(in oklch, var(--forest) ${Math.round(intensity * 100)}%, var(--cream))`;
   };
 
-  // Heatmap geometry
   const GAP = 4;
   const LABEL_W = 32;
   const weekCount = heatmap.weeks.length;
@@ -430,7 +422,6 @@ export function InsightsPage() {
   const cumulativeTitle = type === 'income' ? t('insights.cumulativeTitleIncome') : t('insights.cumulativeTitle');
   const cumulativeDesc = type === 'income' ? t('insights.cumulativeDescIncome') : t('insights.cumulativeDesc');
 
-  // Only offer categories that actually have data this period
   const presentCategoryIds = new Set((analytics?.by_day_category ?? []).map((r) => r.category_id));
   const lineCategoryOptions = categories.filter((c) => presentCategoryIds.has(c.id));
 
@@ -441,7 +432,7 @@ export function InsightsPage() {
     d.setDate(d.getDate() + offset);
     return localDate(d);
   };
-  // Local-day ISO bounds — matches how the chart buckets days (DB date_trunc in session tz)
+  // Local-day bounds, matching the backend, which buckets days in the user's timezone
   const dayBoundsISO = (iso: string) => {
     const d = parseDay(iso);
     return {
@@ -519,15 +510,12 @@ export function InsightsPage() {
         transition: 'padding-right 0.2s ease',
       }}
     >
-      {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(26px, 4vw, 36px)', color: 'var(--ink)', fontStyle: 'italic' }}>
           {t('insights.title')}
         </h1>
         <p style={{ fontSize: 14, color: 'var(--ink-light)', marginTop: 4 }}>{t('insights.subtitle')}</p>
       </div>
-
-      {/* Filter bar */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 24, alignItems: 'center' }}>
         <div style={{ width: 180 }}>
           <Select
@@ -555,8 +543,6 @@ export function InsightsPage() {
         )}
         {!isMobile && <div style={{ marginLeft: 'auto' }}>{typeToggle}</div>}
       </div>
-
-      {/* Custom range modal */}
       <Modal
         open={periodModalOpen}
         onClose={() => setPeriodModalOpen(false)}
@@ -579,8 +565,6 @@ export function InsightsPage() {
           <DatePicker value={draftEnd} onChange={setDraftEnd} />
         </div>
       </Modal>
-
-      {/* Headline stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
         <StatCard label={t('insights.statTotal')} value={fmt(stats.total, currency)} />
         <StatCard label={t('insights.statCount')} value={String(stats.count)} />
@@ -591,8 +575,6 @@ export function InsightsPage() {
           sub={stats.biggest ? fmtDateShort(stats.biggest.day) : undefined}
         />
       </div>
-
-      {/* Cumulative line */}
       <Card title={cumulativeTitle} desc={cumulativeDesc}>
         <div style={{ marginBottom: 24 }}>
           <MultiCategorySelect
@@ -620,13 +602,10 @@ export function InsightsPage() {
           </ErrorBoundary>
         )}
       </Card>
-
-      {/* Calendar heatmap */}
       <Card title={t('insights.heatmapTitle')} desc={t('insights.heatmapDesc')}>
         {loading && <ChartSkeleton height={160} />}
         <div ref={heatRef} style={{ overflowX: 'auto', paddingBottom: 4, display: loading ? 'none' : undefined }}>
           <div style={{ width: 'fit-content', margin: '0 auto' }}>
-            {/* Month labels */}
             <div style={{ display: 'flex', gap: GAP, marginLeft: LABEL_W, marginBottom: 4, height: 14 }}>
               {heatmap.monthCols.map((label, wi) => (
                 <div key={wi} style={{ width: cell, fontSize: 10, color: 'var(--ink-light)', whiteSpace: 'nowrap', position: 'relative' }}>
@@ -635,7 +614,6 @@ export function InsightsPage() {
               ))}
             </div>
             <div style={{ display: 'flex', gap: GAP }}>
-              {/* Weekday labels */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: GAP, width: LABEL_W - GAP }}>
                 {WEEKDAYS.map((wd, i) => (
                   <div key={i} style={{ height: cell, fontSize: 10, color: 'var(--ink-light)', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
@@ -643,7 +621,6 @@ export function InsightsPage() {
                   </div>
                 ))}
               </div>
-              {/* Week columns */}
               {heatmap.weeks.map((week, wi) => (
                 <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: GAP }}>
                   {week.map((c, di) =>
@@ -675,8 +652,6 @@ export function InsightsPage() {
           </div>
         </div>
       </Card>
-
-      {/* Heatmap floating tooltip */}
       {tip && (
         <div
           style={{
@@ -701,8 +676,6 @@ export function InsightsPage() {
           <div style={{ color: 'var(--ink-mid)' }}>{fmt(tip.total, currency)}</div>
         </div>
       )}
-
-      {/* Category stacked area */}
       <Card title={t('insights.areaTitle')} desc={t('insights.areaDesc')}>
         {loading ? (
           <ChartSkeleton height={300} />
@@ -723,8 +696,6 @@ export function InsightsPage() {
           </ErrorBoundary>
         )}
       </Card>
-
-      {/* Top transactions */}
       <Card title={t('insights.topTitle')} desc={t('insights.topDesc')}>
         {loading ? (
           <TableSkeleton rows={DEFAULT_TOP_SHOWN} />
@@ -774,8 +745,6 @@ export function InsightsPage() {
           </>
         )}
       </Card>
-
-      {/* Day transactions drawer (desktop) */}
       {!isMobile && selectedDay && (
         <DayDrawer
           iso={selectedDay}
@@ -787,8 +756,6 @@ export function InsightsPage() {
           onOpenTxn={(id) => navigate(`/wallets/${activeWallet.id}/expenses/${id}`)}
         />
       )}
-
-      {/* Mobile expense/income toolbar */}
       {isMobile && (
         <div
           role="toolbar"

@@ -3,7 +3,6 @@
   min-height: 100dvh;
 }
 
-/* ===== SIDEBAR ===== */
 .sidebar {
   width: var(--nav-width);
   flex-shrink: 0;
@@ -41,7 +40,6 @@
   color: var(--ink);
 }
 
-/* Wallet selector */
 .wallet-selector {
   margin: 0 10px 8px;
   border-radius: var(--radius);
@@ -125,7 +123,6 @@
   font-weight: 500;
 }
 
-/* Quick add */
 .quick-add-btn {
   display: flex;
   align-items: center;
@@ -156,7 +153,6 @@
   font-family: var(--font-body);
 }
 
-/* Nav */
 .sidebar-nav {
   flex: 1;
   padding: 0 8px;
@@ -189,7 +185,6 @@
   font-weight: 500;
 }
 
-/* PWA install */
 .pwa-install-btn {
   width: 100%;
   border: none;
@@ -204,7 +199,6 @@
   color: var(--amber);
 }
 
-/* Sidebar bottom */
 .sidebar-bottom {
   padding: 8px;
   border-top: 1px solid var(--cream-darker);
@@ -283,7 +277,6 @@
   opacity: 0.6;
 }
 
-/* ===== MAIN CONTENT ===== */
 .main-content {
   flex: 1;
   min-width: 0;
@@ -348,7 +341,6 @@
   margin: 0 auto;
 }
 
-/* ===== BOTTOM TAB BAR ===== */
 .bottom-tab-bar {
   display: none;
   position: fixed;
@@ -432,7 +424,6 @@
   transform: scale(0.96);
 }
 
-/* ===== MORE BOTTOM SHEET ===== */
 .more-backdrop {
   position: fixed;
   inset: 0;
@@ -507,7 +498,6 @@
   animation: fadeOut 0.26s ease both;
 }
 
-/* ===== MOBILE ===== */
 @media (max-width: 768px) {
   .sidebar {
     display: none;
@@ -536,7 +526,6 @@
   }
 }
 
-/* ===== PAGE HEADERS ===== */
 .page-header {
   display: flex;
   align-items: flex-start;

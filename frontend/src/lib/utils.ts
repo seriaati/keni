@@ -1,6 +1,5 @@
 import i18n from './i18n';
 
-// Command palette shortcut label: ⌘ on Apple platforms, Ctrl elsewhere
 export const CMD_K = /Mac|iPhone|iPad|iPod/.test(navigator.platform) ? '⌘ K' : 'Ctrl+K';
 
 function locale(): string {

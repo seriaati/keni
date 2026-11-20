@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# dev.sh — run frontend + backend dev servers together
 set -euo pipefail
 
 pids=()

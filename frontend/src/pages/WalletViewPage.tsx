@@ -48,19 +48,15 @@ export function WalletViewPage() {
   const [tagsCollapsed, setTagsCollapsed] = useState<boolean | null>(null);
   const tagListRef = useRef<HTMLDivElement>(null);
 
-  // --- Bulk selection state ---
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isSelecting, setIsSelecting] = useState(false);
   const lastClickedIndexRef = useRef<number>(-1);
 
-  // --- Bulk delete modal ---
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
 
-  // --- Bulk actions bar ---
   const [showActionsBar, setShowActionsBar] = useState(false);
 
-  // --- Bulk edit modals ---
   const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
   const [showEditLabelModal, setShowEditLabelModal] = useState(false);
   const [bulkEditCategoryId, setBulkEditCategoryId] = useState('');
@@ -86,7 +82,6 @@ export function WalletViewPage() {
   const [allTags, setAllTags] = useState<TagResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filter state derived from URL params
   const search = searchParams.get('q') ?? '';
   const selectedCategoryIds = useMemo(() => searchParams.getAll('category_ids'), [searchParams]);
 
@@ -131,7 +126,6 @@ export function WalletViewPage() {
     }, { replace: true });
   };
 
-  // Auto-apply search after the user stops typing
   useEffect(() => {
     if (isComposing || searchInput === search) return;
     const id = window.setTimeout(() => setParam({ q: searchInput, page: null }), 400);
@@ -177,7 +171,6 @@ export function WalletViewPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Clear selection when page data changes
   useEffect(() => {
     setSelectedIds(new Set());
     setIsSelecting(false);
@@ -229,13 +222,11 @@ export function WalletViewPage() {
     setParam({ tag_ids: next, page: null });
   };
 
-  // --- Bulk selection handlers ---
   const handleSelect = useCallback((id: string, e?: React.MouseEvent) => {
     const items = data?.items ?? [];
     const clickedIndex = items.findIndex((item) => item.id === id);
 
     if (!isSelecting) {
-      // Enter selecting mode
       setIsSelecting(true);
       setSelectedIds(new Set([id]));
       lastClickedIndexRef.current = clickedIndex;
@@ -243,7 +234,6 @@ export function WalletViewPage() {
     }
 
     if (!isMobile && e?.shiftKey && lastClickedIndexRef.current >= 0) {
-      // Shift-click: select range
       const from = Math.min(lastClickedIndexRef.current, clickedIndex);
       const to = Math.max(lastClickedIndexRef.current, clickedIndex);
       setSelectedIds((prev) => {
@@ -254,7 +244,6 @@ export function WalletViewPage() {
         return next;
       });
     } else {
-      // Toggle single item
       setSelectedIds((prev) => {
         const next = new Set(prev);
         if (next.has(id)) {
@@ -262,7 +251,6 @@ export function WalletViewPage() {
         } else {
           next.add(id);
         }
-        // Exit selecting mode if nothing selected
         if (next.size === 0) {
           setIsSelecting(false);
         }
@@ -284,8 +272,6 @@ export function WalletViewPage() {
     lastClickedIndexRef.current = -1;
   };
 
-  // Ctrl+A / Cmd+A selects all items on the current page (works even before entering select mode)
-  // `/` or Ctrl+F / Cmd+F focuses search and opens the filter panel
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
@@ -311,7 +297,6 @@ export function WalletViewPage() {
     return () => window.removeEventListener('keydown', handler);
   }, [handleSelectAll, isSelecting]);
 
-  // --- Bulk delete ---
   const handleBulkDelete = async () => {
     if (!walletId || selectedIds.size === 0) return;
     setBulkDeleting(true);
@@ -330,7 +315,6 @@ export function WalletViewPage() {
     }
   };
 
-  // --- Bulk edit ---
   const openEditCategoryModal = () => {
     setBulkEditCategoryId('');
     setShowEditCategoryModal(true);
@@ -364,7 +348,6 @@ export function WalletViewPage() {
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
-    // Remove from remove-set if added
     setBulkRemoveTagIds((prev) => {
       const next = new Set(prev);
       next.delete(id);
@@ -378,7 +361,6 @@ export function WalletViewPage() {
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
-    // Remove from add-set if toggled into remove
     setBulkAddTagIds((prev) => {
       const next = new Set(prev);
       next.delete(id);
@@ -497,7 +479,6 @@ export function WalletViewPage() {
   // Tags that can still match given the other active filters; ineligible ones are dimmed, not hidden.
   const availableTagIds = useMemo(() => new Set(data?.available_tag_ids ?? []), [data]);
 
-  // On mobile, collapse the tag filter by default when the chips wrap past 4 rows.
   useLayoutEffect(() => {
     if (!isMobile || tagsCollapsed !== null || !tagListRef.current) return;
     const rows = new Set([...tagListRef.current.children].map((el) => (el as HTMLElement).offsetTop)).size;
@@ -539,7 +520,6 @@ export function WalletViewPage() {
     return total;
   }, [data, selectedIds, hasFx, rateFor]);
 
-  // Bulk action toolbar (floating, Linear-style)
   const bulkToolbar = selCount > 0 ? (
     <div
       role="toolbar"
@@ -595,7 +575,6 @@ export function WalletViewPage() {
     </div>
   ) : null;
 
-  // Bulk delete confirmation modal
   const deleteModal = (
     <Modal
       open={showDeleteModal}
@@ -623,7 +602,6 @@ export function WalletViewPage() {
     </Modal>
   );
 
-  // Bulk edit category modal
   const editCategoryObj = categories.find((c) => c.id === bulkEditCategoryId) ?? null;
   const editCategoryModal = (
     <Modal
@@ -668,7 +646,6 @@ export function WalletViewPage() {
     </Modal>
   );
 
-  // Bulk edit labels modal
   const editLabelsModal = (
     <Modal
       open={showEditLabelModal}
@@ -691,11 +668,9 @@ export function WalletViewPage() {
       }
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {/* Add tags section */}
         <div className="input-group">
           <label className="input-label">{t('walletView.bulkEditAddTagsLabel')}</label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {/* Inline create-tag pill */}
             {isCreatingTag ? (
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -756,8 +731,6 @@ export function WalletViewPage() {
             })}
           </div>
         </div>
-
-        {/* Remove tags section — only shows tags present on the selected transactions */}
         <div className="input-group">
           <label className="input-label">{t('walletView.bulkEditRemoveTagsLabel')}</label>
           {selectedTransactionTags.length === 0 ? (
@@ -827,8 +800,6 @@ export function WalletViewPage() {
           <h1 className="page-title">{wallet?.name ?? t('walletView.titleFallback')}</h1>
         </div>
       </div>
-
-      {/* Search & filter bar */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <form
           style={{ flex: 1, minWidth: 200, position: 'relative' }}
@@ -897,8 +868,6 @@ export function WalletViewPage() {
           {sortOrder === 'desc' ? <SortDesc size={14} /> : <SortAsc size={14} />}
         </button>
       </div>
-
-      {/* Advanced filters */}
       {showFilters && (
         <div style={{
           background: 'var(--surface)',
@@ -1023,8 +992,6 @@ export function WalletViewPage() {
           )}
         </div>
       )}
-
-      {/* Expense list */}
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {[...Array(8)].map((_, i) => (
@@ -1088,8 +1055,6 @@ export function WalletViewPage() {
               />
             ))}
           </div>
-
-          {/* Pagination */}
           {totalPages > 1 && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 20 }}>
               <button
@@ -1195,7 +1160,6 @@ function ExpenseRow({
   const hasConversion = convertedAmount != null && globalCurrency != null;
   const color = amountColor(expense.amount, expense.type);
 
-  // Long-press state for mobile: opens the action sheet, or toggles while selecting
   const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pressStartPosRef = useRef<{ x: number; y: number } | null>(null);
   // Track whether a long-press fired so the pointerUp click is suppressed
@@ -1237,14 +1201,13 @@ function ExpenseRow({
 
   const rowContent = (
     <>
-      {/* Left-zone click overlay — desktop hover mode only; covers padding + checkbox + gap */}
+      {/* 48px covers the row's left padding, checkbox and gap */}
       {!isMobile && showCheckbox && !isSelecting && (
         <div
           style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 48, cursor: 'pointer', zIndex: 1 }}
           onClick={(e) => { e.stopPropagation(); onSelect(expense.id, e as React.MouseEvent); }}
         />
       )}
-      {/* Checkbox — slides in from the left on desktop hover or when selecting */}
       <div
         style={{
           width: showCheckbox ? 20 : 0,
@@ -1476,9 +1439,8 @@ function BulkActionsBar({
 
   return createPortal(
     <>
-      {/* Click-away backdrop */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 550 }} onClick={onClose} />
-      {/* Positioning shell (holds translateX) */}
+      {/* Centered on a wrapper: the panel's fadeIn animation sets its own transform */}
       <div
         style={{
           position: 'fixed',
@@ -1489,7 +1451,6 @@ function BulkActionsBar({
           width: 260,
         }}
       >
-        {/* Animated panel */}
         <div
           className="animate-fade-in"
           style={{

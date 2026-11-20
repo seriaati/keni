@@ -132,8 +132,6 @@ export function WalletsPage() {
           </div>
         ))}
       </div>
-
-      {/* Create/Edit modal */}
       <Modal
         open={showCreate || !!editWallet}
         onClose={() => { setShowCreate(false); setEditWallet(null); }}
@@ -168,8 +166,6 @@ export function WalletsPage() {
           />
         </div>
       </Modal>
-
-      {/* Delete confirm */}
       <Modal
         open={!!deleteWallet}
         onClose={() => setDeleteWallet(null)}

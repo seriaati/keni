@@ -103,8 +103,6 @@ img, svg { display: block; }
 ::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--faint); }
 
-/* ── Shared primitives ─────────────────────────────────────── */
-
 .wrap {
   width: 100%;
   max-width: var(--wrap);
@@ -143,8 +141,7 @@ img, svg { display: block; }
 }
 .text-link:hover { text-decoration-color: var(--amber); }
 
-/* ── Gloss (shared by the hero and feature examples; nodes are created by src/scripts/gloss.ts) ── */
-
+/* Nodes are created by src/scripts/gloss.ts. */
 .gloss { position: relative; --gs: clamp(44px, 8.8vw, 125px); --row: 52px; }
 .gloss--sm { --gs: clamp(28px, 3.5vw, 44px); --row: 48px; }
 .gloss-line {
@@ -196,8 +193,7 @@ img, svg { display: block; }
 .gloss-lab span { display: block; font: 500 17px/1.35 var(--f-sans); color: var(--ink); letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
 .gloss--sm .gloss-lab span { font-size: 15px; }
 
-/* ── Scroll reveal (content is visible without JS; the class is added by the layout script) ── */
-
+/* Content stays visible without JS: the layout script adds the .js class. */
 .js .reveal {
   opacity: 0;
   transform: translateY(16px);

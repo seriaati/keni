@@ -1,4 +1,3 @@
-/* ===== BUTTONS ===== */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -74,7 +73,6 @@
   flex-shrink: 0;
 }
 
-/* ===== INPUTS ===== */
 .input-group {
   display: flex;
   flex-direction: column;
@@ -165,7 +163,6 @@ textarea.input {
   min-height: 80px;
 }
 
-/* ===== CARDS ===== */
 .card {
   background: var(--surface);
   border-radius: var(--radius-lg);
@@ -178,7 +175,6 @@ textarea.input {
   border-radius: var(--radius);
 }
 
-/* ===== BADGE ===== */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -209,7 +205,6 @@ textarea.input {
   color: var(--rose);
 }
 
-/* ===== TOAST ===== */
 .toast-container {
   position: fixed;
   bottom: 24px;
@@ -248,7 +243,6 @@ textarea.input {
   }
 }
 
-/* ===== MODAL ===== */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -305,7 +299,6 @@ textarea.input {
   padding: 0 24px 24px;
 }
 
-/* ===== EMPTY STATE ===== */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -334,7 +327,6 @@ textarea.input {
   max-width: 320px;
 }
 
-/* ===== PROGRESS BAR ===== */
 .progress-bar {
   height: 6px;
   background: var(--cream-darker);
@@ -348,14 +340,12 @@ textarea.input {
   transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ===== DIVIDER ===== */
 .divider {
   height: 1px;
   background: var(--cream-darker);
   border: none;
 }
 
-/* ===== ICON BUTTON ===== */
 .icon-btn {
   display: inline-flex;
   align-items: center;
@@ -382,7 +372,6 @@ textarea.input {
   border-radius: var(--radius);
 }
 
-/* ===== TABS ===== */
 .tabs {
   display: flex;
   gap: 2px;
@@ -419,7 +408,6 @@ textarea.input {
   box-shadow: var(--shadow-sm);
 }
 
-/* ===== CHIP ===== */
 .chip {
   display: inline-flex;
   align-items: center;
@@ -433,7 +421,6 @@ textarea.input {
   border: 1px solid var(--cream-darker);
 }
 
-/* ===== AVATAR ===== */
 .avatar {
   display: inline-flex;
   align-items: center;
@@ -450,7 +437,6 @@ textarea.input {
 .avatar-md { width: 36px; height: 36px; font-size: 13px; }
 .avatar-lg { width: 48px; height: 48px; font-size: 16px; }
 
-/* ===== BOTTOM SHEET ===== */
 .bottom-sheet-backdrop {
   position: fixed;
   inset: 0;

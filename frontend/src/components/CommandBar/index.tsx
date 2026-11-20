@@ -877,8 +877,6 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
               <span style={{ fontSize: 12, color: 'var(--ink-light)' }}>Image or PDF</span>
             </div>
           )}
-
-          {/* Header bar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: '1px solid var(--cream-darker)' }}>
             {mode === 'processing' ? (
               <div style={{ width: 20, height: 20, border: '2px solid var(--forest)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.6s linear infinite', flexShrink: 0 }} />
@@ -970,8 +968,6 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
               )}
             </div>
           </div>
-
-          {/* File previews */}
           {attachedFiles.length > 0 && (
             <div style={{ padding: '8px 16px', display: 'flex', flexWrap: 'wrap', gap: 8, background: 'var(--cream)', alignItems: 'flex-start' }}>
               {attachedFiles.map((file, i) => (
@@ -1025,23 +1021,17 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
               ))}
             </div>
           )}
-
-          {/* Transcript badge */}
           {transcript && mode === 'review' && (
             <div style={{ padding: '6px 16px', background: 'var(--green-tint-soft)', borderBottom: '1px solid var(--green-border)', fontSize: 12, color: 'var(--forest)', display: 'flex', alignItems: 'center', gap: 6 }}>
               <Mic size={12} />
               <span style={{ fontStyle: 'italic' }}>{transcript}</span>
             </div>
           )}
-
-          {/* Error */}
           {error && (
             <div style={{ padding: '8px 16px', background: 'var(--rose-light)', color: 'var(--rose)', fontSize: 13 }}>
               {error}
             </div>
           )}
-
-          {/* Review: single */}
           {mode === 'review' && resultType === 'single' && singleExpense && (
             <SingleReview
               expense={singleExpense}
@@ -1056,8 +1046,6 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
               onWalletChange={setSelectedWalletId}
             />
           )}
-
-          {/* Review: multiple */}
           {mode === 'review' && resultType === 'multiple' && (
             <MultipleReview
               expenses={multiExpenses}
@@ -1072,8 +1060,6 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
               onWalletChange={setSelectedWalletId}
             />
           )}
-
-          {/* Review: recurring */}
           {mode === 'review' && resultType === 'recurring' && recurringExpense && (
             <RecurringReview
               recurring={recurringExpense}
@@ -1088,8 +1074,6 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
               onWalletChange={setSelectedWalletId}
             />
           )}
-
-          {/* Review: group */}
           {mode === 'review' && resultType === 'group' && groupParent && (
             <GroupReview
               parent={groupParent}
@@ -1107,8 +1091,6 @@ export function CommandBar({ open, onClose, onExpenseAdded, initialPayload }: Co
               onWalletChange={setSelectedWalletId}
             />
           )}
-
-          {/* Navigation suggestions */}
           {mode === 'input' && (
             <div style={{ padding: '6px 8px 8px' }}>
               {text.trim() && looksLikeExpense(text) ? (

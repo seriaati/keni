@@ -88,7 +88,7 @@ export function DashboardPage() {
       .finally(() => setLoading(false));
   }, [activeWallet, expenseAddedKey, refreshKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Spending chart reload on period change (skip mount)
+  // Skips mount: the full reload above already loads this period
   const spendingMountedRef = useRef(false);
   useEffect(() => {
     if (!spendingMountedRef.current) { spendingMountedRef.current = true; return; }
@@ -100,7 +100,7 @@ export function DashboardPage() {
       .finally(() => setSpendingLoading(false));
   }, [spendingPeriod]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Income chart reload on period change (skip mount)
+  // Skips mount: the full reload above already loads this period
   const incomeMountedRef = useRef(false);
   useEffect(() => {
     if (!incomeMountedRef.current) { incomeMountedRef.current = true; return; }
@@ -120,7 +120,6 @@ export function DashboardPage() {
     if (incomeChartRef.current) incomeChartRef.current.style.opacity = incomeLoading ? '0.4' : '1';
   }, [incomeLoading]);
 
-  // Close dropdowns on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (spendingPeriodRef.current && !spendingPeriodRef.current.contains(e.target as Node)) setSpendingPeriodOpen(false);
@@ -178,7 +177,6 @@ export function DashboardPage() {
 
   return (
     <div className="animate-fade-in">
-      {/* Over-budget warning banner */}
       {!loading && overBudget.length > 0 && (
         <div style={{
           display: 'flex',
@@ -209,8 +207,6 @@ export function DashboardPage() {
           </Link>
         </div>
       )}
-
-      {/* Near-limit warning banner */}
       {!loading && overBudget.length === 0 && nearLimit.length > 0 && (
         <div style={{
           display: 'flex',
@@ -240,8 +236,6 @@ export function DashboardPage() {
           </Link>
         </div>
       )}
-
-      {/* Header */}
       <div style={{ marginBottom: 32 }}>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(26px, 4vw, 36px)', color: 'var(--ink)', fontStyle: 'italic' }}>
           {greeting()}{name ? `, ${name}` : ''}.
@@ -250,8 +244,6 @@ export function DashboardPage() {
           {t('dashboard.overviewSubtitle', { month: new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) })}
         </p>
       </div>
-
-      {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
         <SummaryCard
           label={t('dashboard.cardThisMonth')}
@@ -280,8 +272,6 @@ export function DashboardPage() {
           loading={loading}
         />
       </div>
-
-      {/* Budget overview */}
       {(loading || budgets.length > 0) && (
         <div style={{ marginBottom: 28 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -343,7 +333,6 @@ export function DashboardPage() {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: 20, alignItems: 'start', minWidth: 0 }} className="dashboard-bottom-grid">
-        {/* Recent expenses */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
             <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{t('dashboard.recentTitle')}</h2>
@@ -423,10 +412,7 @@ export function DashboardPage() {
             </div>
           )}
         </div>
-
-        {/* Charts column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {/* Spending by category */}
           <div>
             <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>{t('dashboard.spendingTitle')}</h2>
             <div ref={spendingPeriodRef} style={{ position: 'relative', display: 'inline-block', marginBottom: 14 }}>
@@ -539,8 +525,6 @@ export function DashboardPage() {
             </div>
             </ErrorBoundary>
           </div>
-
-          {/* Income by category */}
           {(loading || incomeSummary) && (
             <div>
               <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>{t('dashboard.incomeTitle')}</h2>

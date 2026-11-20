@@ -78,7 +78,6 @@ ToolExecutor = "Callable[[str, dict[str, Any]], Awaitable[Any]]"
 
 LUCIDE_ICONS: frozenset[str] = frozenset(
     {
-        # Food & drink
         "Utensils",
         "Coffee",
         "Pizza",
@@ -88,13 +87,11 @@ LUCIDE_ICONS: frozenset[str] = frozenset(
         "Sandwich",
         "IceCream",
         "Soup",
-        # Shopping
         "ShoppingCart",
         "ShoppingBag",
         "Shirt",
         "Package",
         "Tag",
-        # Transport
         "Car",
         "Bus",
         "Train",
@@ -105,10 +102,8 @@ LUCIDE_ICONS: frozenset[str] = frozenset(
         "Ship",
         "Taxi",
         "Cable",
-        # Location
         "MapPin",
         "Navigation",
-        # Home & living
         "Home",
         "Building2",
         "Hotel",
@@ -117,14 +112,12 @@ LUCIDE_ICONS: frozenset[str] = frozenset(
         "Hammer",
         "Paintbrush",
         "Key",
-        # Utilities
         "Lightbulb",
         "Zap",
         "Droplets",
         "Flame",
         "Wifi",
         "Wrench",
-        # Tech & devices
         "Phone",
         "Tv",
         "Smartphone",
@@ -133,7 +126,6 @@ LUCIDE_ICONS: frozenset[str] = frozenset(
         "Headphones",
         "Camera",
         "Printer",
-        # Health & fitness
         "Pill",
         "Stethoscope",
         "Heart",
@@ -142,13 +134,11 @@ LUCIDE_ICONS: frozenset[str] = frozenset(
         "Brain",
         "Eye",
         "Smile",
-        # Education & media
         "BookOpen",
         "GraduationCap",
         "Globe",
         "Pen",
         "Newspaper",
-        # Entertainment & leisure
         "Clapperboard",
         "Music",
         "Gamepad2",
@@ -157,7 +147,6 @@ LUCIDE_ICONS: frozenset[str] = frozenset(
         "Mountain",
         "Waves",
         "Ticket",
-        # Finance & work
         "Briefcase",
         "Landmark",
         "TrendingUp",
@@ -168,7 +157,6 @@ LUCIDE_ICONS: frozenset[str] = frozenset(
         "Coins",
         "Wallet",
         "DollarSign",
-        # Misc
         "Rocket",
         "Star",
         "Sparkles",

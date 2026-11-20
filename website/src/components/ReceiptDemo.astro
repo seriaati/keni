@@ -188,8 +188,6 @@ const summary = notes.map((n) => `${n.label} ${n.value}`).join("; ");
     padding-block: 4px 2px;
   }
 
-  /* ── Paper ── */
-
   .rd-paper {
     position: relative;
     isolation: isolate;
@@ -259,8 +257,6 @@ const summary = notes.map((n) => `${n.label} ${n.value}`).join("; ");
     position: relative;
   }
 
-  /* ── Highlight band behind a read row ── */
-
   .rd-hit {
     isolation: isolate;
   }
@@ -274,8 +270,6 @@ const summary = notes.map((n) => `${n.label} ${n.value}`).join("; ");
     transform-origin: left;
     transition: transform 0.5s var(--ease);
   }
-
-  /* ── Scan line ── */
 
   .rd-scan {
     position: absolute;
@@ -295,8 +289,6 @@ const summary = notes.map((n) => `${n.label} ${n.value}`).join("; ");
     opacity: 1;
     transition-duration: 0.15s;
   }
-
-  /* ── Glosses, hung outside the right edge ── */
 
   .rd-note {
     position: absolute;
@@ -373,8 +365,6 @@ const summary = notes.map((n) => `${n.label} ${n.value}`).join("; ");
   :lang(zh-TW) .rd-lab span {
     letter-spacing: 0;
   }
-
-  /* ── Narrow columns ── */
 
   @container rd (max-width: 480px) {
     .rd-paper {

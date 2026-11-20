@@ -69,8 +69,6 @@ export function ChatPage() {
         <h1 className="page-title">{t('chat.title')}</h1>
         <p className="page-subtitle">{t('chat.subtitle')}</p>
       </div>
-
-      {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 16 }}>
         {messages.length === 0 ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
@@ -179,8 +177,6 @@ export function ChatPage() {
         )}
         <div ref={bottomRef} />
       </div>
-
-      {/* Input */}
       <div style={{
         background: 'var(--surface)',
         border: '1.5px solid var(--sand)',

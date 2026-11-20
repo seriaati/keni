@@ -1,8 +1,8 @@
 const rateCache = new Map<string, { rate: number; ts: number }>();
-const RATE_TTL = 60 * 60 * 1000; // 1 hour
+const RATE_TTL = 60 * 60 * 1000;
 
 let currenciesCache: { codes: string[]; ts: number } | null = null;
-const CURRENCY_TTL = 24 * 60 * 60 * 1000; // 24 hours
+const CURRENCY_TTL = 24 * 60 * 60 * 1000;
 
 const BASE = 'https://api.frankfurter.dev/v2';
 
