@@ -182,6 +182,8 @@
     "fieldWallet": "錢包（選填）",
     "allCategories": "所有類別",
     "allWallets": "所有錢包",
+    "fieldCurrency": "貨幣",
+    "currencyHint": "其他貨幣的支出會以最新匯率換算。",
     "periodWeekly": "每週",
     "periodMonthly": "每月",
     "modalCreateTitle": "新增預算",

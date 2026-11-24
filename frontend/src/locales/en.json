@@ -182,6 +182,8 @@
     "fieldWallet": "Wallet (optional)",
     "allCategories": "All categories",
     "allWallets": "All wallets",
+    "fieldCurrency": "Currency",
+    "currencyHint": "Spending in other currencies is converted at the latest rates.",
     "periodWeekly": "Weekly",
     "periodMonthly": "Monthly",
     "modalCreateTitle": "New budget",

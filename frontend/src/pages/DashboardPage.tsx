@@ -318,10 +318,10 @@ export function DashboardPage() {
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: 11, color: 'var(--ink-faint)' }}>
-                        {t('dashboard.budgetSpent', { amount: fmt(b.spent) })}
+                        {t('dashboard.budgetSpent', { amount: fmt(b.spent, b.currency) })}
                       </span>
                       <span style={{ fontSize: 11, color: b.is_over_budget ? 'var(--rose)' : 'var(--ink-faint)' }}>
-                        {b.is_over_budget ? t('dashboard.budgetOver', { amount: fmt(Math.abs(b.remaining)) }) : t('dashboard.budgetLeft', { amount: fmt(b.remaining) })}
+                        {b.is_over_budget ? t('dashboard.budgetOver', { amount: fmt(Math.abs(b.remaining), b.currency) }) : t('dashboard.budgetLeft', { amount: fmt(b.remaining, b.currency) })}
                       </span>
                     </div>
                   </Link>

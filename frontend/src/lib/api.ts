@@ -312,9 +312,9 @@ export const tags = {
 
 export const budgets = {
   list: () => request<BudgetResponse[]>('/budgets'),
-  create: (data: { wallet_id?: string; category_id?: string; amount: number; period: 'weekly' | 'monthly' }) =>
+  create: (data: { wallet_id?: string; category_id?: string; amount: number; currency: string; period: 'weekly' | 'monthly' }) =>
     request<BudgetResponse>('/budgets', { method: 'POST', body: JSON.stringify(data) }),
-  update: (id: string, data: { wallet_id?: string; category_id?: string; amount?: number; period?: 'weekly' | 'monthly' }) =>
+  update: (id: string, data: { wallet_id?: string; category_id?: string; amount?: number; currency?: string; period?: 'weekly' | 'monthly' }) =>
     request<BudgetResponse>(`/budgets/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   delete: (id: string) => request<void>(`/budgets/${id}`, { method: 'DELETE' }),
 };

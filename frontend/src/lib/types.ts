@@ -203,6 +203,7 @@ export interface BudgetResponse {
   wallet_id: string | null;
   category_id: string | null;
   amount: number;
+  currency: string;
   period: 'weekly' | 'monthly';
   start_date: string;
   created_at: string;

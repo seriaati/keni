@@ -5,12 +5,16 @@ import { budgets as budgetsApi, categories as categoriesApi, wallets as walletsA
 import { useToast } from '../components/ui/Toast';
 import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
+import { SearchableSelect } from '../components/ui/SearchableSelect';
+import { useAuth } from '../contexts/AuthContext';
+import { getSupportedCurrencies } from '../lib/fx';
 import type { BudgetResponse, CategoryResponse, WalletResponse } from '../lib/types';
 import { fmt } from '../lib/utils';
 
 export function BudgetsPage() {
   const { t } = useTranslation();
   const toast = useToast();
+  const { user } = useAuth();
   const [budgets, setBudgets] = useState<BudgetResponse[]>([]);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [wallets, setWallets] = useState<WalletResponse[]>([]);
@@ -19,12 +23,14 @@ export function BudgetsPage() {
   const [editBudget, setEditBudget] = useState<BudgetResponse | null>(null);
   const [deleteBudget, setDeleteBudget] = useState<BudgetResponse | null>(null);
   const [saving, setSaving] = useState(false);
+  const [currencies, setCurrencies] = useState<string[]>([]);
 
   const [form, setForm] = useState({
     amount: '',
     period: 'monthly' as 'weekly' | 'monthly',
     category_id: '',
     wallet_id: '',
+    currency: '',
   });
 
   const load = async () => {
@@ -41,10 +47,19 @@ export function BudgetsPage() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    getSupportedCurrencies().then(setCurrencies);
+  }, []);
 
   const openCreate = () => {
-    setForm({ amount: '', period: 'monthly', category_id: '', wallet_id: '' });
+    setForm({
+      amount: '',
+      period: 'monthly',
+      category_id: '',
+      wallet_id: '',
+      currency: user?.global_currency ?? wallets[0]?.currency ?? 'USD',
+    });
     setShowCreate(true);
   };
 
@@ -54,6 +69,7 @@ export function BudgetsPage() {
       period: b.period,
       category_id: b.category_id ?? '',
       wallet_id: b.wallet_id ?? '',
+      currency: b.currency,
     });
     setEditBudget(b);
   };
@@ -67,6 +83,7 @@ export function BudgetsPage() {
         period: form.period,
         category_id: form.category_id || undefined,
         wallet_id: form.wallet_id || undefined,
+        currency: form.currency,
       };
       if (editBudget) {
         await budgetsApi.update(editBudget.id, data);
@@ -140,9 +157,23 @@ export function BudgetsPage() {
         <label className="input-label">{t('budgets.fieldWallet')}</label>
         <Select
           value={form.wallet_id}
-          onChange={(v) => setForm({ ...form, wallet_id: v })}
+          onChange={(v) => setForm({
+            ...form,
+            wallet_id: v,
+            currency: wallets.find((w) => w.id === v)?.currency ?? form.currency,
+          })}
           options={[{ value: '', label: t('budgets.allWallets') }, ...wallets.map((w) => ({ value: w.id, label: w.name }))]}
         />
+      </div>
+      <div className="input-group">
+        <label className="input-label">{t('budgets.fieldCurrency')}</label>
+        <SearchableSelect
+          value={form.currency}
+          onChange={(v) => setForm({ ...form, currency: v })}
+          options={currencies.map((c) => ({ value: c, label: c }))}
+          searchPlaceholder={t('wallets.currencySearchPlaceholder')}
+        />
+        <span className="input-hint">{t('budgets.currencyHint')}</span>
       </div>
     </>
   );
@@ -225,10 +256,10 @@ export function BudgetsPage() {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                     <span style={{ fontSize: 13, color: 'var(--ink-mid)' }}>
-                      {t('budgets.spent', { amount: fmt(b.spent) })}
+                      {t('budgets.spent', { amount: fmt(b.spent, b.currency) })}
                     </span>
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
-                      {t('budgets.limit', { amount: fmt(b.amount) })}
+                      {t('budgets.limit', { amount: fmt(b.amount, b.currency) })}
                     </span>
                   </div>
                   <div className="progress-bar">
@@ -243,8 +274,8 @@ export function BudgetsPage() {
                     </span>
                     <span style={{ fontSize: 12, color: b.is_over_budget ? 'var(--rose)' : 'var(--ink-faint)' }}>
                       {b.is_over_budget
-                        ? t('budgets.over', { amount: fmt(Math.abs(b.remaining)) })
-                        : t('budgets.remaining', { amount: fmt(b.remaining) })}
+                        ? t('budgets.over', { amount: fmt(Math.abs(b.remaining), b.currency) })
+                        : t('budgets.remaining', { amount: fmt(b.remaining, b.currency) })}
                     </span>
                   </div>
                 </div>
@@ -261,7 +292,7 @@ export function BudgetsPage() {
         footer={
           <>
             <button className="btn btn-secondary btn-md" onClick={() => { setShowCreate(false); setEditBudget(null); }}>{t('common.cancel')}</button>
-            <button className="btn btn-primary btn-md" onClick={handleSave} disabled={saving || !form.amount}>
+            <button className="btn btn-primary btn-md" onClick={handleSave} disabled={saving || !form.amount || !form.currency}>
               {saving && <span className="btn-spinner" />}
               {editBudget ? t('budgets.saveChanges') : t('budgets.createBudget')}
             </button>
