@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import logging
 import operator
-import time
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
-import httpx
 from fastapi import HTTPException, status
 from sqlmodel import and_, col, select
 
@@ -26,6 +24,7 @@ from app.providers.errors import (
 )
 from app.services.ai_transaction import _decrypt_key, get_ai_provider_record
 from app.services.category_tag import find_or_create_category, find_or_create_tag
+from app.services.fx import FxUnavailableError, get_rates
 from app.services.transaction_group import counted_filter
 
 if TYPE_CHECKING:
@@ -547,11 +546,6 @@ async def _tool_get_monthly_trend(
     return {"trend": trend}
 
 
-# Cache full rates dict per base currency: {base: (rates_dict, fetched_at)}
-_fx_cache: dict[str, tuple[dict[str, float], float]] = {}
-_FX_TTL = 3600.0
-
-
 async def _tool_convert_currency(args: dict[str, Any]) -> dict[str, Any]:
     amount = float(args["amount"])
     from_cur = str(args["from_currency"]).upper()
@@ -560,21 +554,10 @@ async def _tool_convert_currency(args: dict[str, Any]) -> dict[str, Any]:
     if from_cur == to_cur:
         return {"from_currency": from_cur, "to_currency": to_cur, "rate": 1.0, "result": amount}
 
-    cached = _fx_cache.get(from_cur)
-    if cached and time.time() - cached[1] < _FX_TTL:
-        rates = cached[0]
-    else:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(f"https://api.frankfurter.dev/v2/rates?base={from_cur}")
-        if resp.status_code != 200:
-            msg = f"Exchange rate API returned {resp.status_code}"
-            raise ValueError(msg)
-        data = resp.json()
-        if not isinstance(data, list):
-            msg = "Exchange rate API error"
-            raise ValueError(msg)
-        rates = {item["quote"]: float(item["rate"]) for item in data}
-        _fx_cache[from_cur] = (rates, time.time())
+    try:
+        rates = await get_rates(from_cur)
+    except FxUnavailableError as e:
+        raise ValueError(str(e)) from e
 
     rate = rates.get(to_cur)
     if rate is None:

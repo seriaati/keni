@@ -3,14 +3,12 @@ from __future__ import annotations
 import base64
 import operator
 import re
-import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-import httpx
 from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions, RevocationOptions
 from mcp.server.fastmcp import FastMCP
@@ -34,7 +32,7 @@ from app.schemas.transaction import BulkUpdateRequest
 from app.services.budget import compute_spent
 from app.services.budget import default_currency as budget_default_currency
 from app.services.category_tag import find_or_create_category, find_or_create_tag
-from app.services.fx import FxUnavailableError
+from app.services.fx import FxUnavailableError, get_rates
 from app.services.mcp_oauth_provider import KeniOAuthProvider
 from app.services.transaction_bulk import apply_bulk_update
 from app.services.transaction_group import adjust_group_parent_amount, counted_filter, has_children
@@ -2336,10 +2334,6 @@ async def delete_budget(budget_id: str) -> dict[str, Any]:
     return {"error": "Database error"}
 
 
-_fx_cache: dict[str, tuple[dict[str, float], float]] = {}
-_FX_TTL = 3600.0
-
-
 @mcp.tool(annotations=_ann("Convert Currency", read_only=True, idempotent=True, open_world=True))
 async def convert_currency(amount: float, from_currency: str, to_currency: str) -> dict[str, Any]:
     """
@@ -2363,19 +2357,10 @@ async def convert_currency(amount: float, from_currency: str, to_currency: str) 
             "result": amount,
         }
 
-    cached = _fx_cache.get(from_cur)
-    if cached and time.time() - cached[1] < _FX_TTL:
-        rates = cached[0]
-    else:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(f"https://api.frankfurter.dev/v2/rates?base={from_cur}")
-        if resp.status_code != 200:
-            return {"error": f"Exchange rate API returned {resp.status_code}"}
-        data = resp.json()
-        if not isinstance(data, list):
-            return {"error": "Exchange rate API error"}
-        rates = {item["quote"]: float(item["rate"]) for item in data}
-        _fx_cache[from_cur] = (rates, time.time())
+    try:
+        rates = await get_rates(from_cur)
+    except FxUnavailableError as e:
+        return {"error": str(e)}
 
     rate = rates.get(to_cur)
     if rate is None:
