@@ -1,21 +1,20 @@
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import col, select
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.dependencies import get_current_user, get_db
 from app.models.budget import Budget
 from app.models.category import Category
-from app.models.transaction import Transaction
 from app.models.user import User
 from app.models.wallet import Wallet
 from app.schemas.budget import BudgetCreate, BudgetResponse, BudgetUpdate
-from app.services.transaction_group import counted_filter
+from app.services.budget import compute_spent, default_currency
+from app.services.fx import FxUnavailableError
 
 router = APIRouter(prefix="/api/budgets", tags=["budgets"])
 
@@ -35,12 +34,16 @@ async def _get_budget_or_404(
     return budget
 
 
-async def _validate_wallet(wallet_id: uuid.UUID, user_id: uuid.UUID, session: AsyncSession) -> None:
+async def _validate_wallet(
+    wallet_id: uuid.UUID, user_id: uuid.UUID, session: AsyncSession
+) -> Wallet:
     result = await session.exec(
         select(Wallet).where(Wallet.id == wallet_id, Wallet.user_id == user_id)
     )
-    if not result.first():
+    wallet = result.first()
+    if not wallet:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wallet not found")
+    return wallet
 
 
 async def _validate_category(
@@ -53,44 +56,13 @@ async def _validate_category(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
 
 
-def _period_start(period: str) -> datetime:
-    now = datetime.now(UTC)
-    if period == "weekly":
-        return now - timedelta(days=now.weekday())
-    return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-
-
-async def _compute_spent(
-    budget: Budget, session: AsyncSession, count_sub_transactions: bool
-) -> float:
-    period_start = _period_start(budget.period)
-
-    query = select(Transaction).where(
-        col(Transaction.date) >= period_start,
-        Transaction.type == "expense",
-        counted_filter(count_sub_transactions),
-    )
-
-    if budget.wallet_id is not None:
-        query = query.where(Transaction.wallet_id == budget.wallet_id)
-    else:
-        wallets_result = await session.exec(select(Wallet).where(Wallet.user_id == budget.user_id))
-        wallet_ids = [w.id for w in wallets_result.all()]
-        if not wallet_ids:
-            return 0.0
-        query = query.where(col(Transaction.wallet_id).in_(wallet_ids))
-
-    if budget.category_id is not None:
-        query = query.where(Transaction.category_id == budget.category_id)
-
-    result = await session.exec(query)
-    return sum(e.amount for e in result.all())
-
-
 async def _to_response(
     budget: Budget, session: AsyncSession, count_sub_transactions: bool
 ) -> BudgetResponse:
-    spent = await _compute_spent(budget, session, count_sub_transactions)
+    try:
+        spent = await compute_spent(budget, session, count_sub_transactions)
+    except FxUnavailableError as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e)) from e
     remaining = budget.amount - spent
     percentage_used = (spent / budget.amount * 100) if budget.amount > 0 else 0.0
     return BudgetResponse(
@@ -99,6 +71,7 @@ async def _to_response(
         wallet_id=budget.wallet_id,
         category_id=budget.category_id,
         amount=budget.amount,
+        currency=budget.currency,
         period=budget.period,
         start_date=budget.start_date,
         created_at=budget.created_at,
@@ -113,16 +86,24 @@ async def _to_response(
 async def create_budget(
     body: BudgetCreate, current_user: CurrentUser, session: DbDep
 ) -> BudgetResponse:
+    wallet = None
     if body.wallet_id is not None:
-        await _validate_wallet(body.wallet_id, current_user.id, session)
+        wallet = await _validate_wallet(body.wallet_id, current_user.id, session)
     if body.category_id is not None:
         await _validate_category(body.category_id, current_user.id, session)
+
+    currency = body.currency or default_currency(current_user, wallet)
+    if not currency:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="currency is required"
+        )
 
     budget = Budget(
         user_id=current_user.id,
         wallet_id=body.wallet_id,
         category_id=body.category_id,
         amount=body.amount,
+        currency=currency.upper(),
         period=body.period,
     )
     session.add(budget)
@@ -152,6 +133,8 @@ async def update_budget(
         budget.category_id = body.category_id
     if body.amount is not None:
         budget.amount = body.amount
+    if body.currency is not None:
+        budget.currency = body.currency.upper()
     if body.period is not None:
         budget.period = body.period
 

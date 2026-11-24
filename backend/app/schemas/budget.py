@@ -11,6 +11,7 @@ class BudgetCreate(BaseModel):
     wallet_id: uuid.UUID | None = None
     category_id: uuid.UUID | None = None
     amount: float = Field(gt=0)
+    currency: str | None = Field(default=None, min_length=1, max_length=10)
     period: PeriodType
 
 
@@ -18,6 +19,7 @@ class BudgetUpdate(BaseModel):
     wallet_id: uuid.UUID | None = None
     category_id: uuid.UUID | None = None
     amount: float | None = Field(default=None, gt=0)
+    currency: str | None = Field(default=None, min_length=1, max_length=10)
     period: PeriodType | None = None
 
 
@@ -27,6 +29,7 @@ class BudgetResponse(BaseModel):
     wallet_id: uuid.UUID | None
     category_id: uuid.UUID | None
     amount: float
+    currency: str
     period: str
     start_date: datetime
     created_at: datetime

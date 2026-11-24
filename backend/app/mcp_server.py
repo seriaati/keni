@@ -6,7 +6,7 @@ import re
 import time
 import uuid
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -31,7 +31,10 @@ from app.models.user import User
 from app.models.wallet import Wallet
 from app.schemas.color import COLOR_PATTERN
 from app.schemas.transaction import BulkUpdateRequest
+from app.services.budget import compute_spent
+from app.services.budget import default_currency as budget_default_currency
 from app.services.category_tag import find_or_create_category, find_or_create_tag
+from app.services.fx import FxUnavailableError
 from app.services.mcp_oauth_provider import KeniOAuthProvider
 from app.services.transaction_bulk import apply_bulk_update
 from app.services.transaction_group import adjust_group_parent_amount, counted_filter, has_children
@@ -2109,35 +2112,13 @@ async def delete_recurring_transaction(wallet_id: str, recurring_id: str) -> dic
 _BUDGET_PERIODS = {"weekly", "monthly"}
 
 
-def _budget_period_start(period: str) -> datetime:
-    now = datetime.now(UTC)
-    if period == "weekly":
-        return now - timedelta(days=now.weekday())
-    return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-
-
 async def _budget_to_dict(
     budget: Budget, session: Any, count_sub_transactions: bool
 ) -> dict[str, Any]:
-    period_start = _budget_period_start(budget.period)
-    query = select(Transaction).where(
-        col(Transaction.date) >= period_start,
-        Transaction.type == "expense",
-        counted_filter(count_sub_transactions),
-    )
-    if budget.wallet_id is not None:
-        query = query.where(Transaction.wallet_id == budget.wallet_id)
-    else:
-        wallets_result = await session.exec(select(Wallet).where(Wallet.user_id == budget.user_id))
-        wallet_ids = [w.id for w in wallets_result.all()]
-        query = query.where(col(Transaction.wallet_id).in_(wallet_ids)) if wallet_ids else None
-    if query is not None and budget.category_id is not None:
-        query = query.where(Transaction.category_id == budget.category_id)
-
-    spent = 0.0
-    if query is not None:
-        result = await session.exec(query)
-        spent = sum(e.amount for e in result.all())
+    try:
+        spent = await compute_spent(budget, session, count_sub_transactions)
+    except FxUnavailableError as e:
+        return {"id": str(budget.id), "error": str(e)}
 
     percentage_used = (spent / budget.amount * 100) if budget.amount > 0 else 0.0
     return {
@@ -2145,6 +2126,7 @@ async def _budget_to_dict(
         "wallet_id": str(budget.wallet_id) if budget.wallet_id else None,
         "category_id": str(budget.category_id) if budget.category_id else None,
         "amount": budget.amount,
+        "currency": budget.currency,
         "period": budget.period,
         "start_date": budget.start_date.isoformat(),
         "created_at": budget.created_at.isoformat(),
@@ -2161,7 +2143,8 @@ async def list_budgets() -> dict[str, Any]:
     List all budgets with their current spending status.
 
     Each budget includes spent, remaining, percentage_used, and is_over_budget for the
-    current period. A budget without wallet_id covers all wallets; without category_id
+    current period, all in the budget's currency (other wallet currencies are converted at
+    latest rates). A budget without wallet_id covers all wallets; without category_id
     it covers all categories.
     """
     user = await _get_authenticated_user()
@@ -2181,6 +2164,7 @@ class CreateBudgetInput:
     period: str
     wallet_id: str | None = None
     category_id: str | None = None
+    currency: str | None = None
 
 
 @mcp.tool(annotations=_ann("Create Budget"))
@@ -2193,6 +2177,8 @@ async def create_budget(params: CreateBudgetInput) -> dict[str, Any]:  # ruff: i
         params.period: "weekly" or "monthly".
         params.wallet_id: Optional wallet UUID to scope the budget to (all wallets if omitted).
         params.category_id: Optional category UUID to scope the budget to (all categories if omitted).
+        params.currency: Currency code of the amount (e.g. USD). Defaults to the wallet's
+            currency, else the user's global currency.
     """
     user = await _get_authenticated_user()
     if params.amount <= 0:
@@ -2201,7 +2187,7 @@ async def create_budget(params: CreateBudgetInput) -> dict[str, Any]:  # ruff: i
         return {"error": "period must be 'weekly' or 'monthly'"}
 
     async for session in get_session():
-        w_id: uuid.UUID | None = None
+        wallet: Wallet | None = None
         if params.wallet_id is not None:
             parsed_w = _parse_uuid(params.wallet_id, "wallet_id")
             if isinstance(parsed_w, str):
@@ -2209,9 +2195,9 @@ async def create_budget(params: CreateBudgetInput) -> dict[str, Any]:  # ruff: i
             wallet_result = await session.exec(
                 select(Wallet).where(Wallet.id == parsed_w, Wallet.user_id == user.id)
             )
-            if not wallet_result.first():
+            wallet = wallet_result.first()
+            if not wallet:
                 return {"error": "Wallet not found"}
-            w_id = parsed_w
 
         c_id: uuid.UUID | None = None
         if params.category_id is not None:
@@ -2225,11 +2211,16 @@ async def create_budget(params: CreateBudgetInput) -> dict[str, Any]:  # ruff: i
                 return {"error": "Category not found"}
             c_id = parsed_c
 
+        currency = params.currency or budget_default_currency(user, wallet)
+        if not currency:
+            return {"error": "currency is required"}
+
         budget = Budget(
             user_id=user.id,
-            wallet_id=w_id,
+            wallet_id=wallet.id if wallet else None,
             category_id=c_id,
             amount=params.amount,
+            currency=currency.upper(),
             period=params.period,
         )
         session.add(budget)
@@ -2246,6 +2237,7 @@ class UpdateBudgetInput:
     period: str | None = None
     wallet_id: str | None = None
     category_id: str | None = None
+    currency: str | None = None
 
 
 @mcp.tool(annotations=_ann("Update Budget", destructive=True, idempotent=True))
@@ -2262,6 +2254,7 @@ async def update_budget(params: UpdateBudgetInput) -> dict[str, Any]:  # ruff: i
         params.period: New period: "weekly" or "monthly".
         params.wallet_id: New wallet UUID to scope the budget to.
         params.category_id: New category UUID to scope the budget to.
+        params.currency: New currency code for the budget amount (e.g. USD).
     """
     user = await _get_authenticated_user()
     b_id = _parse_uuid(params.budget_id, "budget_id")
@@ -2306,6 +2299,8 @@ async def update_budget(params: UpdateBudgetInput) -> dict[str, Any]:  # ruff: i
             budget.amount = params.amount
         if params.period is not None:
             budget.period = params.period
+        if params.currency:
+            budget.currency = params.currency.upper()
 
         session.add(budget)
         await session.commit()

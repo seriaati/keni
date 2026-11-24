@@ -17,6 +17,7 @@ class Budget(SQLModel, table=True):
     wallet_id: uuid.UUID | None = Field(default=None, foreign_key="wallets.id", ondelete="SET NULL")
     category_id: uuid.UUID | None = Field(default=None, foreign_key="categories.id")
     amount: float
+    currency: str = Field(max_length=10)
     period: str = Field(max_length=20)
     start_date: datetime = Field(
         default=None,
