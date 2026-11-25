@@ -86,7 +86,12 @@ export function BudgetsPage() {
         currency: form.currency,
       };
       if (editBudget) {
-        await budgetsApi.update(editBudget.id, data);
+        // null, not undefined: JSON drops undefined keys, so the PATCH could never clear the scope
+        await budgetsApi.update(editBudget.id, {
+          ...data,
+          category_id: form.category_id || null,
+          wallet_id: form.wallet_id || null,
+        });
         toast(t('budgets.toastUpdated'), 'success');
         setEditBudget(null);
       } else {

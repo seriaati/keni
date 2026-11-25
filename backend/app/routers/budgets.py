@@ -125,11 +125,13 @@ async def update_budget(
 ) -> BudgetResponse:
     budget = await _get_budget_or_404(budget_id, current_user.id, session)
 
-    if body.wallet_id is not None:
-        await _validate_wallet(body.wallet_id, current_user.id, session)
+    if "wallet_id" in body.model_fields_set:
+        if body.wallet_id is not None:
+            await _validate_wallet(body.wallet_id, current_user.id, session)
         budget.wallet_id = body.wallet_id
-    if body.category_id is not None:
-        await _validate_category(body.category_id, current_user.id, session)
+    if "category_id" in body.model_fields_set:
+        if body.category_id is not None:
+            await _validate_category(body.category_id, current_user.id, session)
         budget.category_id = body.category_id
     if body.amount is not None:
         budget.amount = body.amount
