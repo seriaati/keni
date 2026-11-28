@@ -45,11 +45,14 @@ class ParsedRecurringTransaction(BaseModel):
 
 
 class ParsedTransactionOutput(BaseModel):
+    # Generated first on purpose: the model commits to a currency before the items, and
+    # the wallet is then resolved from it.
+    currency: str | None = None
+    suggested_wallet_name: str | None = None
     result_type: Literal["single", "multiple", "group", "recurring"]
     expenses: list[ParsedTransaction]
     group: ParsedTransactionGroupInfo | None = None
     recurring: ParsedRecurringTransaction | None = None
-    suggested_wallet_name: str | None = None
 
 
 @dataclass
@@ -263,9 +266,20 @@ def build_parse_prompt(  # ruff: ignore[too-many-arguments]
         wallet_list = ", ".join(f"{name} ({currency})" for name, currency in wallets)
         prompt += f"Available wallets: {wallet_list}\n"
         prompt += (
-            "Set suggested_wallet_name to the wallet name that best matches the transaction "
-            "(based on currency or context). If only one wallet exists or none clearly matches, "
-            "set it to null.\n"
+            "Set currency to the ISO 4217 code of the money in the input, judged from the "
+            "evidence below, in order:\n"
+            "1. Explicit code or symbol: NT$/NTD/TWD -> TWD, HK$ -> HKD, US$ -> USD, "
+            "円/税込/税抜 -> JPY, RMB/人民币 -> CNY, 원/₩ -> KRW, € -> EUR, £ -> GBP.\n"
+            "2. Script and wording, for bare ¥, 元 or $: Japanese kana (ひらがな/カタカナ) or "
+            "Japanese-only terms (領収書, 税込, お会計) -> JPY; Traditional Chinese (發票, 統一編號, "
+            "總計, 台北, 新台幣) -> TWD; Simplified Chinese (发票, 合计, 支付宝, 微信支付) -> CNY. "
+            "Chinese characters alone do NOT mean Japanese; Japanese text almost always "
+            "contains kana.\n"
+            "3. Place names, store chains, or tax formats in the input.\n"
+            "Set it to null only if there is no evidence at all.\n"
+            "Set suggested_wallet_name to the exact name (without the currency in parentheses) "
+            "of the wallet whose currency equals currency; if several share it, pick by "
+            "context. Null if no wallet fits.\n"
         )
     if custom_prompt:
         prompt += f"Custom instructions: {custom_prompt}\n"

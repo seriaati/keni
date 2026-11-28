@@ -241,7 +241,6 @@ async def parse_transactions_with_ai(  # ruff: ignore[too-many-locals, too-many-
     category_names = [c.name for c in existing_categories]
     tag_names = [t.name for t in existing_tags]
     wallet_context = [(w.name, w.currency) for w in user_wallets]
-    wallet_by_name = {w.name.lower(): str(w.id) for w in user_wallets}
 
     model = record.attachment_model if images and record.attachment_model else record.model
     try:
@@ -373,17 +372,33 @@ async def parse_transactions_with_ai(  # ruff: ignore[too-many-locals, too-many-
     if output.recurring is not None:
         enriched_recurring = _enrich_recurring(output.recurring)
 
-    suggested_wallet_id: str | None = None
-    if output.suggested_wallet_name:
-        suggested_wallet_id = wallet_by_name.get(output.suggested_wallet_name.lower())
+    suggested_wallet = _resolve_wallet(user_wallets, output.currency, output.suggested_wallet_name)
 
     return ParsedTransactionsResult(
         result_type=output.result_type,
         expenses=enriched_transactions,
         group=enriched_group,
         recurring=enriched_recurring,
-        suggested_wallet_id=suggested_wallet_id,
+        suggested_wallet_id=str(suggested_wallet.id) if suggested_wallet else None,
     )
+
+
+def _resolve_wallet(
+    wallets: Sequence[Wallet], currency: str | None, wallet_name: str | None
+) -> Wallet | None:
+    # Models often name a wallet that contradicts the currency they detected, so the
+    # currency decides and the name only breaks ties between wallets sharing it.
+    # The prompt lists wallets as "Name (CUR)" and models sometimes echo the suffix.
+    name = (wallet_name or "").rsplit(" (", 1)[0].strip().lower()
+    named = next((w for w in wallets if w.name.lower() == name), None)
+    if not currency:
+        return named
+    same_currency = [w for w in wallets if w.currency.upper() == currency.strip().upper()]
+    if len(same_currency) == 1:
+        return same_currency[0]
+    if named in same_currency:
+        return named
+    return None if same_currency else named
 
 
 @dataclass
